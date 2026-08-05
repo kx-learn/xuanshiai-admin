@@ -1,0 +1,648 @@
+- generic [ref=f34e1]:
+  - generic [ref=f34e5]:
+    - complementary [ref=f34e7]:
+      - generic [ref=f34e8]:
+        - menu [ref=f34e11]:
+          - menuitem [ref=f34e12] [cursor=pointer]:
+            - link "概览" [ref=f34e15]:
+              - /url: /admin/home
+          - generic [ref=f34e16] [cursor=pointer]: 平台账号
+          - generic [ref=f34e19] [cursor=pointer]: 客源线索
+          - generic [ref=f34e22] [cursor=pointer]: 会员CRM
+          - generic [ref=f34e25] [cursor=pointer]: 会员服务
+          - generic [ref=f34e28] [cursor=pointer]: 总店红娘
+          - generic [ref=f34e31] [cursor=pointer]: 分店管理
+          - generic [ref=f34e34] [cursor=pointer]: 推广红娘
+          - generic [ref=f34e37] [cursor=pointer]: 合伙红娘
+          - generic [ref=f34e40] [cursor=pointer]: 活动报名
+          - generic [ref=f34e43] [cursor=pointer]: 商家联盟
+          - list [ref=f34e46]:
+            - menuitem [ref=f34e47] [cursor=pointer]:
+              - link "运营方案" [ref=f34e49]:
+                - /url: /admin/active-alliance
+            - menuitem [ref=f34e50] [cursor=pointer]:
+              - link "功能配置" [ref=f34e52]:
+                - /url: /admin/merchant-alliance-config
+            - menuitem [ref=f34e53] [cursor=pointer]:
+              - link "商家管理" [ref=f34e55]:
+                - /url: /admin/merchant-management
+            - menuitem [ref=f34e56] [cursor=pointer]:
+              - link "商品管理" [ref=f34e58]:
+                - /url: /admin/merchant-product
+            - menuitem [ref=f34e59] [cursor=pointer]:
+              - link "订单管理" [ref=f34e61]:
+                - /url: /admin/merchant-order
+          - generic [ref=f34e62] [cursor=pointer]: 短视频
+          - generic [ref=f34e65] [cursor=pointer]: 运营工具
+          - generic [ref=f34e68] [cursor=pointer]: 财务管理
+          - generic [ref=f34e71] [cursor=pointer]: 系统管理
+          - generic [ref=f34e74] [cursor=pointer]: 平台配置
+          - generic [ref=f34e77] [cursor=pointer]: 公众号
+          - generic [ref=f34e80] [cursor=pointer]: 小程序
+          - menuitem [ref=f34e83] [cursor=pointer]:
+            - link "应用中心" [ref=f34e86]:
+              - /url: /admin/plugin-center
+          - menuitem [ref=f34e87] [cursor=pointer]:
+            - link "婚创学苑" [ref=f34e90]:
+              - /url: /admin/operate-center
+          - generic [ref=f34e91] [cursor=pointer]: 官方服务
+        - menu [ref=f34e95]:
+          - menuitem [ref=f34e96] [cursor=pointer]:
+            - img "menu-fold" [ref=f34e99]
+    - generic [ref=f34e102]:
+      - generic [ref=f34e105]:
+        - generic [ref=f34e106]:
+          - generic [ref=f34e107]:
+            - generic [ref=f34e108] [cursor=pointer]: 红娘课堂
+            - link "婚创学苑" [ref=f34e110] [cursor=pointer]:
+              - /url: /admin/operate-center
+            - generic [ref=f34e112] [cursor=pointer]:
+              - img "picture" [ref=f34e113]
+              - text: 云端图库
+            - generic [ref=f34e117]:
+              - textbox "输入会员昵称/手机/编号/姓名" [ref=f34e118]
+              - img "search" [ref=f34e120] [cursor=pointer]
+            - link "手机版" [ref=f34e123] [cursor=pointer]:
+              - /url: javascript:void(0);
+            - link "电脑版" [ref=f34e125] [cursor=pointer]:
+              - /url: /
+            - link "红娘工作台" [ref=f34e127] [cursor=pointer]:
+              - /url: /crm/home
+          - generic [ref=f34e129]:
+            - link [ref=f34e130] [cursor=pointer]:
+              - /url: /admin/home
+            - generic [ref=f34e132]: 当前版本：V9.0
+            - generic [ref=f34e134]:
+              - generic [ref=f34e135] [cursor=pointer]:
+                - text: 更新报告
+                - generic [ref=f34e136]: "187"
+              - link "工单反馈" [ref=f34e137] [cursor=pointer]:
+                - /url: /admin/system-feedback
+              - generic [ref=f34e138] [cursor=pointer]: 用好系统
+              - generic [ref=f34e139]: 充值
+        - generic [ref=f34e141] [cursor=pointer]:
+          - img "user" [ref=f34e143]
+          - generic [ref=f34e146]: shushu
+      - main [ref=f34e147]:
+        - generic [ref=f34e149]:
+          - generic [ref=f34e150]:
+            - link "首页" [ref=f34e152] [cursor=pointer]:
+              - /url: /admin/
+            - text: /
+          - generic [ref=f34e153]:
+            - generic [ref=f34e154]:
+              - link "商家联盟" [ref=f34e156] [cursor=pointer]:
+                - /url: /admin/merchant-wrap
+              - img "down" [ref=f34e157]
+            - text: /
+          - generic [ref=f34e160]: 运营方案
+        - generic [ref=f34e165]:
+          - generic [ref=f34e166]: 联盟商家使用指导
+          - generic [ref=f34e167]:
+            - heading [level=4] [ref=f34e168]:
+              - paragraph [ref=f34e169]: 一、商家联盟系统的价值与应用
+            - paragraph [ref=f34e170]: 商家联盟系统是一套多商家线上商城系统，拥有商品发布、商家展示、下单支付、订单管理、消费券核销、分成结算、提现等整套完善的功能。并在本系统中与“推广红娘”的角色和功能进行了深入结合。本商城系统能够帮助婚恋平台大大提升商家异业合作的意愿、借助商家为平台获取单身客源，规范化商家合作流程，信息公开透明，完美解决不诚信商家逃单、漏单行为，为您的业务合作拓展带来更多的发挥空间和实施更具竞争力的运营方案。
+            - paragraph [ref=f34e171]
+            - heading "二、商家与婚恋平台的业务逻辑" [level=4] [ref=f34e173]:
+              - paragraph [ref=f34e174]
+              - paragraph [ref=f34e175]:
+                - generic [ref=f34e176]: 二、商家与婚恋平台的业务逻辑
+            - paragraph [ref=f34e177]: 商家通常是指与您平台达成互相推广、业务合作关系的一方（例如：美食、鲜花、休闲娱乐、婚庆、酒店、婚纱摄影等），合作商家可以在您的平台中获得展示推广、并与平台合作制定专属的消费套餐、代金券（需与其他平台套餐有差异），供平台进行推广售卖。商家在平台中的另一个必备角色是“推广红娘”，拥有独立的“推广红娘管理中心”，商家可以在其私域转发海报、链接、活动、在门店中悬挂宣传海报、打造比如“缘分空间”“恰巧遇到你”“小小相亲角”等为平台进行获客推广，其获客情况、分成情况均可在“推广红娘中心”查看，公开透明。
+            - heading [level=4] [ref=f34e178]:
+              - paragraph [ref=f34e179]
+              - paragraph [ref=f34e180]: 三、商家入驻-商品发布流程
+            - paragraph [ref=f34e181]: 1、商家需在您平台中注册账号，并成为推广红娘身份
+            - paragraph [ref=f34e182]: 2、由管理员在系统后台添加商家店铺、发布商品
+            - paragraph [ref=f34e183]: 3、商家资料、商品信息、订单均由平台统一管理与维护
+            - paragraph [ref=f34e184]: 4、商家可以在“推广红娘中心-商家联盟”中查看商品信息、订单信息、核销记录，以及核销订单
+            - paragraph [ref=f34e185]
+            - paragraph [ref=f34e187]
+            - heading [level=4] [ref=f34e188]:
+              - paragraph [ref=f34e189]: 四、客户下单-支付-消费流程
+            - paragraph [ref=f34e190]: 红娘在牵线过程中（无论线上还是线下），将合作商家作为约会指定地点推荐给会员，引导下单购买消费券，可以把红娘理解成是商家推广员，客户在线支付购买所需商家的套餐或代金券、到店出示6位数的消费码或二维码给商家员工扫码即可完成核销
+            - paragraph [ref=f34e191]
+            - paragraph [ref=f34e193]
+            - heading [level=4] [ref=f34e194]:
+              - paragraph [ref=f34e195]: 五、订单分成-结算-提现流程
+            - paragraph [ref=f34e196]: 1、客户下单所支付金额均是到账于您的平台（微信商户账号）中，客户到店核销完成消费后，平台自动按照分成金额计入到该商家在平台中的推广红娘账号，并可随时申请与平台提现，再由您平台转账给商家进行支付结算。
+            - paragraph [ref=f34e197]: 2、每个商品均可以独立设置给予商家、推广红娘、服务红娘的分成金额，
+            - paragraph [ref=f34e198]
+            - paragraph [ref=f34e200]: 3、会员前往商家消费核销之后，所属推广红娘、服务红娘也自动获得对应的分成，其金额会自动计入到其平台账号的余额中，每一笔都会有记录
+            - paragraph [ref=f34e201]
+            - paragraph [ref=f34e204]: 4、系统后台拥有强大的订单管理功能，平台管理员可以查阅到每一笔订单的明细、核销情况情
+            - paragraph [ref=f34e206]: 5、系统后台的财务管理中可以通过选择“商品销售”类别，统计销售数据报表，在“红娘分成明细”中能看每一笔分成情况
+            - paragraph [ref=f34e207]: 6、商家、红娘可以平台中随时申请提现，平台可以通过自动提现到微信零钱和人工审核转账两种模式完成结算
+            - paragraph [ref=f34e208]
+  - generic [ref=f34e214]:
+    - button "Close" [ref=f34e215] [cursor=pointer]:
+      - img "close" [ref=f34e216]
+    - generic [ref=f34e219]: 详情
+  - generic [ref=f34e223]:
+    - generic [ref=f34e224]:
+      - generic [ref=f34e225]:
+        - button "Close" [ref=f34e226] [cursor=pointer]:
+          - img "close" [ref=f34e227]
+        - generic [ref=f34e230]: 添加反馈
+      - generic [ref=f34e231]:
+        - button "取 消" [ref=f34e232] [cursor=pointer]
+        - button "确定提交" [ref=f34e234] [cursor=pointer]
+    - generic [ref=f34e237]:
+      - generic [ref=f34e238]:
+        - generic "反馈类型" [ref=f34e240]
+        - generic [ref=f34e244]:
+          - generic [ref=f34e245] [cursor=pointer]:
+            - radio "BUG反馈" [ref=f34e247]
+            - generic [ref=f34e249]: BUG反馈
+          - generic [ref=f34e250] [cursor=pointer]:
+            - radio "使用咨询" [ref=f34e252]
+            - generic [ref=f34e254]: 使用咨询
+          - generic [ref=f34e255] [cursor=pointer]:
+            - radio "需求建议" [checked] [ref=f34e257]
+            - generic [ref=f34e259]: 需求建议
+          - generic [ref=f34e260] [cursor=pointer]:
+            - radio "故障诊断" [ref=f34e262]
+            - generic [ref=f34e264]: 故障诊断
+          - generic [ref=f34e265] [cursor=pointer]:
+            - radio "其他" [ref=f34e267]
+            - generic [ref=f34e269]: 其他
+      - generic [ref=f34e270]:
+        - generic "反馈内容" [ref=f34e272]: "* 反馈内容"
+        - generic [ref=f34e276]:
+          - generic [ref=f34e277]:
+            - generic [ref=f34e278] [cursor=pointer]: 
+            - generic [ref=f34e280] [cursor=pointer]: 
+            - generic [ref=f34e282] [cursor=pointer]: 
+            - generic [ref=f34e284] [cursor=pointer]: 
+            - generic [ref=f34e286] [cursor=pointer]: 
+            - generic [ref=f34e288] [cursor=pointer]: 
+            - generic [ref=f34e290] [cursor=pointer]: 
+            - generic [ref=f34e292] [cursor=pointer]: 
+            - generic [ref=f34e294] [cursor=pointer]: 
+            - generic [ref=f34e296] [cursor=pointer]: 
+            - generic [ref=f34e298] [cursor=pointer]: 
+            - generic [ref=f34e300] [cursor=pointer]: 
+            - generic [ref=f34e302] [cursor=pointer]: 
+            - generic [ref=f34e304] [cursor=pointer]: 
+            - generic [ref=f34e306] [cursor=pointer]: 
+            - generic [ref=f34e308] [cursor=pointer]: 
+            - generic [ref=f34e310] [cursor=pointer]: 
+            - generic [ref=f34e312] [cursor=pointer]: 
+            - generic [ref=f34e314] [cursor=pointer]: 
+            - generic [ref=f34e316] [cursor=pointer]: 
+            - generic [ref=f34e318] [cursor=pointer]: 
+            - generic [ref=f34e320] [cursor=pointer]: 
+            - generic [ref=f34e322] [cursor=pointer]: 
+            - generic [ref=f34e324] [cursor=pointer]: 
+            - generic [ref=f34e326] [cursor=pointer]: 
+          - generic [ref=f34e328]:
+            - paragraph [ref=f34e330]
+            - generic [ref=f34e331]: 请输入正文
+      - generic [ref=f34e332]:
+        - generic "手机" [ref=f34e334]: "* 手机"
+        - textbox "* 手机" [ref=f34e338]:
+          - /placeholder: ""
+      - generic [ref=f34e339]:
+        - generic "微信" [ref=f34e341]
+        - textbox "微信" [ref=f34e345]:
+          - /placeholder: ""
+      - generic [ref=f34e346]:
+        - generic "QQ" [ref=f34e348]
+        - textbox "QQ" [ref=f34e352]:
+          - /placeholder: ""
+  - generic [ref=f34e355]:
+    - generic [ref=f34e357]:
+      - button "Close" [ref=f34e358] [cursor=pointer]:
+        - img "close" [ref=f34e359]
+      - generic [ref=f34e362]: 充值
+    - generic [ref=f34e363]:
+      - generic [ref=f34e364]:
+        - generic [ref=f34e365]: 须知
+        - generic [ref=f34e367]: 为了避免由于短信或者人脸核验的余量不足影响到平台运营，请及时安排充值，充值费用由系统服务商支付到腾讯云。
+      - generic [ref=f34e368]:
+        - generic [ref=f34e369]:
+          - generic [ref=f34e370]: 短信当前余量
+          - generic [ref=f34e371]: 9418条
+        - generic [ref=f34e372]:
+          - generic [ref=f34e373]: 人脸核验当前余量
+          - generic [ref=f34e374]: 786条
+        - generic [ref=f34e375]:
+          - generic [ref=f34e376]: 电子合同当前余量
+          - generic [ref=f34e377]: 150条
+        - generic [ref=f34e378]:
+          - generic [ref=f34e379]: 婚姻状况权威数据查询余量
+          - generic [ref=f34e380]: 1次
+      - generic [ref=f34e381]:
+        - text: 短信余量充值
+        - generic [ref=f34e382]:
+          - img "exclamation-circle" [ref=f34e383]
+          - text: 费用标准与“腾讯云-国内短信资源包"一致
+      - generic [ref=f34e387]:
+        - generic [ref=f34e389]:
+          - generic [ref=f34e390]:
+            - generic [ref=f34e391]: 短信1000条
+            - generic [ref=f34e392]: ¥51
+          - button "充 值" [ref=f34e394] [cursor=pointer]
+        - generic [ref=f34e397]:
+          - generic [ref=f34e398]:
+            - generic [ref=f34e399]: 短信5000条
+            - generic [ref=f34e400]: ¥250
+          - button "充 值" [ref=f34e402] [cursor=pointer]
+        - generic [ref=f34e405]:
+          - generic [ref=f34e406]:
+            - generic [ref=f34e407]: 短信10000条
+            - generic [ref=f34e408]: ¥470
+          - button "充 值" [ref=f34e410] [cursor=pointer]
+      - generic [ref=f34e412]:
+        - text: 人脸核验余量充值
+        - generic [ref=f34e413]:
+          - img "exclamation-circle" [ref=f34e414]
+          - text: 费用标准与“腾讯云-人脸核身资源包-增强版人脸核身(权威库)"一致
+      - generic [ref=f34e418]:
+        - generic [ref=f34e420]:
+          - generic [ref=f34e421]:
+            - generic [ref=f34e422]: 实名认证100条
+            - generic [ref=f34e423]: ¥120
+          - button "充 值" [ref=f34e425] [cursor=pointer]
+        - generic [ref=f34e428]:
+          - generic [ref=f34e429]:
+            - generic [ref=f34e430]: 实名认证300条
+            - generic [ref=f34e431]: ¥360
+          - button "充 值" [ref=f34e433] [cursor=pointer]
+        - generic [ref=f34e436]:
+          - generic [ref=f34e437]:
+            - generic [ref=f34e438]: 实名认证1000条
+            - generic [ref=f34e439]: ¥1150
+          - button "充 值" [ref=f34e441] [cursor=pointer]
+      - generic [ref=f34e443]:
+        - text: 电子合同余量充值
+        - generic [ref=f34e444]:
+          - img "exclamation-circle" [ref=f34e445]
+          - text: 费用标准与“腾讯电子签"一致
+      - generic [ref=f34e449]:
+        - generic [ref=f34e451]:
+          - generic [ref=f34e452]:
+            - generic [ref=f34e453]: 电子签合同3份体验
+            - generic [ref=f34e454]: ¥10
+          - button "充 值" [ref=f34e456] [cursor=pointer]
+        - generic [ref=f34e459]:
+          - generic [ref=f34e460]:
+            - generic [ref=f34e461]: 电子签合同100份
+            - generic [ref=f34e462]: ¥300
+          - button "充 值" [ref=f34e464] [cursor=pointer]
+        - generic [ref=f34e467]:
+          - generic [ref=f34e468]:
+            - generic [ref=f34e469]: 电子签合同300份
+            - generic [ref=f34e470]: ¥840
+          - button "充 值" [ref=f34e472] [cursor=pointer]
+      - generic [ref=f34e474]: 婚姻状况权威数据查询余量充值
+      - generic [ref=f34e475]:
+        - generic [ref=f34e477]:
+          - generic [ref=f34e478]:
+            - generic [ref=f34e479]: 婚况核验5次体验
+            - generic [ref=f34e480]: ¥10
+          - button "充 值" [ref=f34e482] [cursor=pointer]
+        - generic [ref=f34e485]:
+          - generic [ref=f34e486]:
+            - generic [ref=f34e487]: 婚况核验100次
+            - generic [ref=f34e488]: ¥99
+          - button "充 值" [ref=f34e490] [cursor=pointer]
+        - generic [ref=f34e493]:
+          - generic [ref=f34e494]:
+            - generic [ref=f34e495]: 婚况核验500次
+            - generic [ref=f34e496]: ¥480
+          - button "充 值" [ref=f34e498] [cursor=pointer]
+  - generic [ref=f34e502]:
+    - generic [ref=f34e503]:
+      - generic [ref=f34e504]: 系统更新消息
+      - button "关 闭" [ref=f34e507] [cursor=pointer]
+    - generic [ref=f34e510]:
+      - generic [ref=f34e512]:
+        - generic [ref=f34e514]:
+          - textbox "输入关键词搜索" [ref=f34e515]
+          - button [ref=f34e517] [cursor=pointer]:
+            - img "search" [ref=f34e518]
+        - generic [ref=f34e521]:
+          - tablist [ref=f34e522]:
+            - generic [ref=f34e524]:
+              - tab "全部" [selected] [ref=f34e526] [cursor=pointer]
+              - tab "功能升级" [ref=f34e528] [cursor=pointer]
+              - tab "细节改进" [ref=f34e530] [cursor=pointer]
+              - tab "新功能" [ref=f34e532] [cursor=pointer]
+              - tab "BUG修复" [ref=f34e534] [cursor=pointer]
+              - tab "其他更新" [ref=f34e536] [cursor=pointer]
+          - generic:
+            - generic:
+              - tabpanel "全部"
+      - generic [ref=f34e538]:
+        - generic [ref=f34e540] [cursor=pointer]:
+          - generic [ref=f34e541]: 新功能新增了客户婚姻状态查询功能
+          - generic [ref=f34e543]: 2026-07-08 09:11:03
+        - generic [ref=f34e545] [cursor=pointer]:
+          - generic [ref=f34e546]: 细节改进会员资料页进行了全新改版
+          - generic [ref=f34e548]: 2026-07-08 09:09:47
+        - generic [ref=f34e550] [cursor=pointer]:
+          - generic [ref=f34e551]: 功能升级新增了账号注销功能
+          - generic [ref=f34e553]: 2026-07-08 09:08:17
+        - generic [ref=f34e555] [cursor=pointer]:
+          - generic [ref=f34e556]: 新功能线上互选活动使用指南
+          - generic [ref=f34e557]: 2025-05-25 12:57:20
+        - generic [ref=f34e559] [cursor=pointer]:
+          - generic [ref=f34e560]: 细节改进后台平台账号-账号管理的注销申请TAB内，新增了账号注销流程图示链接
+          - generic [ref=f34e562]: 2026-07-08 09:54:14
+        - generic [ref=f34e564] [cursor=pointer]:
+          - generic [ref=f34e565]: 细节改进前台会员中心关注平台和用户协议页面进行了更新
+          - generic [ref=f34e567]: 2026-07-08 09:51:34
+        - generic [ref=f34e569] [cursor=pointer]:
+          - generic [ref=f34e570]: 细节改进小程序首页去除了“开通会员”文字
+          - generic [ref=f34e572]: 2026-07-08 09:41:35
+        - generic [ref=f34e574] [cursor=pointer]:
+          - generic [ref=f34e575]: 细节改进会员管理页面顶部的“来源”修改为了“登记”，以保持页面统一
+          - generic [ref=f34e577]: 2026-07-08 09:39:18
+        - generic [ref=f34e579] [cursor=pointer]:
+          - generic [ref=f34e580]: 功能升级会员CRM-会员资料管理中vip项改进为了可多选
+          - generic [ref=f34e582]: 2026-07-08 09:37:43
+        - generic [ref=f34e584] [cursor=pointer]:
+          - generic [ref=f34e585]: 功能升级红娘平台增加了-云端素材库
+          - generic [ref=f34e587]: 2026-07-08 09:36:52
+        - generic [ref=f34e589] [cursor=pointer]:
+          - generic [ref=f34e590]: 功能升级线上互选中增加了搜索筛选、显示排序功能
+          - generic [ref=f34e592]: 2026-07-08 09:35:59
+        - generic [ref=f34e594] [cursor=pointer]:
+          - generic [ref=f34e595]: 细节改进互选活动-改进了二维码预览的样式
+          - generic [ref=f34e597]: 2026-07-08 09:33:38
+        - generic [ref=f34e599] [cursor=pointer]:
+          - generic [ref=f34e600]: BUG修复修复了管理员后台会员的超级管理中编辑绑定账号不显示会员手机号的问题
+          - generic [ref=f34e602]: 2026-07-08 09:31:36
+        - generic [ref=f34e604] [cursor=pointer]:
+          - generic [ref=f34e605]: 细节改进加长了昵称长度为14个汉字（28个字符长度）
+          - generic [ref=f34e607]: 2026-07-08 09:30:45
+        - generic [ref=f34e609] [cursor=pointer]:
+          - generic [ref=f34e610]: BUG修复修复了会员CRM-跟进全览按编号搜索不起作用的问题
+          - generic [ref=f34e612]: 2026-07-08 09:28:10
+        - generic [ref=f34e614] [cursor=pointer]:
+          - generic [ref=f34e615]: 细节改进平台首页弹出层改版了新的样式
+          - generic [ref=f34e617]: 2026-07-08 09:26:52
+        - generic [ref=f34e619] [cursor=pointer]:
+          - generic [ref=f34e620]: 功能升级会员详情页尾部导航进行了功能升级
+          - generic [ref=f34e622]: 2026-07-08 09:25:48
+        - generic [ref=f34e624] [cursor=pointer]:
+          - generic [ref=f34e625]: 功能升级活动报名的编辑中增加了“云端素材”选择功能
+          - generic [ref=f34e627]: 2026-07-08 09:23:57
+        - generic [ref=f34e629] [cursor=pointer]:
+          - generic [ref=f34e630]: 细节改进运营工具-自由收款-收款订单功能做出了改进
+          - generic [ref=f34e632]: 2026-07-08 09:22:13
+        - generic [ref=f34e634] [cursor=pointer]:
+          - generic [ref=f34e635]: BUG修复修复了前台会员中心-向我申请的牵线统计中出现未支付状态记录的问题
+          - generic [ref=f34e637]: 2026-07-08 09:19:09
+        - generic [ref=f34e639] [cursor=pointer]:
+          - generic [ref=f34e640]: 细节改进后台-平台配置-平台而已的会员资料页新增了资料页设计效果展示功能
+          - generic [ref=f34e642]: 2026-07-08 09:17:33
+        - generic [ref=f34e644] [cursor=pointer]:
+          - generic [ref=f34e645]: 细节改进会员详情页vip升级弹出提示层做出了更新
+          - generic [ref=f34e647]: 2026-07-08 09:16:03
+        - generic [ref=f34e649] [cursor=pointer]:
+          - generic [ref=f34e650]: 功能升级实名认证功能增加了收费功能
+          - generic [ref=f34e652]: 2026-07-08 09:14:43
+        - generic [ref=f34e654] [cursor=pointer]:
+          - generic [ref=f34e655]: 细节改进小程序的红娘平台会员管理中新增了复制资料按钮
+          - generic [ref=f34e657]: 2026-06-24 10:35:52
+        - generic [ref=f34e659] [cursor=pointer]:
+          - generic [ref=f34e660]: 细节改进前台-资料推广这里内容改进了排版可以放更长的资料了
+          - generic [ref=f34e662]: 2026-06-23 16:56:45
+        - generic [ref=f34e664] [cursor=pointer]:
+          - generic [ref=f34e665]: 细节改进后台-平台配置-基本配置中部分设置移动到权限配置-其它权限配置中
+          - generic [ref=f34e667]: 2026-06-23 16:40:14
+        - generic [ref=f34e669] [cursor=pointer]:
+          - generic [ref=f34e670]: 细节改进后台-财务-收入明细中，“付款会员”增加了查看资料链接
+          - generic [ref=f34e672]: 2026-06-23 16:37:21
+        - generic [ref=f34e674] [cursor=pointer]:
+          - generic [ref=f34e675]: 细节改进商家商品分成改进为一键注册绑定归属关系，即可给予推广人商品销售分成
+          - generic [ref=f34e677]: 2026-06-09 11:16:31
+        - generic [ref=f34e679] [cursor=pointer]:
+          - generic [ref=f34e680]: 功能升级云端图库功能进行了升级
+          - generic [ref=f34e682]: 2026-06-09 10:42:39
+        - generic [ref=f34e684] [cursor=pointer]:
+          - generic [ref=f34e685]: 细节改进当后台只设置了一个展示样式时，前台改进为了不显示切换按钮
+          - generic [ref=f34e687]: 2026-06-09 10:37:02
+        - generic [ref=f34e689] [cursor=pointer]:
+          - generic [ref=f34e690]: 细节改进后台顶部菜单做了改进
+          - generic [ref=f34e692]: 2026-06-09 10:26:50
+        - generic [ref=f34e694] [cursor=pointer]:
+          - generic [ref=f34e695]: 功能升级增加了新的短信通知：有人对未实名客户发起牵线，短信通知被牵线人提醒认证
+          - generic [ref=f34e697]: 2026-06-05 17:44:52
+        - generic [ref=f34e699] [cursor=pointer]:
+          - generic [ref=f34e700]: 细节改进添加服务红娘时，增加了合伙人的重复检测，避免把合伙人添加为服务红娘
+          - generic [ref=f34e702]: 2026-06-05 09:56:57
+        - generic [ref=f34e704] [cursor=pointer]:
+          - generic [ref=f34e705]: BUG修复后台系统日志里后台密码修改日志中时间项修改了标题，以避免误解
+          - generic [ref=f34e707]: 2026-06-05 09:55:55
+        - generic [ref=f34e709] [cursor=pointer]:
+          - generic [ref=f34e710]: BUG修复修复了批量相亲卡/会员分区 按会员标签统计结果数量不正确的问题
+          - generic [ref=f34e712]: 2026-06-05 09:45:30
+        - generic [ref=f34e714] [cursor=pointer]:
+          - generic [ref=f34e715]: BUG修复小程序4.1.96版本取消了我的账号中绑定微信一栏，避免用户误会没有绑定微信
+          - generic [ref=f34e717]: 2026-06-05 09:43:49
+        - generic [ref=f34e719] [cursor=pointer]:
+          - generic [ref=f34e720]: BUG修复修复了单页设置可见权限后，前台访问提示登陆后未跳回当前单页的问题
+          - generic [ref=f34e722]: 2026-06-05 09:38:37
+        - generic [ref=f34e724] [cursor=pointer]:
+          - generic [ref=f34e725]: 细节改进活动-报名字段中增加了“身份证号”字段
+          - generic [ref=f34e727]: 2026-06-02 16:04:24
+        - generic [ref=f34e729] [cursor=pointer]:
+          - generic [ref=f34e730]: 功能升级后台会员认证-实名认证增加了身份证信息判断显示
+          - generic [ref=f34e732]: 2026-06-02 15:54:52
+        - generic [ref=f34e734] [cursor=pointer]:
+          - generic [ref=f34e735]: 功能升级后台“红娘说”中增加了可以上传图片的功能
+          - generic [ref=f34e737]: 2026-05-29 18:07:25
+        - generic [ref=f34e739] [cursor=pointer]:
+          - generic [ref=f34e740]: 功能升级内容单页增加了“仅VIP会员可浏览”功能
+          - generic [ref=f34e741]: 2026-05-28 14:02:49
+        - generic [ref=f34e743] [cursor=pointer]:
+          - generic [ref=f34e744]: 细节改进批量相亲卡中线下vip选项新增了“否”的设置项
+          - generic [ref=f34e745]: 2026-05-28 10:01:26
+        - generic [ref=f34e747] [cursor=pointer]:
+          - generic [ref=f34e748]: 功能升级分店店长红娘在红娘平台-会员资料管理-我的跟进中改进为了可查看本店所有跟进
+          - generic [ref=f34e749]: 2026-05-28 09:58:58
+        - generic [ref=f34e751] [cursor=pointer]:
+          - generic [ref=f34e752]: 功能升级活动报名中增加了“合伙红娘奖励“功能
+          - generic [ref=f34e753]: 2026-05-26 11:02:46
+        - generic [ref=f34e755] [cursor=pointer]:
+          - generic [ref=f34e756]: BUG修复修复了非服务红娘添加为合伙红娘时报会员已是服务红娘的问题
+          - generic [ref=f34e757]: 2026-05-26 10:39:49
+        - generic [ref=f34e759] [cursor=pointer]:
+          - generic [ref=f34e760]: 功能升级推广红娘平台手机版-名下会员-增加显示“未完善资料”的用户
+          - generic [ref=f34e761]: 2026-05-26 10:11:20
+        - generic [ref=f34e763] [cursor=pointer]:
+          - generic [ref=f34e764]: 功能升级互选活动-转发详情页，增加了推广红娘、服务红娘绑定关系
+          - generic [ref=f34e765]: 2026-05-22 10:37:19
+        - generic [ref=f34e767] [cursor=pointer]:
+          - generic [ref=f34e768]: 功能升级后台-会员CRM-资料导出中新增了按活动报名导出的功能
+          - generic [ref=f34e769]: 2026-05-22 10:17:03
+        - generic [ref=f34e771] [cursor=pointer]:
+          - generic [ref=f34e772]: 功能升级自定义区域里面增加“云端数据迁移下载”功能
+          - generic [ref=f34e773]: 2026-05-22 10:11:22
+        - generic [ref=f34e775] [cursor=pointer]:
+          - generic [ref=f34e776]: BUG修复修复了添加会员资料时提交报系统错误的问题
+          - generic [ref=f34e777]: 2026-05-22 10:04:46
+        - generic [ref=f34e779] [cursor=pointer]:
+          - generic [ref=f34e780]: BUG修复修复了公海客源列表中部分情况下标签内容不显示的问题
+          - generic [ref=f34e781]: 2026-05-22 10:02:54
+        - generic [ref=f34e783] [cursor=pointer]:
+          - generic [ref=f34e784]: 细节改进电子签的合同模板中“线上会员类型”改进为了显示当前线上vip套餐名
+          - generic [ref=f34e785]: 2026-05-12 10:04:53
+        - generic [ref=f34e787] [cursor=pointer]:
+          - generic [ref=f34e788]: BUG修复修复了推广红娘平台中不显示由落地页自由表单入库会员的问题
+          - generic [ref=f34e789]: 2026-05-12 09:57:01
+        - generic [ref=f34e791] [cursor=pointer]:
+          - generic [ref=f34e792]: BUG修复修复了短信系统-自定义群发短信提交后提示成功，但任务中看不到的问题
+          - generic [ref=f34e793]: 2026-05-12 09:49:40
+        - generic [ref=f34e795] [cursor=pointer]:
+          - generic [ref=f34e796]: 功能升级线下VIP会员服务管理的跟进服务中新增了上传图片和上传录音的功能
+          - generic [ref=f34e797]: 2026-05-11 10:53:17
+        - generic [ref=f34e799] [cursor=pointer]:
+          - generic [ref=f34e800]: 细节改进会员承诺书样式模板进行了更新，更新为A4纸大小，方便打印
+          - generic [ref=f34e801]: 2026-05-11 10:48:38
+        - generic [ref=f34e803] [cursor=pointer]:
+          - generic [ref=f34e804]: 细节改进改版了会员中心-我的牵线-向我发起的牵线中拒绝提示页的样式
+          - generic [ref=f34e805]: 2026-05-11 10:42:14
+        - generic [ref=f34e807] [cursor=pointer]:
+          - generic [ref=f34e808]: 细节改进会员中心-“我的牵线”-进行了改版升级
+          - generic [ref=f34e809]: 2026-05-07 11:04:22
+        - generic [ref=f34e811] [cursor=pointer]:
+          - generic [ref=f34e812]: 细节改进改进约见记录状态为“已成功”后，不可再修改
+          - generic [ref=f34e813]: 2026-05-07 11:01:01
+        - generic [ref=f34e815] [cursor=pointer]:
+          - generic [ref=f34e816]: 功能升级推广红娘中增加“加入/变更”合伙团队的功能
+          - generic [ref=f34e817]: 2026-05-07 10:50:03
+        - generic [ref=f34e819] [cursor=pointer]:
+          - generic [ref=f34e820]: BUG修复修复了会员详情的智能匹配中收入多选时，匹配结果数量不正确的问题
+          - generic [ref=f34e821]: 2026-05-07 10:47:34
+        - generic [ref=f34e823] [cursor=pointer]:
+          - generic [ref=f34e824]: BUG修复修复了互动消息中部分情况下点击“加Ta微信”按钮，跳转页面提示错误的问题
+          - generic [ref=f34e825]: 2026-05-07 10:42:49
+        - generic [ref=f34e827] [cursor=pointer]:
+          - generic [ref=f34e828]: BUG修复修复了自由收款-收款订单中不显示分页的问题
+          - generic [ref=f34e829]: 2026-05-07 10:22:46
+        - generic [ref=f34e831] [cursor=pointer]:
+          - generic [ref=f34e832]: BUG修复修复了批量资料卡中按现居筛选结果不正确的问题
+          - generic [ref=f34e833]: 2026-05-07 10:21:05
+        - generic [ref=f34e835] [cursor=pointer]:
+          - generic [ref=f34e836]: 功能升级后台-总店红娘-分派配置-会员CRM中新增了按合伙红娘进行分派的功能
+          - generic [ref=f34e838]: 2026-05-07 10:19:01
+        - generic [ref=f34e840] [cursor=pointer]:
+          - generic [ref=f34e841]: 细节改进对全站跟进框进行了优化改良，提升页面简洁性
+          - generic [ref=f34e842]: 2026-04-29 11:16:01
+        - generic [ref=f34e844] [cursor=pointer]:
+          - generic [ref=f34e845]: BUG修复修复了首页-荐语中相亲会员头像部分情况下显示不出来的问题
+          - generic [ref=f34e847]: 2026-04-29 10:59:43
+        - generic [ref=f34e849] [cursor=pointer]:
+          - generic [ref=f34e850]: 细节改进后台-平台配置-权限配置中被牵线会员的操作权限增加了自定义配置
+          - generic [ref=f34e852]: 2026-04-29 10:46:23
+        - generic [ref=f34e854] [cursor=pointer]:
+          - generic [ref=f34e855]: 细节改进平台首页原有5个模板进行了细节更新
+          - generic [ref=f34e857]: 2026-04-27 10:22:30
+        - generic [ref=f34e859] [cursor=pointer]:
+          - generic [ref=f34e860]: 功能升级会员资料的导出表格中增加了“私密信息（补充信息）”项
+          - generic [ref=f34e862]: 2026-04-27 09:33:12
+        - generic [ref=f34e864] [cursor=pointer]:
+          - generic [ref=f34e865]: 细节改进线申请牵线-“牵线购买引导“弹出页进行了升级
+          - generic [ref=f34e867]: 2026-04-27 09:30:56
+        - generic [ref=f34e869] [cursor=pointer]:
+          - generic [ref=f34e870]: 功能升级运营工具-批量资料卡中新增了模版样式总览功能
+          - generic [ref=f34e872]: 2026-04-27 09:29:04
+        - generic [ref=f34e874] [cursor=pointer]:
+          - generic [ref=f34e875]: BUG修复 修复了分店普通红娘在红娘平台查看其它红娘名下会员联系方式时报错的问题
+          - generic [ref=f34e877]: 2026-04-27 09:24:08
+        - generic [ref=f34e879] [cursor=pointer]:
+          - generic [ref=f34e880]: 功能升级后台-平台布局-默认会员展示样式，新增“醒目模式”
+          - generic [ref=f34e882]: 2026-04-27 09:21:49
+        - generic [ref=f34e884] [cursor=pointer]:
+          - generic [ref=f34e885]: 功能升级推广红娘平台电脑版页面中新增了名下会员功能
+          - generic [ref=f34e887]: 2026-04-24 14:39:23
+        - generic [ref=f34e889] [cursor=pointer]:
+          - generic [ref=f34e890]: 功能升级后台的活动管理页面新增了预览活动栏目的功能按钮
+          - generic [ref=f34e892]: 2026-04-24 14:36:07
+        - generic [ref=f34e894] [cursor=pointer]:
+          - generic [ref=f34e895]: 细节改进重新了平台首页-样式模板预览图
+          - generic [ref=f34e897]: 2026-04-24 10:57:57
+        - generic [ref=f34e899] [cursor=pointer]:
+          - generic [ref=f34e900]: 细节改进改进了平台首页-“附近”页面，距离改为了显示在头像上面
+          - generic [ref=f34e902]: 2026-04-24 10:47:42
+        - generic [ref=f34e904] [cursor=pointer]:
+          - generic [ref=f34e905]: 细节改进更新了后台批量生成海报中的预览海报图
+          - generic [ref=f34e907]: 2026-04-24 10:39:32
+        - generic [ref=f34e909] [cursor=pointer]:
+          - generic [ref=f34e910]: 细节改进改进了客源和相亲会员放入弃海时，自动生成一条跟进记录
+          - generic [ref=f34e912]: 2026-04-24 10:19:33
+        - generic [ref=f34e914] [cursor=pointer]:
+          - generic [ref=f34e915]: 细节改进后台财务管理-合同管理的状态中新增了签署时间显示
+          - generic [ref=f34e917]: 2026-04-24 09:53:04
+        - generic [ref=f34e919] [cursor=pointer]:
+          - generic [ref=f34e920]: BUG修复修复了管理员后台编辑线下vip时，提交无反应的问题
+          - generic [ref=f34e922]: 2026-04-24 09:50:24
+        - generic [ref=f34e924] [cursor=pointer]:
+          - generic [ref=f34e925]: BUG修复修复了红娘平台部分情况下，编辑线下vip时，销售红娘显示不正确的问题
+          - generic [ref=f34e927]: 2026-04-24 09:48:05
+        - generic [ref=f34e929] [cursor=pointer]:
+          - generic [ref=f34e930]: 细节改进更新了平台配置-平台布局中“委托红娘”的三个预览图
+          - generic [ref=f34e932]: 2026-04-24 09:24:04
+        - generic [ref=f34e934] [cursor=pointer]:
+          - generic [ref=f34e935]: BUG修复修复了会员资料中转线下vip时，上传了备注图片，但在线下vip管理中看到多一张不显示的问题
+          - generic [ref=f34e937]: 2026-04-24 09:20:21
+        - generic [ref=f34e939] [cursor=pointer]:
+          - generic [ref=f34e940]: 细节改进改进了后台活动管理中查看“链接/二维码”，增加了预览显示
+          - generic [ref=f34e941]: 2026-04-24 09:08:41
+        - generic [ref=f34e943] [cursor=pointer]:
+          - generic [ref=f34e944]: 功能升级后台-活动管理中增加了新列“分享海报”
+          - generic [ref=f34e946]: 2026-04-24 09:07:28
+        - generic [ref=f34e948] [cursor=pointer]:
+          - generic [ref=f34e949]: 细节改进修改了后台-平台配置-基本配置中登录页面标语标题，误免误会
+          - generic [ref=f34e951]: 2026-04-24 09:03:45
+        - generic [ref=f34e953] [cursor=pointer]:
+          - generic [ref=f34e954]: 细节改进会员资料导入、导出中增加 工作单位、毕业学校字段
+          - generic [ref=f34e956]: 2026-04-21 11:10:49
+        - generic [ref=f34e958] [cursor=pointer]:
+          - generic [ref=f34e959]: 功能升级推广红娘-后台管理页面进行了升级更新
+          - generic [ref=f34e961]: 2026-04-21 10:25:26
+        - generic [ref=f34e963] [cursor=pointer]:
+          - generic [ref=f34e964]: BUG修复修复了后台活动报名-报名管理中按昵称搜索失效的问题
+          - generic [ref=f34e966]: 2026-04-21 10:17:13
+        - generic [ref=f34e968] [cursor=pointer]:
+          - generic [ref=f34e969]: 细节改进后台会员管理的弃海记录中筛选，增加了可按姓名和相亲会员编号搜索的功能
+          - generic [ref=f34e971]: 2026-04-21 10:15:51
+        - generic [ref=f34e973] [cursor=pointer]:
+          - generic [ref=f34e974]: 细节改进改进了红娘平台会员资料管理中的牵线记录查看权限跟随红娘权限
+          - generic [ref=f34e976]: 2026-04-21 10:13:05
+        - generic [ref=f34e978] [cursor=pointer]:
+          - generic [ref=f34e979]: BUG修复修复了红娘平台手机版中公海客源一键入库时部分情况下提示发生错误的问题
+          - generic [ref=f34e981]: 2026-04-20 14:31:11
+        - generic [ref=f34e983] [cursor=pointer]:
+          - generic [ref=f34e984]: 细节改进完善了红娘平台的线下vip会员管理待选约见页面提示，红娘使用更方便
+          - generic [ref=f34e986]: 2026-04-20 14:25:18
+        - generic [ref=f34e988] [cursor=pointer]:
+          - generic [ref=f34e989]: 功能升级电脑端首页增加了自定义模板功能
+          - generic [ref=f34e991]: 2026-04-20 14:06:50
+        - generic [ref=f34e993] [cursor=pointer]:
+          - generic [ref=f34e994]: 细节改进电脑端首页进行了改版
+          - generic [ref=f34e996]: 2026-04-20 11:47:56
+        - generic [ref=f34e998] [cursor=pointer]:
+          - generic [ref=f34e999]: BUG修复修复了红娘平台-会员资料的详细资料中查看基本资料时部分情况下报您没有查看权限的问题
+          - generic [ref=f34e1001]: 2026-04-17 10:05:38
+        - generic [ref=f34e1003] [cursor=pointer]:
+          - generic [ref=f34e1004]: 细节改进后台-会员CRM-会员资料管理中认证信息处，证件留档增加了提示
+          - generic [ref=f34e1006]: 2026-04-16 10:17:07
+        - generic [ref=f34e1008] [cursor=pointer]:
+          - generic [ref=f34e1009]: 功能升级活动报名中，客户无需完善资料，客户一键登录即可锁定在推广红娘名下，红娘可拿报名分成，大大提升红娘活动推广积极性。
+          - generic [ref=f34e1011]: 2026-04-15 10:15:24
+      - generic [ref=f34e1013]:
+        - generic [ref=f34e1014]: 共 765 条
+        - list [ref=f34e1015]:
+          - listitem "上一页" [ref=f34e1016]:
+            - button [disabled] [ref=f34e1017]:
+              - img "left" [ref=f34e1018]
+          - listitem "1/8" [ref=f34e1021]:
+            - textbox [ref=f34e1022]: "1"
+            - text: ／8
+          - listitem "下一页" [ref=f34e1023] [cursor=pointer]:
+            - button [ref=f34e1024]:
+              - img "right" [ref=f34e1025]
