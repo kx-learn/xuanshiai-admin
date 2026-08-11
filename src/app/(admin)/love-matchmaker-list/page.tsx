@@ -1,76 +1,21 @@
 "use client";
-import { getBreadcrumb } from "@/lib/breadcrumb-config";
 
-import ListPage, { type ColumnDef, type ActionButton, type SearchField } from "@/components/ListPage";
+import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import ListPage, { type ColumnDef } from "@/components/ListPage";
 
 const columns: ColumnDef[] = [
-  { title: "红娘", key: "matchmaker", width: 180 },
-  { title: "手机/微信", key: "phone", width: 160 },
-  { title: "角色", key: "role", width: 120 },
-  { title: "分成级别", key: "shareLevel", width: 100 },
-  { title: "牵线成功数", key: "successCount", width: 100 },
-  { title: "累积分成", key: "totalShare", width: 100 },
-  {
-    title: "锁定",
-    key: "locked",
-    width: 70,
-    render: (row: Record<string, unknown>) => {
-      const val = String(row.locked ?? "");
-      return (
-        <span style={{ color: val === "正常" ? "#52c41a" : "#ff4d4f" }}>
-          {val}
-        </span>
-      );
-    },
-  },
-  {
-    title: "前台展示",
-    key: "show",
-    width: 80,
-  },
-  { title: "菜单权限", key: "menuPermission", width: 100 },
-  { title: "操作", key: "action", width: 260 },
+  { title: "红娘", key: "nickname", width: 180, render: (row) => <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-full bg-[#edf2ff] text-[#3658f7]">{String(row.nickname ?? "?").slice(0, 1)}</div><div><div className="font-medium">{String(row.nickname ?? "-")}</div><div className="text-xs text-[#999]">ID: {String(row.user_id ?? "-")}</div></div></div> },
+  { title: "服务类型", key: "application_type", width: 130 },
+  { title: "认证标签", key: "certification_tags", width: 180, render: (row) => Array.isArray(row.certification_tags) ? row.certification_tags.join("、") : "-" },
+  { title: "完成服务", key: "success_count", width: 100 },
+  { title: "评分", key: "rating_score", width: 80 },
+  { title: "接单状态", key: "is_available", width: 100, render: (row) => <span className={row.is_available ? "text-[#52c41a]" : "text-[#999]"}>{row.is_available ? "可接单" : "暂停接单"}</span> },
+  { title: "操作", key: "action", width: 140, render: () => <div className="flex gap-3"><button className="text-[#3658f7]">查看</button><button className="text-[#3658f7]">状态</button></div> },
 ];
 
-const data: Record<string, unknown>[] = [
-  {
-    id: 1,
-    matchmaker: "称呼：芸希老师\n账号：芸希老师\n隶属：总店\n描述：-",
-    phone: "17384472282\n17384472282",
-    role: "总店-超级红娘",
-    shareLevel: "中级分成",
-    successCount: "21人",
-    totalShare: "509元",
-    locked: "正常",
-    show: "显示",
-    menuPermission: "菜单管理",
-    action: "红娘平台 数据报表 海报 编辑 删除",
-  },
-];
-
-const searchFields: SearchField[] = [
-  { label: "红娘姓名", type: "input", placeholder: "请输入红娘姓名", width: 160 },
-  { label: "手机号", type: "input", placeholder: "请输入手机号", width: 160 },
-  { label: "角色", type: "select", placeholder: "全部", options: [{ label: "全部", value: "" }, { label: "超级红娘", value: "super" }, { label: "普通红娘", value: "normal" }], width: 120 },
-];
-
-const actions: ActionButton[] = [
-  { label: "添加红娘", variant: "primary" },
-];
-
-export default function Page() {
-  return (
-    <ListPage
-      breadcrumb={getBreadcrumb("总店红娘", "红娘管理（总店）")}
-      pageTitle="红娘管理（总店）"
-      searchFields={searchFields}
-      actions={actions}
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 1 }}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
-  );
+export default function LoveMatchmakerListPage() {
+  return <ListPage breadcrumb={getBreadcrumb("总店红娘", "红娘管理")} pageTitle="红娘管理" searchFields={[
+    { label: "红娘昵称", type: "input", placeholder: "请输入昵称", width: 180 },
+    { label: "接单状态", type: "select", options: [{ label: "可接单", value: "true" }, { label: "暂停接单", value: "false" }] },
+  ]} actions={[{ label: "导出 Excel", variant: "default" }]} columns={columns} dataSource={[]} rowKey="user_id" endpoint="/api/backend/admin/matchmaker/matchmakers?page=1&page_size=20" pagination={{ current: 1, pageSize: 20, total: 0 }} onSearch={() => {}} onReset={() => {}} />;
 }

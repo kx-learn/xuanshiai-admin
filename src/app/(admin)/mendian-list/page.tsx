@@ -1,66 +1,20 @@
 "use client";
+
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef, type SearchField, type ActionButton } from "@/components/ListPage";
+import ListPage, { type ColumnDef } from "@/components/ListPage";
 
 const columns: ColumnDef[] = [
-  { title: "编号", key: "id", width: 70, align: "center" },
-  { title: "门店名称", key: "storeName", width: 150 },
-  { title: "所属分站", key: "branch", width: 120 },
-  { title: "店长", key: "storeManager", width: 100 },
-  { title: "联系电话", key: "phone", width: 130 },
-  { title: "地址", key: "address", width: 200 },
-  { title: "创建时间", key: "createTime", width: 130 },
-  {
-    title: "状态",
-    key: "status",
-    width: 90,
-    render: (row: Record<string, unknown>) => {
-      const status = String(row.status ?? "");
-      const isOpen = status === "营业中";
-      return (
-        <span className={`inline-block px-2 py-0.5 text-xs rounded ${isOpen ? "bg-[#f6ffed] text-[#52c41a] border border-[#b7eb8f]" : "bg-[#f5f5f5] text-[#999] border border-[#d9d9d9]"}`}>
-          {status}
-        </span>
-      );
-    },
-  },
-  {
-    title: "操作",
-    key: "action",
-    width: 120,
-    render: (_row: Record<string, unknown>) => (
-      <span className="flex items-center gap-2">
-        <button className="text-[#3658f7] hover:text-[#6b85ff] text-sm">编辑</button>
-        <button className="text-[#ff4d4f] hover:text-[#ff7875] text-sm">删除</button>
-      </span>
-    ),
-  },
-];
-
-const data: Record<string, unknown>[] = [];
-
-const searchFields: SearchField[] = [
-  { label: "门店名称", type: "input", placeholder: "请输入门店名称", width: 160 },
-  { label: "所属分站", type: "select", options: [{ label: "全部", value: "" }], width: 130 },
-];
-
-const actions: ActionButton[] = [
-  { label: "新增门店", variant: "primary", onClick: () => {} },
+  { title: "编号", key: "id", width: 80 },
+  { title: "门店编码", key: "code", width: 150 },
+  { title: "门店名称", key: "name", width: 180 },
+  { title: "展示名称", key: "display_name", width: 180 },
+  { title: "区域", key: "region_code", width: 120 },
+  { title: "状态", key: "status", width: 90, render: (row) => <span className={row.status === 1 ? "text-[#52c41a]" : "text-[#999]"}>{row.status === 1 ? "启用" : "停用"}</span> },
+  { title: "自动分配", key: "auto_redirect", width: 100, render: (row) => row.auto_redirect ? "开启" : "关闭" },
+  { title: "创建时间", key: "created_at", width: 180 },
+  { title: "操作", key: "action", width: 100, render: () => <button className="text-[#3658f7]">查看</button> },
 ];
 
 export default function MendianListPage() {
-  return (
-    <ListPage
-      breadcrumb={getBreadcrumb("分店管理", "门店管理")}
-      pageTitle="门店管理"
-      searchFields={searchFields}
-      actions={actions}
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 0 }}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
-  );
+  return <ListPage breadcrumb={getBreadcrumb("分店管理", "门店管理")} pageTitle="门店管理" searchFields={[{ label: "门店名称", type: "input", placeholder: "请输入门店名称", width: 180 }, { label: "区域编码", type: "input", placeholder: "请输入区域", width: 140 }]} actions={[{ label: "新增门店", variant: "primary" }]} columns={columns} dataSource={[]} rowKey="id" endpoint="/api/backend/admin/matchmaker/branches?page=1&page_size=20" pagination={{ current: 1, pageSize: 20, total: 0 }} onSearch={() => {}} onReset={() => {}} />;
 }

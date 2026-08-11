@@ -1,5 +1,12 @@
 # xuanshiai-admin
 
+后端接口地址：
+
+- API 基地址：`https://xhztest.xyz`
+- OpenAPI 文档：`https://xhztest.xyz/docs`
+
+前端请求通过 `/api/backend/*` 代理到后端的 `/api/v1/*`。
+
 **来源：** https://xuanshiai.com/admin
 **模式：** URL克隆
 **生成日期：** 2026-07-02
