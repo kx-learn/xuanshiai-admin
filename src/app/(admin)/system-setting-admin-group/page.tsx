@@ -19,11 +19,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, groupName: "超级用户组", currentUsers: "admin、shushu" },
-  { id: 2, groupName: "一般用户组", currentUsers: "李会强" },
-  { id: 3, groupName: "一般运营组", currentUsers: "三土" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (

@@ -55,17 +55,7 @@ const columns: ColumnDef[] = [
   { title: "操作", key: "action", width: 120 },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 50, initiator: "男 27岁\n秋刀鱼 | 李会强\n已实名 已签承诺书\n编号：B976071", target: "女 21岁\n乌龙茶607i | 朱颖\n已实名 未签承诺书\n编号：G714715", matchmaker: "", payStatus: "已支付", matchStatus: "失败", applyTime: "2026-07-09 10:09:03", completeTime: "2026-07-10 00:00:03", action: "后台 admin 删除" },
-  { id: 49, initiator: "男 46岁\n出现1 | 张瑞\n已实名 已签承诺书\n编号：B241050", target: "女 25岁\n越可名 | 杨俊芳\n已实名 未签承诺书\n编号：G777211", matchmaker: "", payStatus: "已支付", matchStatus: "失败", applyTime: "2026-07-09 08:39:22", completeTime: "2026-07-10 00:00:03", action: "后台 admin 删除" },
-  { id: 48, initiator: "男 46岁\n出现1 | 张瑞\n已实名 已签承诺书\n编号：B241050", target: "女 27岁\n余生请指教 | 陈涵涵\n已实名 已签承诺书\n编号：G519122", matchmaker: "", payStatus: "已支付", matchStatus: "失败", applyTime: "2026-07-08 21:33:27", completeTime: "2026-07-09 00:00:04", action: "后台 admin 删除" },
-  { id: 47, initiator: "男 27岁\n秋刀鱼 | 李会强\n已实名 已签承诺书\n编号：B976071", target: "女 31岁\n蓝色琉璃梦 | 吴小雪\n已实名 已签承诺书\n编号：G797491", matchmaker: "芸希老师", payStatus: "已支付", matchStatus: "成功", applyTime: "2026-07-02 14:44:23", completeTime: "2026-07-03 15:53:47", action: "后台 admin" },
-  { id: 46, initiator: "男 27岁\n秋刀鱼 | 李会强\n已实名 已签承诺书\n编号：B976071", target: "女 30岁\n小Yang又困 | 方梓涵\n已实名 已签承诺书\n编号：G667599", matchmaker: "芸希老师", payStatus: "已支付", matchStatus: "成功", applyTime: "2026-07-02 13:25:06", completeTime: "2026-07-02 17:09:23", action: "后台 李会强" },
-  { id: 45, initiator: "女 25岁\n越可名 | 杨俊芳\n已实名 未签承诺书\n编号：G777211", target: "男 26岁\n我脸1点也不圆 | 张有洲\n已实名 已签承诺书\n编号：B328247", matchmaker: "芸希老师", payStatus: "已支付", matchStatus: "成功", applyTime: "2026-07-02 10:03:53", completeTime: "2026-07-02 16:52:39", action: "后台 李会强" },
-  { id: 44, initiator: "女 21岁\n乌龙茶607i | 朱颖\n已实名 未签承诺书\n编号：G714715", target: "男 27岁\n李会强\n已实名 已签承诺书\n编号：B134461", matchmaker: "芸希老师", payStatus: "未支付", matchStatus: "-", applyTime: "2026-06-30 20:40:08", completeTime: "", action: "-" },
-  { id: 43, initiator: "男 27岁\n李会强\n已实名 已签承诺书\n编号：B134461", target: "女 23岁\n小猪 | 朱鑫昱\n已实名 未签承诺书\n编号：G916807", matchmaker: "", payStatus: "已支付", matchStatus: "待牵线", applyTime: "2026-06-30 15:27:28", completeTime: "", action: "会员 李会强" },
-  { id: 42, initiator: "男 46岁\n出现1 | 张瑞\n已实名 已签承诺书\n编号：B241050", target: "女 28岁\n晕头小狗xox | 黄予方\n已实名 已签承诺书\n编号：G732661", matchmaker: "", payStatus: "已支付", matchStatus: "成功", applyTime: "2026-06-30 13:48:03", completeTime: "2026-07-03 15:53:54", action: "后台 admin" },
-];
+const data: Record<string, unknown>[] = [];
 
 const searchFields: SearchField[] = [
   { label: "操作人", type: "select", placeholder: "全部操作人", options: [{ label: "全部操作人", value: "" }], width: 140 },
@@ -90,7 +80,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 20, total: 50 }}
+      pagination={{ current: 1, pageSize: 20, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

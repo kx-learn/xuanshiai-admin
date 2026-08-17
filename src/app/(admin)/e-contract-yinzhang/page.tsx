@@ -33,18 +33,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, sealName: "公司公章", sealType: "公章", createTime: "2026-06-10 10:00:00", status: "启用" },
-  { id: 2, sealName: "合同专用章", sealType: "公章", createTime: "2026-06-11 10:00:00", status: "启用" },
-  { id: 3, sealName: "财务专用章", sealType: "专用章", createTime: "2026-06-12 10:00:00", status: "启用" },
-  { id: 4, sealName: "法人私章", sealType: "专用章", createTime: "2026-06-13 10:00:00", status: "启用" },
-  { id: 5, sealName: "电子签名章", sealType: "专用章", createTime: "2026-06-14 10:00:00", status: "启用" },
-  { id: 6, sealName: "人事专用章", sealType: "电子章", createTime: "2026-05-10 10:00:00", status: "启用" },
-  { id: 7, sealName: "行政专用章", sealType: "电子章", createTime: "2026-05-11 10:00:00", status: "启用" },
-  { id: 8, sealName: "项目专用章", sealType: "电子章", createTime: "2026-05-12 10:00:00", status: "启用" },
-  { id: 9, sealName: "部门专用章", sealType: "电子章", createTime: "2026-05-13 10:00:00", status: "启用" },
-  { id: 10, sealName: "审批专用章", sealType: "电子章", createTime: "2026-05-14 10:00:00", status: "停用" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function EContractYinzhangPage() {
   return (

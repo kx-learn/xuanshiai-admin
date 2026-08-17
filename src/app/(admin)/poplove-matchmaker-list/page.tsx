@@ -64,20 +64,7 @@ interface MatchmakerRow {
   status: string;
 }
 
-const data: MatchmakerRow[] = [
-  { id: 1, name: "推广赵红", phone: "13712340001", channel: "抖音", memberCount: 85, joinDate: "2024-01-01", status: "在职" },
-  { id: 2, name: "推广钱丽", phone: "13712340002", channel: "小红书", memberCount: 120, joinDate: "2024-02-01", status: "在职" },
-  { id: 3, name: "推广孙美", phone: "13712340003", channel: "微信", memberCount: 65, joinDate: "2024-03-01", status: "在职" },
-  { id: 4, name: "推广李芳", phone: "13712340004", channel: "知乎", memberCount: 42, joinDate: "2024-04-01", status: "在职" },
-  { id: 5, name: "推广周雅", phone: "13712340005", channel: "微博", memberCount: 95, joinDate: "2024-05-01", status: "在职" },
-  { id: 6, name: "推广吴婷", phone: "13712340006", channel: "快手", memberCount: 110, joinDate: "2024-06-01", status: "在职" },
-  { id: 7, name: "推广郑秀", phone: "13712340007", channel: "抖音", memberCount: 78, joinDate: "2024-07-01", status: "在职" },
-  { id: 8, name: "推广王琳", phone: "13712340008", channel: "小红书", memberCount: 56, joinDate: "2024-08-01", status: "在职" },
-  { id: 9, name: "推广陈静", phone: "13712340009", channel: "微信", memberCount: 32, joinDate: "2024-09-01", status: "在职" },
-  { id: 10, name: "推广林萍", phone: "13712340010", channel: "知乎", memberCount: 28, joinDate: "2025-01-01", status: "离职" },
-  { id: 11, name: "推广何敏", phone: "13712340011", channel: "微博", memberCount: 45, joinDate: "2025-02-01", status: "离职" },
-  { id: 12, name: "推广刘慧", phone: "13712340012", channel: "快手", memberCount: 38, joinDate: "2025-03-01", status: "离职" },
-];
+const data: MatchmakerRow[] = [];
 
 const actions: ActionButton[] = [
   { label: "添加推广红娘", variant: "primary" },
@@ -96,7 +83,7 @@ export default function PoploveMatchmakerListPage() {
       columns={columns}
       dataSource={dataSource}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 12 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

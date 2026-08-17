@@ -9,10 +9,7 @@ const columns: ColumnDef[] = [
   { title: "操作", key: "action", width: 100, align: "center" },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, configKey: "AppID", configValue: "wx9876543210fedcba", action: "编辑" },
-  { id: 2, configKey: "AppSecret", configValue: "***hidden***", action: "编辑" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function MiniprogramConfigPage() {
   return (
@@ -22,7 +19,7 @@ export default function MiniprogramConfigPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 2 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

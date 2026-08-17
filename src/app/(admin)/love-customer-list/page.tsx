@@ -1,24 +1,640 @@
 "use client";
 
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FileDown, Plus, Search } from "lucide-react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef } from "@/components/ListPage";
+import { adminEndpoints } from "@/lib/admin-endpoints";
 
-const columns: ColumnDef[] = [
-  { title: "线索 ID", key: "id", width: 80 },
-  { title: "客户", key: "name", width: 180, render: (row) => <div><div className="font-medium">{String(row.name ?? "-")}</div><div className="text-xs text-[#999]">{String(row.phone ?? row.wechat ?? "-")}</div></div> },
-  { title: "来源", key: "source", width: 120 },
-  { title: "意向等级", key: "intention_level", width: 100, render: (row) => row.intention_level === 1 ? "高" : row.intention_level === 2 ? "中" : row.intention_level === 3 ? "低" : "-" },
-  { title: "状态", key: "status", width: 120, render: (row) => <span className="text-[#3658f7]">{String(row.status ?? "-")}</span> },
-  { title: "负责红娘", key: "matchmaker_id", width: 120 },
-  { title: "下次跟进", key: "next_follow_at", width: 170 },
-  { title: "更新时间", key: "updated_at", width: 170 },
-  { title: "操作", key: "action", width: 100, render: () => <button className="text-[#3658f7]">查看</button> },
-];
+type Lead = {
+  id: number;
+  name: string;
+  phone: string | null;
+  wechat: string | null;
+  source: string;
+  intention_level: 1 | 2 | 3;
+  status: string;
+  matchmaker_id: number | null;
+  organization_id: number | null;
+  next_follow_at: string | null;
+  remark: string | null;
+  created_by: number;
+  converted_user_id: number | null;
+  created_at: string;
+};
+type Page = {
+  items: Lead[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+};
+const empty: Page = {
+  items: [],
+  page: 1,
+  page_size: 20,
+  total: 0,
+  has_more: false,
+};
+const statuses: Record<string, string> = {
+  NEW: "待联系",
+  CONTACTED: "已联系",
+  INTENDED: "有意向",
+  CONVERTED: "已入库",
+  LOST: "已弃海",
+  CLOSED: "已关闭",
+};
+const intent = (n: number) => ["", "低", "中", "高"][n] || "-";
 
-export default function LoveCustomerListPage() {
-  return <ListPage breadcrumb={getBreadcrumb("客源线索", "线索管理")} pageTitle="线索管理" tabs={[{ key: "all", label: "全部线索" }, { key: "new", label: "待联系" }, { key: "intended", label: "有意向" }]} activeTab="all" searchFields={[
-    { label: "客户", type: "input", placeholder: "姓名/手机号/微信号", width: 220 },
-    { label: "状态", type: "select", options: [{ label: "NEW", value: "NEW" }, { label: "CONTACTED", value: "CONTACTED" }, { label: "INTENDED", value: "INTENDED" }, { label: "CONVERTED", value: "CONVERTED" }] },
-    { label: "来源", type: "input", placeholder: "请输入来源", width: 140 },
-  ]} actions={[{ label: "新增线索", variant: "primary" }, { label: "导出 Excel", variant: "default" }]} columns={columns} dataSource={[]} rowKey="id" endpoint="/api/backend/admin/customer-leads?page=1&page_size=20" pagination={{ current: 1, pageSize: 20, total: 0 }} onSearch={() => {}} onReset={() => {}} />;
+export default function Page() {
+  const [data, setData] = useState<Page>(empty),
+    [loading, setLoading] = useState(true),
+    [keyword, setKeyword] = useState(""),
+    [status, setStatus] = useState(""),
+    [source, setSource] = useState(""),
+    [message, setMessage] = useState("");
+  const [modal, setModal] = useState<
+      "create" | "edit" | "follow" | "assign" | null
+    >(null),
+    [current, setCurrent] = useState<Lead | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    wechat: "",
+    source: "",
+    intention_level: "1",
+    remark: "",
+    status: "NEW",
+    matchmaker_id: "",
+    organization_id: "",
+    method: "PHONE",
+    content: "",
+    next_follow_at: "",
+  });
+  const load = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      try {
+        setData(
+          (await adminEndpoints.customerLeads({
+            page,
+            page_size: 20,
+            search: keyword || undefined,
+            status: status || undefined,
+            source: source || undefined,
+          })) as Page,
+        );
+        setMessage("");
+      } catch (e) {
+        setMessage(e instanceof Error ? e.message : "加载失败");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [keyword, status, source],
+  );
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const open = (kind: NonNullable<typeof modal>, lead?: Lead) => {
+    setCurrent(lead || null);
+    setForm(
+      lead
+        ? {
+            name: lead.name,
+            phone: lead.phone || "",
+            wechat: lead.wechat || "",
+            source: lead.source,
+            intention_level: String(lead.intention_level),
+            remark: lead.remark || "",
+            status: lead.status,
+            matchmaker_id: lead.matchmaker_id ? String(lead.matchmaker_id) : "",
+            organization_id: lead.organization_id
+              ? String(lead.organization_id)
+              : "",
+            method: "PHONE",
+            content: "",
+            next_follow_at: lead.next_follow_at?.slice(0, 16) || "",
+          }
+        : {
+            name: "",
+            phone: "",
+            wechat: "",
+            source: "",
+            intention_level: "1",
+            remark: "",
+            status: "NEW",
+            matchmaker_id: "",
+            organization_id: "",
+            method: "PHONE",
+            content: "",
+            next_follow_at: "",
+          },
+    );
+    setModal(kind);
+  };
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (modal === "create")
+        await adminEndpoints.createCustomerLead({
+          name: form.name,
+          phone: form.phone || null,
+          wechat: form.wechat || null,
+          source: form.source,
+          intention_level: +form.intention_level,
+          remark: form.remark || null,
+        });
+      if (modal === "edit" && current)
+        await adminEndpoints.updateCustomerLead(current.id, {
+          name: form.name,
+          phone: form.phone || null,
+          wechat: form.wechat || null,
+          intention_level: +form.intention_level,
+          status: form.status,
+          remark: form.remark || null,
+          next_follow_at: form.next_follow_at || null,
+        });
+      if (modal === "assign" && current)
+        await adminEndpoints.assignCustomerLead(current.id, {
+          matchmaker_id: form.matchmaker_id ? +form.matchmaker_id : null,
+          organization_id: form.organization_id ? +form.organization_id : null,
+        });
+      if (modal === "follow" && current)
+        await adminEndpoints.createCustomerLeadFollowUp(current.id, {
+          method: form.method,
+          content: form.content,
+          intention_level: +form.intention_level,
+          next_follow_at: form.next_follow_at || null,
+        });
+      setModal(null);
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const exportCsv = () => {
+    const csv = [
+      "客源ID,称呼,手机,微信,来源,意向,状态",
+      ...data.items.map((x) =>
+        [
+          x.id,
+          x.name,
+          x.phone || "",
+          x.wechat || "",
+          x.source,
+          intent(x.intention_level),
+          statuses[x.status] || x.status,
+        ]
+          .map((v) => '"' + String(v).replaceAll('"', '""') + '"')
+          .join(","),
+      ),
+    ].join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(
+      new Blob(["\ufeff" + csv], { type: "text/csv" }),
+    );
+    link.download = "客源线索.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+  return (
+    <div>
+      <AdminBreadcrumb items={getBreadcrumb("客源线索", "线索管理")} />
+      <div className="mb-3 rounded border border-[#dce5ff] bg-[#f5f8ff] px-4 py-3 text-xs leading-6 text-[#68728a]">
+        <b className="mr-3 text-sm font-medium text-[#3658f7]">须知</b>
+        <span>
+          客源线索（简称“线索库”）是指您广泛通过各种渠道获取到的单身潜在客户简单信息以快速便捷的形式收集汇总到“线索管理”中，分派给红娘进行销售跟进，并丰富完善更多信息。
+        </span>
+        <br />
+        <span className="sm:pl-10">
+          根据业务进展情况可将客源线索一键入库转入到会员资料库（会员CRM）中，系统会自动生成账号；新账号需完成安全的首次密码设置后登录。
+        </span>
+        <br />
+        <span className="sm:pl-10">
+          已入库到“会员CRM”的客户线索在本页面中仅做记录查询，请在会员资料中管理，本页不再提供编辑和任何操作；删除客源记录不影响会员资料中的数据。
+        </span>
+      </div>
+      <section className="bg-white px-5 pt-4">
+        <div className="flex items-center justify-between border-b">
+          <div className="flex gap-7 text-sm">
+            <b className="border-b-2 border-[#3658f7] pb-3 text-[#3658f7]">
+              线索管理
+            </b>
+            <button className="pb-3 text-[#666]">弃海客源</button>
+            <button className="pb-3 text-[#666]">弃海记录</button>
+          </div>
+          <div className="flex gap-2 pb-3">
+            <button
+              onClick={() => open("create")}
+              className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"
+            >
+              <Plus size={15} />
+              添加客源
+            </button>
+            <button
+              onClick={exportCsv}
+              className="flex items-center gap-1 rounded border px-3 py-1.5 text-sm"
+            >
+              <FileDown size={15} />
+              导出 Excel
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-3 pt-4 md:grid-cols-4 xl:grid-cols-8">
+          {[
+            "审核状态：不限",
+            "分派跟进：不限",
+            "客源状态：不限",
+            "录入红娘：不限",
+            "推广红娘",
+            "录入管理员：不限",
+          ].map((label) => (
+            <button
+              key={label}
+              className="h-8 rounded border border-[#ddd] px-3 text-left text-sm text-[#999]"
+            >
+              {label}
+            </button>
+          ))}
+          <Select
+            label="客源状态"
+            value={status}
+            set={setStatus}
+            options={[["", "全部"], ...Object.entries(statuses)]}
+          />
+          <Field label="客户来源" value={source} set={setSource} />
+        </div>
+        <div className="flex flex-wrap items-end gap-3 py-4">
+          <Field label="称呼/微信/手机/ID" value={keyword} set={setKeyword} />
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => void load()}
+              className="flex h-8 items-center gap-1 rounded bg-[#3658f7] px-4 text-sm text-white"
+            >
+              <Search size={14} />
+              搜索
+            </button>
+            <button
+              onClick={() => {
+                setKeyword("");
+                setStatus("");
+                setSource("");
+              }}
+              className="h-8 rounded border px-3 text-sm"
+            >
+              重置
+            </button>
+          </div>
+          <span className="pb-2 text-sm">排序：录入时间</span>
+          <span className="pb-2 text-sm text-[#3658f7]">简洁 | 专业</span>
+        </div>
+        <div className="grid grid-cols-2 gap-px border-y bg-[#eef0f5] md:grid-cols-6">
+          {[
+            ["全部", data.total],
+            ["未分派", data.items.filter((x) => !x.matchmaker_id).length],
+            ["待联系", data.items.filter((x) => x.status === "NEW").length],
+            [
+              "有意向",
+              data.items.filter((x) => x.status === "INTENDED").length,
+            ],
+            [
+              "今日需跟进",
+              data.items.filter(
+                (x) =>
+                  x.next_follow_at &&
+                  new Date(x.next_follow_at).toDateString() ===
+                    new Date().toDateString(),
+              ).length,
+            ],
+            [
+              "已入库",
+              data.items.filter((x) => x.status === "CONVERTED").length,
+            ],
+          ].map(([n, c]) => (
+            <div key={String(n)} className="bg-white px-4 py-3">
+              <div className="text-xs text-[#888]">{n}</div>
+              <div className="mt-1 text-xl">{String(c)}</div>
+            </div>
+          ))}
+        </div>
+        <div className="py-3 text-sm text-[#777]">
+          共 {data.total} 条，按录入时间倒序 | 专业模式
+        </div>
+      </section>
+      <div className="overflow-x-auto bg-white">
+        <table className="w-full min-w-[1580px] text-sm">
+          <thead className="bg-[#fafafa] text-[#666]">
+            <tr>
+              {[
+                "客源ID",
+                "资料",
+                "客户意向",
+                "来源",
+                "审核",
+                "录入人",
+                "状态",
+                "分派跟进",
+                "跟进",
+                "通话",
+                "入库状态",
+                "操作",
+              ].map((x) => (
+                <th
+                  key={x}
+                  className="border-b px-3 py-3 text-left font-normal"
+                >
+                  {x}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={12} className="p-10 text-center text-[#999]">
+                  加载中...
+                </td>
+              </tr>
+            ) : data.items.length === 0 ? (
+              <tr>
+                <td colSpan={12} className="p-10 text-center text-[#999]">
+                  暂无客源线索
+                </td>
+              </tr>
+            ) : (
+              data.items.map((x) => (
+                <tr
+                  key={x.id}
+                  className="border-b align-top hover:bg-[#fafcff]"
+                >
+                  <td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
+                  <td className="px-3 py-3">
+                    <b>{x.name}</b>
+                    <div className="mt-1 text-xs leading-5 text-[#777]">
+                      {x.phone || "未填写手机"}
+                      <br />
+                      {x.wechat || "未填写微信"}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">{intent(x.intention_level)}</td>
+                  <td className="px-3 py-3">{x.source}</td>
+                  <td className="px-3 py-3 text-[#37a35b]">有效</td>
+                  <td className="px-3 py-3 text-xs">
+                    管理员
+                    <br />
+                    <span className="text-[#777]">#{x.created_by}</span>
+                    <br />
+                    <span className="text-[#999]">
+                      {new Date(x.created_at).toLocaleString("zh-CN")}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    {statuses[x.status] || x.status}
+                  </td>
+                  <td className="px-3 py-3">
+                    {x.matchmaker_id ? `红娘 #${x.matchmaker_id}` : "未分派"}
+                  </td>
+                  <td className="px-3 py-3 text-xs text-[#777]">
+                    {x.next_follow_at
+                      ? `下次：${new Date(x.next_follow_at).toLocaleString("zh-CN")}`
+                      : "从未跟进"}
+                    <br />
+                    <button
+                      onClick={() => open("follow", x)}
+                      className="mt-1 text-[#3658f7]"
+                    >
+                      添加跟进
+                    </button>
+                  </td>
+                  <td className="px-3 py-3 text-[#999]">从未通话</td>
+                  <td className="px-3 py-3">
+                    {x.converted_user_id ? (
+                      <span className="text-[#37a35b]">
+                        已入库
+                        <br />#{x.converted_user_id}
+                      </span>
+                    ) : (
+                      <span>未入库</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex gap-3 text-[#3658f7]">
+                      <button onClick={() => open("edit", x)}>编辑</button>
+                      <button onClick={() => open("assign", x)}>分派</button>
+                      <button onClick={() => open("follow", x)}>跟进</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {message && <p className="mt-3 text-sm text-red-600">{message}</p>}
+      <div className="flex justify-end gap-3 bg-white p-4 text-sm">
+        <button
+          disabled={data.page <= 1}
+          onClick={() => void load(data.page - 1)}
+          className="rounded border px-3 py-1"
+        >
+          上一页
+        </button>
+        <span className="py-1">第 {data.page} 页</span>
+        <button
+          disabled={!data.has_more}
+          onClick={() => void load(data.page + 1)}
+          className="rounded border px-3 py-1"
+        >
+          下一页
+        </button>
+      </div>
+      {modal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4">
+          <form
+            onSubmit={submit}
+            className="w-full max-w-[520px] rounded bg-white p-5 shadow-xl"
+          >
+            <div className="mb-4 flex justify-between">
+              <b>
+                {modal === "create"
+                  ? "添加客源"
+                  : modal === "edit"
+                    ? "编辑客源"
+                    : modal === "assign"
+                      ? "分派跟进"
+                      : "新增跟进"}
+              </b>
+              <button type="button" onClick={() => setModal(null)}>
+                关闭
+              </button>
+            </div>
+            {modal === "assign" ? (
+              <>
+                <Field
+                  label="服务红娘 ID"
+                  value={form.matchmaker_id}
+                  set={(v) => setForm({ ...form, matchmaker_id: v })}
+                />
+                <Field
+                  label="门店 ID"
+                  value={form.organization_id}
+                  set={(v) => setForm({ ...form, organization_id: v })}
+                />
+              </>
+            ) : modal === "follow" ? (
+              <>
+                <Select
+                  label="跟进方式"
+                  value={form.method}
+                  set={(v) => setForm({ ...form, method: v })}
+                  options={[
+                    ["PHONE", "电话"],
+                    ["WECHAT", "微信"],
+                    ["VISIT", "到访"],
+                    ["OTHER", "其他"],
+                  ]}
+                />
+                <textarea
+                  required
+                  value={form.content}
+                  onChange={(e) =>
+                    setForm({ ...form, content: e.target.value })
+                  }
+                  placeholder="跟进内容"
+                  className="mt-3 h-24 w-full rounded border p-2 text-sm"
+                />
+              </>
+            ) : (
+              <>
+                <Field
+                  label="称呼"
+                  value={form.name}
+                  set={(v) => setForm({ ...form, name: v })}
+                  required
+                />
+                <Field
+                  label="手机"
+                  value={form.phone}
+                  set={(v) => setForm({ ...form, phone: v })}
+                />
+                <Field
+                  label="微信"
+                  value={form.wechat}
+                  set={(v) => setForm({ ...form, wechat: v })}
+                />
+                {modal === "create" && (
+                  <Field
+                    label="客户来源"
+                    value={form.source}
+                    set={(v) => setForm({ ...form, source: v })}
+                    required
+                  />
+                )}
+                <Select
+                  label="客户意向"
+                  value={form.intention_level}
+                  set={(v) => setForm({ ...form, intention_level: v })}
+                  options={[
+                    ["1", "低"],
+                    ["2", "中"],
+                    ["3", "高"],
+                  ]}
+                />
+                {modal === "edit" && (
+                  <Select
+                    label="客源状态"
+                    value={form.status}
+                    set={(v) => setForm({ ...form, status: v })}
+                    options={Object.entries(statuses)}
+                  />
+                )}
+                <textarea
+                  value={form.remark}
+                  onChange={(e) => setForm({ ...form, remark: e.target.value })}
+                  placeholder="备注"
+                  className="mt-3 h-20 w-full rounded border p-2 text-sm"
+                />
+              </>
+            )}
+            <label className="mt-3 block text-sm">
+              下次跟进{" "}
+              <input
+                type="datetime-local"
+                value={form.next_follow_at}
+                onChange={(e) =>
+                  setForm({ ...form, next_follow_at: e.target.value })
+                }
+                className="rounded border p-1"
+              />
+            </label>
+            <div className="mt-5 text-right">
+              <button
+                disabled={saving}
+                className="rounded bg-[#3658f7] px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "保存中..." : "保存"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+function Field({
+  label,
+  value,
+  set,
+  required,
+}: {
+  label: string;
+  value: string;
+  set: (v: string) => void;
+  required?: boolean;
+}) {
+  return (
+    <label className="mt-3 block text-sm">
+      {label}
+      <input
+        required={required}
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className="mt-1 block h-8 w-full rounded border px-2"
+      />
+    </label>
+  );
+}
+function Select({
+  label,
+  value,
+  set,
+  options,
+}: {
+  label: string;
+  value: string;
+  set: (v: string) => void;
+  options: string[][];
+}) {
+  return (
+    <label className="block text-sm">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className="mt-1 block h-8 w-full rounded border bg-white px-2"
+      >
+        {options.map(([v, n]) => (
+          <option value={v} key={v}>
+            {n}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }

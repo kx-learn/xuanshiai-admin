@@ -20,13 +20,7 @@ const columns: ColumnDef[] = [
   { title: "失败原因", key: "failReason" },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, sendTime: "2026-07-14 10:30:00", phone: "138****1234", content: "验证码为：123456，5分钟内有效", smsType: "验证码", result: "成功", failReason: "-" },
-  { id: 2, sendTime: "2026-07-14 10:15:00", phone: "139****5678", content: "恭喜！您的资料审核通过，编号为：10001", smsType: "通知", result: "成功", failReason: "-" },
-  { id: 3, sendTime: "2026-07-14 09:45:00", phone: "137****9012", content: "您的账户余额有变动！收入：100元", smsType: "通知", result: "失败", failReason: "号码已停机" },
-  { id: 4, sendTime: "2026-07-13 18:00:00", phone: "136****3456", content: "遗憾！您资料未通过审核，原因：照片不清晰", smsType: "通知", result: "成功", failReason: "-" },
-  { id: 5, sendTime: "2026-07-13 14:20:00", phone: "135****7890", content: "您提交的余额提现已审核通过，金额：500元", smsType: "通知", result: "成功", failReason: "-" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (

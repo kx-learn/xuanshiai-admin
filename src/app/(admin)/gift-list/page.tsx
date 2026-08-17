@@ -22,9 +22,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, title: "指甲刀", type: "实物快递", points: "100", stock: "97" },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [
   { label: "新增礼品", variant: "primary" },
@@ -42,7 +40,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 1 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

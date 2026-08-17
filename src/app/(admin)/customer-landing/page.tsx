@@ -16,19 +16,7 @@ const columns: ColumnDef[] = [
   { title: "操作", key: "action", width: 180 },
 ];
 
-const data: Record<string, unknown>[] = [
-  {
-    id: 1,
-    title: "你好6月",
-    formType: "单页-内置表单",
-    dataPosition: "会员资料",
-    createTime: "2026-06-12 14:42:38",
-    views: "4",
-    customerSource: "总数：0 男：0女：0",
-    promoteMatchmaker: "-",
-    linkQrcode: "查看",
-  },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (
@@ -44,7 +32,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 1 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

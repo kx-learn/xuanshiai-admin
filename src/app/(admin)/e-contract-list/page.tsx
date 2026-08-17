@@ -36,20 +36,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, contractNo: "HT-2026-1001", signer: "张三", contractType: "VIP会员合同", signTime: "2026-07-13 15:20:00", status: "已签署" },
-  { id: 2, contractNo: "HT-2026-1002", signer: "李四", contractType: "牵线服务协议", signTime: "2026-07-12 15:21:00", status: "已签署" },
-  { id: 3, contractNo: "HT-2026-1003", signer: "王五", contractType: "活动参与协议", signTime: "2026-07-11 15:22:00", status: "已签署" },
-  { id: 4, contractNo: "HT-2026-1004", signer: "赵六", contractType: "实名认证授权书", signTime: "2026-07-10 15:23:00", status: "已签署" },
-  { id: 5, contractNo: "HT-2026-1005", signer: "孙七", contractType: "隐私协议", signTime: "2026-07-09 15:24:00", status: "已签署" },
-  { id: 6, contractNo: "HT-2026-1006", signer: "周八", contractType: "用户服务协议", signTime: "2026-07-08 15:25:00", status: "已签署" },
-  { id: 7, contractNo: "HT-2026-1007", signer: "吴九", contractType: "VIP会员合同", signTime: "-", status: "待签署" },
-  { id: 8, contractNo: "HT-2026-1008", signer: "郑十", contractType: "退款协议", signTime: "-", status: "待签署" },
-  { id: 9, contractNo: "HT-2026-1009", signer: "钱十一", contractType: "牵线服务协议", signTime: "2026-07-04 15:29:00", status: "已过期" },
-  { id: 10, contractNo: "HT-2026-1010", signer: "刘十二", contractType: "数据授权协议", signTime: "2026-07-03 15:30:00", status: "已过期" },
-  { id: 11, contractNo: "HT-2026-1011", signer: "陈十三", contractType: "VIP会员合同", signTime: "2026-07-02 15:31:00", status: "已取消" },
-  { id: 12, contractNo: "HT-2026-1012", signer: "杨十四", contractType: "活动参与协议", signTime: "2026-07-01 15:32:00", status: "已取消" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function EContractListPage() {
   return (

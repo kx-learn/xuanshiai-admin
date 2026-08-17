@@ -23,18 +23,7 @@ const columns: ColumnDef[] = [
   { title: "排序", key: "sort", width: 100, align: "center" },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, itemName: "民族", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 2, itemName: "身材体型", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 3, itemName: "脸型类型", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 4, itemName: "皮肤类型", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 5, itemName: "眼睛类型", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 6, itemName: "恋爱经历", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 7, itemName: "最长恋爱", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 8, itemName: "单身时长", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 9, itemName: "工作情况", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-  { id: 10, itemName: "孩子情况", inRegister: "", inEdit: "", guideText: "", inDetail: "", sort: "" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function PlatformConfigBasicPage() {
   const [activeTab, setActiveTab] = useState("basic");
@@ -49,7 +38,7 @@ export default function PlatformConfigBasicPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 10 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

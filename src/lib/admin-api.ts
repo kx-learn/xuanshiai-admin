@@ -16,7 +16,10 @@ export async function adminApi<T>(path: string, options: RequestOptions = {}): P
   const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
   const url = typeof window === "undefined"
     ? new URL(relativePath, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
-    : new URL(relativePath, window.location.origin);
+    : new URL(
+      `/api/v1/${path.replace(/^\/+/, "")}`,
+      process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
+    );
   Object.entries(options.query ?? {}).forEach(([key, value]) => { if (value !== undefined && value !== "") url.searchParams.set(key, String(value)); });
   const headers = new Headers(options.headers);
   const token = getAdminToken();
@@ -27,7 +30,12 @@ export async function adminApi<T>(path: string, options: RequestOptions = {}): P
   const { query: _query, ...requestOptions } = options;
   const response = await fetch(url, { ...requestOptions, headers, body: body as BodyInit | null | undefined });
   if (!response.ok) {
-    if (response.status === 401) clearAdminToken();
+    if (response.status === 401) {
+      clearAdminToken();
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
+    }
     throw new Error((await response.text()) || `请求失败 (${response.status})`);
   }
   if (response.status === 204) return undefined as T;

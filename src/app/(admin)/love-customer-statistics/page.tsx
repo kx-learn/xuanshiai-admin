@@ -1,58 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef, type TabConfig } from "@/components/ListPage";
-
-const tabs: TabConfig[] = [
-  { key: "follow-statistics", label: "客户跟进统计" },
-  { key: "intention-statistics", label: "客户意向统计" },
-  { key: "source-statistics", label: "客户来源统计" },
-  { key: "status-statistics", label: "客源状态统计" },
-  { key: "increment-statistics", label: "客户增量统计" },
-  { key: "assign-statistics", label: "客源分派统计" },
-  { key: "promote-statistics", label: "推广红娘获客统计" },
-];
-
-const columns: ColumnDef[] = [
-  { title: "红娘", key: "matchmaker" },
-  { title: "名下客源", key: "customerCount" },
-  { title: "从未跟进", key: "neverFollowed" },
-  { title: "超3天未跟进", key: "over3Days" },
-  { title: "超7天未跟进", key: "over7Days" },
-  { title: "超15天未跟进", key: "over15Days" },
-  { title: "超30天未跟进", key: "over30Days" },
-  { title: "跟进总条数", key: "totalFollowUps" },
-  { title: "本月跟进条数", key: "monthFollowUps" },
-];
-
-const data: Record<string, unknown>[] = [
-  {
-    id: 1,
-    matchmaker: "芸希老师",
-    customerCount: "0",
-    neverFollowed: "0",
-    over3Days: "0",
-    over7Days: "0",
-    over15Days: "0",
-    over30Days: "0",
-    totalFollowUps: "0条",
-    monthFollowUps: "0条",
-  },
-];
-
-export default function LoveCustomerStatisticsPage() {
-  return (
-    <ListPage
-      breadcrumb={getBreadcrumb("客源线索", "数据报表")}
-      pageTitle="数据报表"
-      tabs={tabs}
-      activeTab="follow-statistics"
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 1 }}
-      searchFields={[]}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
-  );
-}
+import { adminEndpoints } from "@/lib/admin-endpoints";
+type Stats={total:number;new_count:number;contacted_count:number;intended_count:number;converted_count:number;lost_count:number}; const zero:Stats={total:0,new_count:0,contacted_count:0,intended_count:0,converted_count:0,lost_count:0};
+export default function Page(){const [s,setS]=useState<Stats>(zero),[error,setError]=useState("");useEffect(()=>{adminEndpoints.customerLeadStatistics().then(x=>setS(x as Stats)).catch(e=>setError(e instanceof Error?e.message:"加载失败"))},[]);const cards:[string,number,string][]=[["线索总数",s.total,"#3658f7"],["待联系",s.new_count,"#f09a2b"],["已联系",s.contacted_count,"#41a2c7"],["有意向",s.intended_count,"#9b6bd3"],["已入库",s.converted_count,"#28a46d"],["已弃海",s.lost_count,"#999"]];return <div><AdminBreadcrumb items={getBreadcrumb("客源线索","数据报表")}/><div className="mb-4 flex items-center justify-between"><h1 className="text-xl font-medium">数据报表</h1><span className="text-sm text-[#999]">仅统计当前账号有权限查看的客源</span></div><div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">{cards.map(([n,v,c])=><div key={n} className="border-t-2 bg-white p-4" style={{borderColor:c}}><div className="text-sm text-[#777]">{n}</div><div className="mt-3 text-3xl">{v}</div></div>)}</div><div className="mt-4 bg-white p-5"><div className="border-b pb-3 text-sm text-[#3658f7]">客源状态统计</div><p className="py-5 text-sm leading-7 text-[#666]">已接入状态统计。甲方的跟进时效、来源排行、红娘分派、推广获客等报表，需要新增按时间和归属维度聚合的后端接口，不能用空数据伪造。</p>{error&&<p className="text-sm text-red-600">{error}</p>}</div></div>}

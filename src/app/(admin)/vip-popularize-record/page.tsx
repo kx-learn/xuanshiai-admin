@@ -23,53 +23,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  {
-    id: 1001,
-    purchaseTime: "2026-07-13 14:30:00",
-    promoter: "张红娘",
-    payStatus: "已支付",
-    payMethod: "微信支付",
-    payOrder: "WX202607131430001",
-    status: "已完成",
-  },
-  {
-    id: 1002,
-    purchaseTime: "2026-07-12 10:15:00",
-    promoter: "王红娘",
-    payStatus: "已支付",
-    payMethod: "微信支付",
-    payOrder: "WX202607121015002",
-    status: "已完成",
-  },
-  {
-    id: 1003,
-    purchaseTime: "2026-07-11 16:45:00",
-    promoter: "李红娘",
-    payStatus: "已支付",
-    payMethod: "余额支付",
-    payOrder: "BAL202607111645003",
-    status: "已完成",
-  },
-  {
-    id: 1004,
-    purchaseTime: "2026-07-10 09:00:00",
-    promoter: "赵红娘",
-    payStatus: "待支付",
-    payMethod: "-",
-    payOrder: "WX202607100900004",
-    status: "待付款",
-  },
-  {
-    id: 1005,
-    purchaseTime: "2026-07-09 11:20:00",
-    promoter: "张红娘",
-    payStatus: "已支付",
-    payMethod: "微信支付",
-    payOrder: "WX202607091120005",
-    status: "已完成",
-  },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [
   { label: "导出", variant: "default" },

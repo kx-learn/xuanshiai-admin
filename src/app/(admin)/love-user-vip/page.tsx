@@ -72,18 +72,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { memberName: "秋刀鱼 | 李会强", memberId: "编号：B976071", vipLevel: "臻爱专享", openMethod: "后台开通", openType: "升级开通", openTime: "2026-07-02 15:03:39", validUntil: "2027-07-01 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "20", remainingConnections: "20" },
-  { memberName: "Sofia | 陈垚林", memberId: "编号：G410116", vipLevel: "新人专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-07-01 17:46:29", validUntil: "2026-09-30 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "3", remainingConnections: "3" },
-  { memberName: "越可名 | 杨俊芳", memberId: "编号：G777211", vipLevel: "新人专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-07-01 17:46:08", validUntil: "2026-09-30 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "3", remainingConnections: "2" },
-  { memberName: "乌龙茶607i | 朱颖", memberId: "编号：G714715", vipLevel: "新人专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-07-01 17:45:52", validUntil: "2026-09-30 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "3", remainingConnections: "3" },
-  { memberName: "秋刀鱼 | 李会强", memberId: "编号：B976071", vipLevel: "臻爱专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-07-01 16:33:41", validUntil: "2027-07-01 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "20", remainingConnections: "20" },
-  { memberName: "是静香本人没错 | 潘童", memberId: "编号：G858401", vipLevel: "新人专享", openMethod: "自助开通", openType: "首次开通", openTime: "2026-06-30 11:51:56", validUntil: "2026-09-28 00:00:00", vipStatus: "未过期", amount: "299", addedConnections: "3", remainingConnections: "1" },
-  { memberName: "张天宇 | 张超睿", memberId: "编号：B224118", vipLevel: "新人专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-06-28 17:05:18", validUntil: "2026-09-18 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "3", remainingConnections: "3" },
-  { memberName: "六月", memberId: "编号：B970357", vipLevel: "新人专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-06-28 17:04:43", validUntil: "2026-08-28 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "3", remainingConnections: "3" },
-  { memberName: "Karo | 杨一帆", memberId: "编号：B582604", vipLevel: "新人专享", openMethod: "后台开通", openType: "首次开通", openTime: "2026-06-28 16:51:57", validUntil: "2026-09-28 00:00:00", vipStatus: "未过期", amount: "0", addedConnections: "3", remainingConnections: "3" },
-  { memberName: "出现1 | 张瑞", memberId: "编号：B241050", vipLevel: "臻爱专享", openMethod: "自助开通", openType: "首次开通", openTime: "2026-06-28 15:10:50", validUntil: "2027-06-28 00:00:00", vipStatus: "未过期", amount: "999", addedConnections: "20", remainingConnections: "15" },
-];
+const data: Record<string, unknown>[] = [];
 
 const searchFields: SearchField[] = [
   { label: "会员", type: "input", placeholder: "请输入会员昵称/姓名/编号", width: 220 },
@@ -107,7 +96,7 @@ export default function LoveUserVipPage() {
       columns={columns}
       dataSource={data}
       rowKey="memberId"
-      pagination={{ current: 1, pageSize: 20, total: 160 }}
+      pagination={{ current: 1, pageSize: 20, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

@@ -56,20 +56,7 @@ interface ApportionRow {
   status: string;
 }
 
-const data: ApportionRow[] = [
-  { id: 1, ruleName: "自动分派规则-A", distributionType: "自动", applicableStore: "总店", createTime: "2026-01-01 10:00:00", status: "启用" },
-  { id: 2, ruleName: "手动分派规则-B", distributionType: "手动", applicableStore: "朝阳分站", createTime: "2026-02-01 10:01:00", status: "启用" },
-  { id: 3, ruleName: "VIP优先分派", distributionType: "自动", applicableStore: "海淀分站", createTime: "2026-03-01 10:02:00", status: "启用" },
-  { id: 4, ruleName: "地域优先分派", distributionType: "手动", applicableStore: "西城分站", createTime: "2026-04-01 10:03:00", status: "停用" },
-  { id: 5, ruleName: "轮询分派规则", distributionType: "自动", applicableStore: "东城分站", createTime: "2026-05-01 10:04:00", status: "启用" },
-  { id: 6, ruleName: "权重分派规则", distributionType: "手动", applicableStore: "总店", createTime: "2026-06-01 10:05:00", status: "启用" },
-  { id: 7, ruleName: "时段分派规则", distributionType: "自动", applicableStore: "朝阳分站", createTime: "2026-07-01 10:06:00", status: "启用" },
-  { id: 8, ruleName: "等级匹配规则", distributionType: "手动", applicableStore: "海淀分站", createTime: "2026-01-15 10:07:00", status: "启用" },
-  { id: 9, ruleName: "随机分派规则", distributionType: "自动", applicableStore: "西城分站", createTime: "2026-02-15 10:08:00", status: "启用" },
-  { id: 10, ruleName: "负载均衡规则", distributionType: "手动", applicableStore: "东城分站", createTime: "2026-03-15 10:09:00", status: "启用" },
-  { id: 11, ruleName: "偏好分派规则", distributionType: "自动", applicableStore: "总店", createTime: "2026-04-15 10:10:00", status: "启用" },
-  { id: 12, ruleName: "就近分派规则", distributionType: "手动", applicableStore: "朝阳分站", createTime: "2026-05-15 10:11:00", status: "启用" },
-];
+const data: ApportionRow[] = [];
 
 const searchFields: SearchField[] = [
   { label: "配置名称", type: "input", placeholder: "请输入配置名称", width: 180 },
@@ -91,7 +78,7 @@ export default function LoveMatchmakerApportionPage() {
       columns={columns}
       dataSource={dataSource}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 12 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

@@ -7,26 +7,7 @@ import AdminSearchBar, { type SearchField } from "@/components/AdminSearchBar";
 import { DataTable, type Column } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
-const mockData = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  tipper: ["陈小明", "林小红", "王建国", "赵丽丽", "孙大海", "周美玲"][i % 6],
-  videoTitle: [
-    "教你如何在相亲中留下好印象",
-    "婚恋市场最新趋势分析",
-    "我们的爱情故事分享",
-    "红娘教你识别靠谱对象",
-    "第一次约会该去哪里",
-    "婚姻保鲜的五个秘诀",
-    "如何写好一份相亲简历",
-    "恋爱中的沟通技巧",
-    "父母催婚怎么办",
-    "相亲中的那些趣事",
-    "婚恋平台的使用心得",
-    "从相识到相知的美好旅程",
-  ][i],
-  amount: [10, 20, 50, 5, 30, 66, 8, 18, 100, 15, 25, 88][i],
-  tipTime: `2026-07-${String(13 - i).padStart(2, "0")} ${String(14 + i).padStart(2, "0")}:${String(i * 5).padStart(2, "0")}:00`,
-}));
+const mockData: Record<string, unknown>[] = [];
 
 export default function ShortVideoTipPage() {
   const [tipper, setTipper] = useState("");

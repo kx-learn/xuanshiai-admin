@@ -22,11 +22,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, levelName: "初级合伙", performanceRequirement: "累计业绩≥0元", memberRequirement: "有效会员≥0人", bonusRate: 5, updateTime: "2026-06-28 14:30:17" },
-  { id: 2, levelName: "中级合伙", performanceRequirement: "累计业绩≥10000元", memberRequirement: "有效会员≥10人", bonusRate: 8, updateTime: "2026-06-28 14:30:17" },
-  { id: 3, levelName: "高级合伙", performanceRequirement: "累计业绩≥50000元", memberRequirement: "有效会员≥30人", bonusRate: 12, updateTime: "2026-06-28 14:30:17" },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions = [
   { label: "添加等级", variant: "primary" as const },
@@ -41,7 +37,7 @@ export default function LovePartnerBonusConfigPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 3 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
     />
   );
 }

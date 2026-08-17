@@ -49,19 +49,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  {
-    id: 2,
-    account: "出现1",
-    teamName: "宣誓爱1",
-    level: "初级合伙",
-    createTime: "2026-06-28 14:30:17",
-    teamMemberCount: 4,
-    teamPerformance: "0元",
-    teamValidMembers: "2（男0女2）",
-    totalBonus: "1元",
-  },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [
   { label: "添加合伙人", variant: "primary" },
@@ -76,7 +64,7 @@ export default function LovePartnerListPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 1 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
     />
   );
 }

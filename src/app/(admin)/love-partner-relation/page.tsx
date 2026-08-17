@@ -33,13 +33,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, parentPartner: "出现1", childPartner: "推广红娘A", level: "一级", createTime: "2026-06-28 14:30:17" },
-  { id: 2, parentPartner: "出现1", childPartner: "推广红娘B", level: "一级", createTime: "2026-06-29 10:15:00" },
-  { id: 3, parentPartner: "出现1", childPartner: "推广红娘C", level: "一级", createTime: "2026-06-30 08:20:00" },
-  { id: 4, parentPartner: "出现1", childPartner: "推广红娘D", level: "一级", createTime: "2026-07-01 14:45:00" },
-  { id: 5, parentPartner: "推广红娘A", childPartner: "推广红娘A1", level: "二级", createTime: "2026-07-03 09:10:00" },
-];
+const data: Record<string, unknown>[] = [];
 
 const searchFields: SearchField[] = [
   { label: "上级合伙人", type: "input", placeholder: "请输入", width: 160 },
@@ -55,7 +49,7 @@ export default function LovePartnerRelationPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 5 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

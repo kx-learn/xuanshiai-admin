@@ -9,10 +9,19 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const basePath = base.pathname.replace(/\/+$/, "");
   const target = new URL(`${basePath}/api/v1/${path.join("/")}`, base);
   target.search = request.nextUrl.search;
-  const headers = new Headers(request.headers);
-  headers.delete("host"); headers.delete("content-length");
+  const headers = new Headers();
+  for (const header of ["accept", "authorization", "content-type", "idempotency-key", "x-request-id"]) {
+    const value = request.headers.get(header);
+    if (value) headers.set(header, value);
+  }
   const body = method === "GET" || method === "DELETE" ? undefined : await request.arrayBuffer();
-  const response = await fetch(target, { method, headers, body, redirect: "manual", cache: "no-store" });
+  let response: Response;
+  try {
+    response = await fetch(target, { method, headers, body, redirect: "manual", cache: "no-store" });
+  } catch (error) {
+    console.error("Admin API proxy request failed", target.toString(), String(error), error instanceof Error ? String(error.cause) : "");
+    return NextResponse.json({ error: "后端服务暂时不可用" }, { status: 502 });
+  }
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("content-encoding");
   return new NextResponse(response.body, { status: response.status, headers: responseHeaders });

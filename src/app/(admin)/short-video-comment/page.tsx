@@ -36,11 +36,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 3, content: "太真实了 原文：相亲一定要先见面再聊天！！ 文字都是冷冰冰的，真实的见面才能拉近两颗心的距离", likes: "0", time: "2026-06-12 18:03:42", ip: "180.111.215.178", member: "不吃猪肉", audit: "通过" },
-  { id: 2, content: "总结的太到位了，感觉我也是这样的 原文：相亲一定要先见面再聊天！！ 文字都是冷冰冰的，真实的见面才能拉近两颗心的距离", likes: "0", time: "2026-06-12 17:29:43", ip: "116.147.253.130", member: "出现1", audit: "通过" },
-  { id: 1, content: "总结的太到位了，感觉我也是这样的 原文：相亲一定要先见面再聊天！！ 文字都是冷冰冰的，真实的见面才能拉近两颗心的距离", likes: "0", time: "2026-06-12 17:28:41", ip: "116.147.253.130", member: "出现1", audit: "通过" },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [];
 
@@ -56,7 +52,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 3 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

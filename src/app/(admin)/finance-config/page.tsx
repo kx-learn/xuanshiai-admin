@@ -20,19 +20,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, configName: "积分名称", configValue: "金币", description: "积分名称配置", updateTime: "2026-07-10 10:20:00" },
-  { id: 2, configName: "积分比例", configValue: "1元 = 10积分", description: "积分兑换比例", updateTime: "2026-07-10 10:20:00" },
-  { id: 3, configName: "余额名称", configValue: "余额", description: "余额显示名称", updateTime: "2026-07-10 10:20:00" },
-  { id: 4, configName: "余额提现", configValue: "开启", description: "是否开启余额提现功能", updateTime: "2026-07-10 10:20:00" },
-  { id: 5, configName: "提现手续费", configValue: ">=100元扣手续费", description: "提现金额 >= 100 元，扣手续费", updateTime: "2026-07-10 10:20:00" },
-  { id: 6, configName: "手续费费率", configValue: "1%", description: "按提现全额计算，四舍五入，手续费不满1元时按1元扣", updateTime: "2026-07-10 10:20:00" },
-  { id: 7, configName: "自动提现到微信零钱", configValue: "关闭", description: "单笔最小1元，最大500元", updateTime: "2026-07-10 10:20:00" },
-  { id: 8, configName: "人工转账提现到微信", configValue: "开启", description: "单笔最小1元，最大1000元", updateTime: "2026-07-10 10:20:00" },
-  { id: 9, configName: "人工转账提现到银行卡", configValue: "开启", description: "单笔最小1元，最大1000元", updateTime: "2026-07-10 10:20:00" },
-  { id: 10, configName: "人工转账提现到支付宝", configValue: "开启", description: "单笔最小1元，最大1000元", updateTime: "2026-07-10 10:20:00" },
-  { id: 11, configName: "积分充值套餐", configValue: "6个套餐(1元~600元)", description: "积分充值套餐1-6，充值金额从1元到600元", updateTime: "2026-07-10 10:20:00" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function FinanceConfigPage() {
   return (

@@ -10,12 +10,7 @@ const columns: ColumnDef[] = [
   { title: "操作", key: "action", width: 100, align: "center" },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, configKey: "AppID", configValue: "wx1234567890abcdef", action: "编辑" },
-  { id: 2, configKey: "AppSecret", configValue: "***hidden***", action: "编辑" },
-  { id: 3, configKey: "Token", configValue: "xuanshiai_token_2026", action: "编辑" },
-  { id: 4, configKey: "EncodingAESKey", configValue: "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFG", action: "编辑" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function WechatConfigPage() {
   return (
@@ -25,7 +20,7 @@ export default function WechatConfigPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 4 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

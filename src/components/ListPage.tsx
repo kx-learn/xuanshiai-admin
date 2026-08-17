@@ -27,6 +27,15 @@ interface ListPageProps {
   endpoint?: string;
 }
 
+function resolveEndpoint(endpoint: string) {
+  if (!endpoint.startsWith("/api/backend/")) return endpoint;
+  const path = endpoint.slice("/api/backend/".length);
+  return new URL(
+    `/api/v1/${path}`,
+    process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
+  ).toString();
+}
+
 export default function ListPage({
   breadcrumb, pageTitle, tabs, activeTab = "", onTabChange, searchFields = [], actions = [], columns, dataSource,
   rowKey = "id", pagination, onSearch, onReset, loading = false, endpoint,
@@ -41,7 +50,7 @@ export default function ListPage({
     setRemoteLoading(true);
     const controller = new AbortController();
     const token = typeof window !== "undefined" ? window.localStorage.getItem("xuanshiai_admin_access_token") : null;
-    fetch(endpoint, { signal: controller.signal, headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+    fetch(resolveEndpoint(endpoint), { signal: controller.signal, headers: token ? { Authorization: `Bearer ${token}` } : undefined })
       .then((response) => {
         if (!response.ok) throw new Error(`Request failed: ${response.status}`);
         return response.json();

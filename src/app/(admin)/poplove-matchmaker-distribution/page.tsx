@@ -27,18 +27,7 @@ interface DistributionRow {
   updateTime: string;
 }
 
-const data: DistributionRow[] = [
-  { id: 1, configName: "基础推广分成", promotionRate: 5, updateTime: "2026-01-01 15:20:00" },
-  { id: 2, configName: "高级推广分成", promotionRate: 8, updateTime: "2026-02-01 15:21:00" },
-  { id: 3, configName: "渠道专属分成", promotionRate: 11, updateTime: "2026-03-01 15:22:00" },
-  { id: 4, configName: "阶梯推广分成", promotionRate: 14, updateTime: "2026-04-01 15:23:00" },
-  { id: 5, configName: "新人推广分成", promotionRate: 17, updateTime: "2026-05-01 15:24:00" },
-  { id: 6, configName: "季度推广奖励", promotionRate: 20, updateTime: "2026-06-01 15:25:00" },
-  { id: 7, configName: "年度推广分成", promotionRate: 23, updateTime: "2026-07-01 15:26:00" },
-  { id: 8, configName: "活动推广分成", promotionRate: 26, updateTime: "2026-01-15 15:27:00" },
-  { id: 9, configName: "VIP推广分成", promotionRate: 29, updateTime: "2026-02-15 15:28:00" },
-  { id: 10, configName: "保底推广分成", promotionRate: 3, updateTime: "2026-03-15 15:29:00" },
-];
+const data: DistributionRow[] = [];
 
 const actions: ActionButton[] = [
   { label: "新增配置", variant: "primary" },
@@ -55,7 +44,7 @@ export default function PoploveMatchmakerDistributionPage() {
       columns={columns}
       dataSource={dataSource}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 10 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

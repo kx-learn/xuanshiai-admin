@@ -5,24 +5,15 @@ import AdminPageHeader from "@/components/AdminPageHeader";
 import { DataTable, type Column } from "@/components/ui/table";
 
 const authInfo = {
-  licensor: "宣誓爱",
-  version: "V9.0",
-  status: "已授权",
-  authorizedAt: "2026-01-01",
-  expiresAt: "2027-01-01",
-  domain: "www.xuanshiai.com",
+  licensor: "-",
+  version: "-",
+  status: "-",
+  authorizedAt: "-",
+  expiresAt: "-",
+  domain: "-",
 };
 
-const mockData = Array.from({ length: 10 }, (_, i) => ({
-  id: i + 1,
-  module: [
-    "用户管理系统", "会员匹配引擎", "牵线服务系统", "活动管理平台",
-    "财务管理模块", "合同管理系统", "微信集成模块", "小程序端",
-    "数据统计分析", "客服工单系统",
-  ][i],
-  authStatus: i < 9 ? "已授权" : "未授权",
-  expiresAt: i < 9 ? "2027-01-01" : "-",
-}));
+const mockData: Record<string, unknown>[] = [];
 
 export default function SystemEmpowerPage() {
   const columns: Column[] = [
@@ -106,27 +97,27 @@ export default function SystemEmpowerPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-[#999]">系统版本：</span>
-                <span className="text-[#333]">V9.0.1</span>
+                <span className="text-[#333]">-</span>
               </div>
               <div>
                 <span className="text-[#999]">PHP版本：</span>
-                <span className="text-[#333]">8.2.0</span>
+                <span className="text-[#333]">-</span>
               </div>
               <div>
                 <span className="text-[#999]">数据库版本：</span>
-                <span className="text-[#333]">MySQL 8.0.33</span>
+                <span className="text-[#333]">-</span>
               </div>
               <div>
                 <span className="text-[#999]">服务器环境：</span>
-                <span className="text-[#333]">Linux / Nginx</span>
+                <span className="text-[#333]">-</span>
               </div>
               <div>
                 <span className="text-[#999]">最大上传：</span>
-                <span className="text-[#333]">50M</span>
+                <span className="text-[#333]">-</span>
               </div>
               <div>
                 <span className="text-[#999]">运行状态：</span>
-                <span className="inline-block px-2 py-0.5 text-xs rounded bg-[#f6ffed] text-[#52c41a] border border-[#b7eb8f]">正常</span>
+                <span className="inline-block px-2 py-0.5 text-xs rounded bg-[#f5f5f5] text-[#999] border border-[#d9d9d9]">-</span>
               </div>
             </div>
           </div>

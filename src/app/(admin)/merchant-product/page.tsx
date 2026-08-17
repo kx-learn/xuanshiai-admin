@@ -37,16 +37,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, productName: "钻石会员年卡", merchantName: "星辰婚恋服务有限公司", price: "¥3,999", createTime: "2026-06-15 09:30:00", salesCount: 128, online: "是", link: "查看" },
-  { id: 2, productName: "高端一对一匹配服务", merchantName: "幸福起点婚介所", price: "¥2,999", createTime: "2026-06-14 14:20:00", salesCount: 56, online: "是", link: "查看" },
-  { id: 3, productName: "情感咨询套餐A", merchantName: "缘来是你文化传播", price: "¥1,999", createTime: "2026-06-13 10:00:00", salesCount: 32, online: "是", link: "查看" },
-  { id: 4, productName: "线下相亲活动门票", merchantName: "玫瑰之约婚恋中心", price: "¥299", createTime: "2026-06-12 16:45:00", salesCount: 215, online: "是", link: "查看" },
-  { id: 5, productName: "VIP会员季卡", merchantName: "爱桥婚姻服务有限公司", price: "¥1,999", createTime: "2026-06-11 11:15:00", salesCount: 89, online: "是", link: "查看" },
-  { id: 6, productName: "婚礼策划基础套餐", merchantName: "金玉良缘工作室", price: "¥5,999", createTime: "2026-06-10 09:00:00", salesCount: 12, online: "是", link: "查看" },
-  { id: 7, productName: "形象改造课程", merchantName: "星辰婚恋服务有限公司", price: "¥999", createTime: "2026-06-08 13:30:00", salesCount: 45, online: "否", link: "查看" },
-  { id: 8, productName: "恋爱技巧培训课", merchantName: "幸福起点婚介所", price: "¥199", createTime: "2026-06-05 15:00:00", salesCount: 167, online: "是", link: "查看" },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [
   { label: "添加商品", variant: "primary" },
@@ -64,7 +55,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 8 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

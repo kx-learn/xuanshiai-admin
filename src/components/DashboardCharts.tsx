@@ -16,101 +16,45 @@ import {
   Bar,
 } from "recharts";
 
-// Mock data for member trend
-const memberTrendData = [
-  { date: "07-01", count: 8 },
-  { date: "07-02", count: 12 },
-  { date: "07-03", count: 5 },
-  { date: "07-04", count: 15 },
-  { date: "07-05", count: 10 },
-  { date: "07-06", count: 18 },
-  { date: "07-07", count: 7 },
-  { date: "07-08", count: 14 },
-  { date: "07-09", count: 20 },
-  { date: "07-10", count: 11 },
-  { date: "07-11", count: 9 },
-  { date: "07-12", count: 16 },
-  { date: "07-13", count: 13 },
-  { date: "07-14", count: 22 },
-  { date: "07-15", count: 19 },
-];
-
-const leadTrendData = [
-  { date: "07-01", count: 3 },
-  { date: "07-02", count: 7 },
-  { date: "07-03", count: 2 },
-  { date: "07-04", count: 8 },
-  { date: "07-05", count: 5 },
-  { date: "07-06", count: 9 },
-  { date: "07-07", count: 4 },
-  { date: "07-08", count: 6 },
-  { date: "07-09", count: 11 },
-  { date: "07-10", count: 3 },
-  { date: "07-11", count: 7 },
-  { date: "07-12", count: 5 },
-  { date: "07-13", count: 8 },
-  { date: "07-14", count: 12 },
-  { date: "07-15", count: 6 },
-];
-
-// Mock data for income trend
-const incomeTrendData = [
-  { date: "07-01", amount: 320 },
-  { date: "07-02", amount: 450 },
-  { date: "07-03", amount: 200 },
-  { date: "07-04", amount: 580 },
-  { date: "07-05", amount: 350 },
-  { date: "07-06", amount: 690 },
-  { date: "07-07", amount: 280 },
-  { date: "07-08", amount: 520 },
-  { date: "07-09", amount: 750 },
-  { date: "07-10", amount: 410 },
-  { date: "07-11", amount: 300 },
-  { date: "07-12", amount: 620 },
-  { date: "07-13", amount: 480 },
-  { date: "07-14", amount: 850 },
-  { date: "07-15", amount: 560 },
-];
-
-const offlineIncomeData = [
-  { date: "07-01", amount: 0 },
-  { date: "07-02", amount: 150 },
-  { date: "07-03", amount: 0 },
-  { date: "07-04", amount: 0 },
-  { date: "07-05", amount: 200 },
-  { date: "07-06", amount: 0 },
-  { date: "07-07", amount: 0 },
-  { date: "07-08", amount: 100 },
-  { date: "07-09", amount: 0 },
-  { date: "07-10", amount: 0 },
-  { date: "07-11", amount: 300 },
-  { date: "07-12", amount: 0 },
-  { date: "07-13", amount: 0 },
-  { date: "07-14", amount: 0 },
-  { date: "07-15", amount: 0 },
-];
-
-// Pie chart data
-const genderData = [
-  { name: "男会员", value: 410, percent: "65%", color: "#3658f7" },
-  { name: "女会员", value: 228, percent: "35%", color: "#ff7875" },
-];
-
-// Revenue share data
-const revenueShareData = [
-  { name: "VIP会员", percent: 38, color: "#3658f7" },
-  { name: "其他", percent: 24, color: "#5281f3" },
-  { name: "活动报名", percent: 21, color: "#ffc069" },
-  { name: "积分充值", percent: 4, color: "#95de64" },
-  { name: "送礼物", percent: 4, color: "#ff7875" },
-];
-
 type MemberTab = "member" | "lead";
 type IncomeTab = "online" | "offline";
 
-export default function DashboardCharts() {
+function asNumber(value: unknown) {
+  return typeof value === "number" ? value : Number(value ?? 0) || 0;
+}
+
+function trend(value: unknown, metric: "count" | "amount") {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const row = item as Record<string, unknown>;
+    return { date: String(row.date ?? row.day ?? ""), [metric]: asNumber(row[metric]) };
+  });
+}
+
+function revenue(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  const colors = ["#5a72ef", "#7e92f5", "#f4bd56", "#92cf69", "#f07b78"];
+  return value.map((item, index) => {
+    const row = item as Record<string, unknown>;
+    return { name: String(row.name ?? row.label ?? "其他"), percent: asNumber(row.percent), color: String(row.color ?? colors[index % colors.length]) };
+  });
+}
+
+export default function DashboardCharts({ stats }: { stats: Record<string, unknown> }) {
   const [memberTab, setMemberTab] = useState<MemberTab>("member");
   const [incomeTab, setIncomeTab] = useState<IncomeTab>("online");
+  const memberTrendData = trend(stats.member_trends, "count");
+  const leadTrendData = trend(stats.lead_trends, "count");
+  const incomeTrendData = trend(stats.online_income_trends, "amount");
+  const offlineIncomeData = trend(stats.offline_income_trends, "amount");
+  const totalMembers = asNumber(stats.member_count);
+  const maleMembers = asNumber(stats.male_member_count);
+  const femaleMembers = asNumber(stats.female_member_count);
+  const genderData = [
+    { name: "男会员", value: maleMembers, percent: totalMembers ? `${Math.round(maleMembers / totalMembers * 100)}%` : "0%", color: "#5a72ef" },
+    { name: "女会员", value: femaleMembers, percent: totalMembers ? `${Math.round(femaleMembers / totalMembers * 100)}%` : "0%", color: "#f07b78" },
+  ];
+  const revenueShareData = revenue(stats.revenue_share);
 
   const memberData = memberTab === "member" ? memberTrendData : leadTrendData;
   const incomeData = incomeTab === "online" ? incomeTrendData : offlineIncomeData;
@@ -225,7 +169,7 @@ export default function DashboardCharts() {
           </div>
           <div className="text-center mt-4 pt-4 border-t border-[#f0f0f0] w-full">
             <div className="text-xs text-[#999]">会员总数</div>
-            <div className="text-xl font-semibold text-[#333]">638人</div>
+            <div className="text-xl font-semibold text-[#333]">{totalMembers}人</div>
           </div>
         </div>
       </div>

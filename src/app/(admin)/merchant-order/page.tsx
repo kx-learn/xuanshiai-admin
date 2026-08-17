@@ -71,16 +71,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, product: "钻石会员年卡", merchant: "星辰婚恋服务有限公司", buyer: "陈小明", orderTime: "2026-07-13 10:30:00", status: "已付款", amount: "¥3,999", payMethod: "微信支付", verifyStatus: "已核销" },
-  { id: 2, product: "高端一对一匹配服务", merchant: "幸福起点婚介所", buyer: "林小红", orderTime: "2026-07-13 09:15:00", status: "已付款", amount: "¥2,999", payMethod: "微信支付", verifyStatus: "待核销" },
-  { id: 3, product: "情感咨询套餐A", merchant: "缘来是你文化传播", buyer: "王建国", orderTime: "2026-07-12 16:45:00", status: "已付款", amount: "¥1,999", payMethod: "微信支付", verifyStatus: "已核销" },
-  { id: 4, product: "线下相亲活动门票", merchant: "玫瑰之约婚恋中心", buyer: "赵丽丽", orderTime: "2026-07-12 14:20:00", status: "待付款", amount: "¥299", payMethod: "-", verifyStatus: "-" },
-  { id: 5, product: "VIP会员季卡", merchant: "爱桥婚姻服务有限公司", buyer: "孙大海", orderTime: "2026-07-11 11:00:00", status: "已付款", amount: "¥1,999", payMethod: "微信支付", verifyStatus: "已核销" },
-  { id: 6, product: "婚礼策划基础套餐", merchant: "金玉良缘工作室", buyer: "周美玲", orderTime: "2026-07-11 08:30:00", status: "已退款", amount: "¥5,999", payMethod: "微信支付", verifyStatus: "-" },
-  { id: 7, product: "形象改造课程", merchant: "星辰婚恋服务有限公司", buyer: "吴志强", orderTime: "2026-07-10 15:00:00", status: "已付款", amount: "¥999", payMethod: "微信支付", verifyStatus: "已核销" },
-  { id: 8, product: "恋爱技巧培训课", merchant: "幸福起点婚介所", buyer: "郑晓燕", orderTime: "2026-07-10 10:15:00", status: "已付款", amount: "¥199", payMethod: "微信支付", verifyStatus: "待核销" },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [];
 
@@ -97,7 +88,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 8 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

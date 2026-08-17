@@ -7,27 +7,7 @@ import AdminSearchBar, { type SearchField } from "@/components/AdminSearchBar";
 import { DataTable, type Column } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
-const mockData = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  videoTitle: [
-    "教你如何在相亲中留下好印象",
-    "婚恋市场最新趋势分析",
-    "我们的爱情故事分享",
-    "红娘教你识别靠谱对象",
-    "第一次约会该去哪里",
-    "婚姻保鲜的五个秘诀",
-    "如何写好一份相亲简历",
-    "恋爱中的沟通技巧",
-    "父母催婚怎么办",
-    "相亲中的那些趣事",
-    "婚恋平台的使用心得",
-    "从相识到相知的美好旅程",
-  ][i],
-  amount: [100, 50, 200, 88, 66, 150, 30, 188, 99, 120, 55, 166][i],
-  claimCount: Math.floor(Math.random() * 500) + 10,
-  createTime: `2026-07-${String(13 - i).padStart(2, "0")} ${String(12 + i).padStart(2, "0")}:${String(i * 5).padStart(2, "0")}:00`,
-  status: ["进行中", "已领完", "已领完", "进行中", "进行中", "已领完", "已过期", "进行中", "已领完", "进行中", "已过期", "进行中"][i],
-}));
+const mockData: Record<string, unknown>[] = [];
 
 const statusBadge = (status: string) => {
   const map: Record<string, { label: string; className: string }> = {

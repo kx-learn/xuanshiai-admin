@@ -11,15 +11,7 @@ const columns: ColumnDef[] = [
   { title: "成功脱单", key: "successCount" },
 ];
 
-const data: Record<string, unknown>[] = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  date: `2026-07-${String(13 - i).padStart(2, "0")}`,
-  newRegistrations: String(Math.floor(Math.random() * 40) + 10),
-  newVip: String(Math.floor(Math.random() * 15) + 2),
-  activeUsers: String(Math.floor(Math.random() * 200) + 100),
-  matchCount: String(Math.floor(Math.random() * 30) + 5),
-  successCount: String(Math.floor(Math.random() * 5)),
-}));
+const data: Record<string, unknown>[] = [];
 
 export default function LoveUserStatisticsPage() {
   return (

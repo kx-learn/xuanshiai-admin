@@ -41,20 +41,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, activityName: "七夕相亲大会", signupName: "张伟", phone: "138****6789", signupTime: "2026-07-14 08:30:00", status: "待确认" },
-  { id: 2, activityName: "青年联谊会", signupName: "李娜", phone: "139****7890", signupTime: "2026-07-13 14:20:00", status: "已确认" },
-  { id: 3, activityName: "周末交友派对", signupName: "王芳", phone: "137****8901", signupTime: "2026-07-13 10:15:00", status: "已确认" },
-  { id: 4, activityName: "高端相亲沙龙", signupName: "赵敏", phone: "136****9012", signupTime: "2026-07-12 16:45:00", status: "已拒绝" },
-  { id: 5, activityName: "七夕相亲大会", signupName: "孙静", phone: "135****0123", signupTime: "2026-07-12 09:00:00", status: "待确认" },
-  { id: 6, activityName: "青年联谊会", signupName: "周华", phone: "138****1234", signupTime: "2026-07-11 11:30:00", status: "已确认" },
-  { id: 7, activityName: "周末交友派对", signupName: "吴刚", phone: "139****2345", signupTime: "2026-07-11 08:00:00", status: "待确认" },
-  { id: 8, activityName: "高端相亲沙龙", signupName: "郑丽", phone: "137****3456", signupTime: "2026-07-10 15:20:00", status: "已确认" },
-  { id: 9, activityName: "七夕相亲大会", signupName: "陈峰", phone: "136****4567", signupTime: "2026-07-10 13:10:00", status: "已拒绝" },
-  { id: 10, activityName: "青年联谊会", signupName: "林涛", phone: "135****5678", signupTime: "2026-07-09 10:40:00", status: "待确认" },
-  { id: 11, activityName: "周末交友派对", signupName: "何静", phone: "138****6780", signupTime: "2026-07-09 09:15:00", status: "已确认" },
-  { id: 12, activityName: "高端相亲沙龙", signupName: "刘洋", phone: "139****7891", signupTime: "2026-07-08 14:30:00", status: "待确认" },
-];
+const data: Record<string, unknown>[] = [];
 
 const searchFields: SearchField[] = [
   { label: "活动名称", type: "input", placeholder: "请输入活动名称", width: 180 },
@@ -74,7 +61,7 @@ export default function ActiveSignupmanagerPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 12 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

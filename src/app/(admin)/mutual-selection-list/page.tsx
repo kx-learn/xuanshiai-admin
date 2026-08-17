@@ -42,18 +42,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, activityName: "七夕浪漫互选会", maleCount: 87, femaleCount: 92, mutualCount: 23, startTime: "2026-07-15 14:00:00", status: "ongoing" },
-  { id: 2, activityName: "金秋十月相亲会", maleCount: 65, femaleCount: 58, mutualCount: 18, startTime: "2026-07-16 14:00:00", status: "ongoing" },
-  { id: 3, activityName: "周末趣味互选", maleCount: 45, femaleCount: 51, mutualCount: 12, startTime: "2026-07-17 14:00:00", status: "ongoing" },
-  { id: 4, activityName: "520心动互选", maleCount: 120, femaleCount: 135, mutualCount: 35, startTime: "2026-06-20 14:00:00", status: "ended" },
-  { id: 5, activityName: "新年交友派对", maleCount: 95, femaleCount: 88, mutualCount: 28, startTime: "2026-06-21 14:00:00", status: "ended" },
-  { id: 6, activityName: "春之恋互选活动", maleCount: 72, femaleCount: 69, mutualCount: 20, startTime: "2026-06-22 14:00:00", status: "ended" },
-  { id: 7, activityName: "精英专场互选", maleCount: 56, femaleCount: 62, mutualCount: 15, startTime: "2026-07-18 14:00:00", status: "ongoing" },
-  { id: 8, activityName: "90后专场互选", maleCount: 108, femaleCount: 112, mutualCount: 31, startTime: "2026-07-19 14:00:00", status: "ongoing" },
-  { id: 9, activityName: "公务员专场互选", maleCount: 42, femaleCount: 48, mutualCount: 11, startTime: "2026-05-15 14:00:00", status: "ended" },
-  { id: 10, activityName: "海归专场互选", maleCount: 78, femaleCount: 85, mutualCount: 22, startTime: "2026-07-20 14:00:00", status: "ongoing" },
-];
+const data: Record<string, unknown>[] = [];
 
 const searchFields: SearchField[] = [
   { label: "活动名称", type: "input", placeholder: "请输入活动名称", width: 180 },
@@ -75,7 +64,7 @@ export default function MutualSelectionListPage() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 10 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

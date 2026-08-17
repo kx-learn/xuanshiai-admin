@@ -33,18 +33,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, templateName: "标准服务合同", templateType: "服务合同", createTime: "2026-06-10 08:30:00", status: "启用" },
-  { id: 2, templateName: "VIP会员合同", templateType: "会员合同", createTime: "2026-06-11 08:31:00", status: "启用" },
-  { id: 3, templateName: "牵线服务协议", templateType: "服务协议", createTime: "2026-06-12 08:32:00", status: "启用" },
-  { id: 4, templateName: "活动参与协议", templateType: "活动协议", createTime: "2026-06-13 08:33:00", status: "启用" },
-  { id: 5, templateName: "隐私协议", templateType: "隐私协议", createTime: "2026-06-14 08:34:00", status: "启用" },
-  { id: 6, templateName: "用户服务协议", templateType: "用户协议", createTime: "2026-05-10 08:35:00", status: "启用" },
-  { id: 7, templateName: "实名认证授权书", templateType: "授权书", createTime: "2026-05-11 08:36:00", status: "启用" },
-  { id: 8, templateName: "退款协议", templateType: "退款协议", createTime: "2026-05-12 08:37:00", status: "启用" },
-  { id: 9, templateName: "数据授权协议", templateType: "数据协议", createTime: "2026-05-13 08:38:00", status: "停用" },
-  { id: 10, templateName: "平台规则确认书", templateType: "规则确认", createTime: "2026-05-14 08:39:00", status: "停用" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function EContractTemplatePage() {
   return (

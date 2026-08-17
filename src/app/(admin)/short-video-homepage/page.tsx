@@ -7,14 +7,7 @@ import AdminSearchBar, { type SearchField } from "@/components/AdminSearchBar";
 import { DataTable, type Column } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
-const mockData = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  nickname: ["幸福小花", "阳光大男孩", "温柔似水", "追风少年", "甜蜜蜜", "浪子回头", "春暖花开", "星辰大海", "清风徐来", "岁月静好", "梦想成真", "一生有你"][i],
-  videoCount: Math.floor(Math.random() * 100) + 5,
-  likeCount: Math.floor(Math.random() * 50000) + 500,
-  followerCount: Math.floor(Math.random() * 10000) + 100,
-  homepageUrl: `/user/${1000 + i}`,
-}));
+const mockData: Record<string, unknown>[] = [];
 
 export default function ShortVideoHomepagePage() {
   const [nickname, setNickname] = useState("");

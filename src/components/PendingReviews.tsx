@@ -1,78 +1,40 @@
 import Link from "next/link";
+import { Coins, HeartHandshake, ShieldAlert, UserRoundCheck, Users } from "lucide-react";
 
-interface PendingItem {
-  label: string;
-  count: number;
-  action: string;
-}
+type PendingItem = { key: string; label: string; action: string; href: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; color: string };
 
-const pendingItems: PendingItem[] = [
-  { label: "相亲会员", count: 92, action: "资料待审" },
-  { label: "会员牵线", count: 3, action: "待牵线" },
-  { label: "约见申请", count: 1, action: "待处理" },
-  { label: "活动报名", count: 2, action: "待处理" },
-  { label: "推广申请", count: 0, action: "待处理" },
-  { label: "提现管理", count: 5, action: "待处理" },
-  { label: "网友举报", count: 0, action: "待处理" },
-  { label: "短视频", count: 0, action: "待审" },
-  { label: "积分兑换", count: 1, action: "待处理" },
-  { label: "会员承诺", count: 17, action: "待审" },
-  { label: "房产认证", count: 0, action: "待审" },
-  { label: "学历认证", count: 0, action: "待审" },
-  { label: "其他认证", count: 0, action: "待审" },
+const items: PendingItem[] = [
+  { key: "matchmaker_application", label: "红娘申请", action: "待审核", href: "/love-matchmaker-list", icon: UserRoundCheck, color: "#5274f5" },
+  { key: "matchmaker_service", label: "红娘服务", action: "待开始", href: "/love-interview", icon: Users, color: "#9b6bf4" },
+  { key: "match_application", label: "会员牵线", action: "待处理", href: "/love-appointment", icon: HeartHandshake, color: "#ee7375" },
+  { key: "withdrawal", label: "提现管理", action: "待处理", href: "/system-cashout-history", icon: Coins, color: "#9a67ef" },
+  { key: "report", label: "网友举报", action: "待处理", href: "/content-verify", icon: ShieldAlert, color: "#ee7670" },
 ];
 
 const quickActions = [
-  "添加账号",
-  "添加资料",
-  "添加红娘",
-  "发布活动",
-  "发布视频",
+  { label: "添加账号", href: "/reg-user-all" },
+  { label: "添加资料", href: "/love-user-list" },
+  { label: "添加红娘", href: "/love-matchmaker-list" },
+  { label: "发布活动", href: "/active-list" },
+  { label: "发布视频", href: "/short-video-list" },
 ];
 
-export default function PendingReviews() {
-  return (
-    <div className="admin-card mb-4">
-      {/* Header */}
-      <div className="admin-card-header flex items-center justify-between">
-        <span className="font-medium text-base">待审工作</span>
-        <div className="flex items-center gap-2">
-          {quickActions.map((action) => (
-            <Link
-              key={action}
-              href="#"
-              className="text-xs text-[#3658f7] hover:text-[#5281f3] bg-[#edf2ff] hover:bg-[#dce4ff] px-3 py-1 rounded transition-colors"
-            >
-              {action}
-            </Link>
-          ))}
-        </div>
-      </div>
+function countOf(pending: Record<string, unknown> | undefined, key: string) {
+  const value = pending?.[key];
+  return typeof value === "number" ? value : Number(value ?? 0) || 0;
+}
 
-      {/* Body */}
-      <div className="admin-card-body">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          {pendingItems.map((item) => (
-            <Link
-              key={item.label}
-              href="#"
-              className="flex flex-col items-center gap-1 p-3 rounded hover:bg-[#fafafa] transition-colors border border-transparent hover:border-[#f0f0f0]"
-            >
-              <span className="text-[#333] font-medium text-sm">
-                {item.label}
-              </span>
-              <span
-                className={`text-lg font-bold ${
-                  item.count > 0 ? "text-[#ff4d4f]" : "text-[#999]"
-                }`}
-              >
-                {item.count}
-              </span>
-              <span className="text-xs text-[#999]">{item.action}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+export default function PendingReviews({ pending }: { pending?: Record<string, unknown> }) {
+  return <section className="dashboard-pending">
+    <div className="dashboard-section-title"><h2>待审工作</h2><div className="dashboard-quick-actions">{quickActions.map((action) => <Link href={action.href} key={action.label}>{action.label}</Link>)}</div></div>
+    <div className="dashboard-pending-grid">{items.map((item) => {
+      const Icon = item.icon;
+      const count = countOf(pending, item.key);
+      return <Link className="dashboard-pending-item" href={item.href} key={item.key}>
+        <span className="dashboard-pending-name"><Icon className="h-4 w-4" style={{ color: item.color }} />{item.label}</span>
+        <strong className={count > 0 ? "has-pending" : ""}>{count}</strong>
+        <small>{item.action}</small>
+      </Link>;
+    })}</div>
+  </section>;
 }

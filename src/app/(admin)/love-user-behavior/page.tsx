@@ -21,14 +21,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  nickname: `会员${7000 + i}`,
-  behaviorType: ["浏览", "发消息", "送礼物", "关注"][i % 4],
-  target: `会员${8001 + (i % 4)}`,
-  time: `2026-07-${String(13 - i).padStart(2, "0")} ${8 + i}:${String((i * 7) % 60).padStart(2, "0")}:00`,
-  ip: `192.168.1.${100 + i}`,
-}));
+const data: Record<string, unknown>[] = [];
 
 export default function LoveUserBehaviorPage() {
   return (

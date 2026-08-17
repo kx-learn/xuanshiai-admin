@@ -23,10 +23,7 @@ const columns: ColumnDef[] = [
 ];
 
 const data: Record<string, unknown>[] = [];
-
-const actions: ActionButton[] = [
-  { label: "添加分站", variant: "primary", onClick: () => {} },
-];
+const actions: ActionButton[] = [];
 
 export default function BranchConfigPage() {
   return (

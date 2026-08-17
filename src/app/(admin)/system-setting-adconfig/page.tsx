@@ -40,18 +40,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, orderNo: "FO1411281242405056", payTime: "", orderTime: "2026-07-14 17:18:32", member: "Oᴗoಣ(ID:760)", payItem: "推广红娘入伙费", payMethod: "-", payAmount: "99元", status: "未支付", receipt: "-", actionStatus: "未支付" },
-  { id: 2, orderNo: "FO9031585677851679", payTime: "2026-07-11 10:45:57", orderTime: "2026-07-11 10:45:45", member: "秋刀鱼(ID:716)", payItem: "活动报名", payMethod: "微信支付 (公众号)", payAmount: "98元", status: "已退款退款金额：98元(原路退回)", receipt: "是", actionStatus: "已退款" },
-  { id: 3, orderNo: "FO6771296129230221", payTime: "2026-07-11 10:45:17", orderTime: "2026-07-11 10:45:00", member: "秋刀鱼(ID:716)", payItem: "活动报名", payMethod: "后台支付", payAmount: "98元", status: "已支付", receipt: "是", actionStatus: "已支付" },
-  { id: 4, orderNo: "FO6092778197454947", payTime: "2026-07-10 14:47:27", orderTime: "2026-07-10 14:47:07", member: "秋刀鱼(ID:716)", payItem: "推广红娘入伙费", payMethod: "后台支付", payAmount: "99元", status: "已支付", receipt: "是", actionStatus: "已支付" },
-  { id: 5, orderNo: "FO9208344526556665", payTime: "", orderTime: "2026-07-09 23:27:50", member: "空空(ID:750)", payItem: "活动报名", payMethod: "-", payAmount: "98元", status: "未支付", receipt: "-", actionStatus: "未支付" },
-  { id: 6, orderNo: "FO3667157235269829", payTime: "", orderTime: "2026-07-09 09:48:41", member: "出现1(ID:54)", payItem: "会员爆灯", payMethod: "-", payAmount: "9.9元", status: "未支付", receipt: "-", actionStatus: "未支付" },
-  { id: 7, orderNo: "FO5342288217532854", payTime: "2026-07-08 18:10:33", orderTime: "2026-07-08 18:10:22", member: "木木夕(ID:740)", payItem: "活动报名", payMethod: "微信支付 (小程序)", payAmount: "98元", status: "已支付", receipt: "是", actionStatus: "已支付" },
-  { id: 8, orderNo: "FO5030646619194861", payTime: "2026-07-11 14:19:36", orderTime: "2026-07-08 15:18:53", member: "Azu(ID:739)", payItem: "活动报名", payMethod: "微信支付 (小程序)", payAmount: "98元", status: "已支付", receipt: "是", actionStatus: "已支付" },
-  { id: 9, orderNo: "FO8518787977194632", payTime: "2026-07-05 08:32:12", orderTime: "2026-07-05 08:31:04", member: "fu福(ID:726)", payItem: "活动报名", payMethod: "微信支付 (小程序)", payAmount: "98元", status: "已支付", receipt: "是", actionStatus: "已支付" },
-  { id: 10, orderNo: "FO3193591079600264", payTime: "", orderTime: "2026-07-03 14:29:15", member: "秋刀鱼(ID:716)", payItem: "送礼物", payMethod: "-", payAmount: "90元", status: "未支付", receipt: "-", actionStatus: "未支付" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (

@@ -28,14 +28,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  nickname: `会员${3000 + i}`,
-  matchmaker: ["王红娘", "赵红娘", "李红娘", "张红娘"][i % 4],
-  method: ["电话", "微信", "见面"][i % 3],
-  content: `会员跟进记录${["了解择偶要求", "推荐匹配对象", "安排线下见面", "回访约会感受"][i % 4]}的详细描述`,
-  time: `2026-07-${String(13 - i).padStart(2, "0")} ${10 + i}:${String((i * 15) % 60).padStart(2, "0")}:00`,
-}));
+const data: Record<string, unknown>[] = [];
 
 export default function LoveUserFollowUpPage() {
   return (

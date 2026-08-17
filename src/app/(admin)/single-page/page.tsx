@@ -16,11 +16,7 @@ const columns: ColumnDef[] = [
   { title: "操作", key: "action", width: 160 },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 4, title: "活动", memberOnly: "关闭", realNameOnly: "关闭", vipOnly: "关闭", viewDetail: "-", linkQrcode: "查看", preview: "预览", enabled: "开启" },
-  { id: 3, title: "本周活动", memberOnly: "关闭", realNameOnly: "关闭", vipOnly: "关闭", viewDetail: "-", linkQrcode: "查看", preview: "预览", enabled: "开启" },
-  { id: 1, title: "历史活动", memberOnly: "关闭", realNameOnly: "关闭", vipOnly: "关闭", viewDetail: "-", linkQrcode: "查看", preview: "预览", enabled: "开启" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (
@@ -36,7 +32,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 3 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

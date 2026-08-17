@@ -71,18 +71,7 @@ interface ContentRow {
   updateTime: string;
 }
 
-const data: ContentRow[] = [
-  { memberName: "泥絮", memberCode: "B914415", content: "", updateTime: "2026-07-14 18:40:19" },
-  { memberName: "Oᴗoಣ", memberCode: "G239989", content: "", updateTime: "2026-07-14 17:20:31" },
-  { memberName: "唱起那首笑忘歌", memberCode: "G533829", content: "", updateTime: "2026-07-13 22:35:01" },
-  { memberName: "rasin", memberCode: "G847150", content: "", updateTime: "2026-07-12 20:47:24" },
-  { memberName: "hunyun", memberCode: "B470445", content: "", updateTime: "2026-07-12 11:13:13" },
-  { memberName: "張.先生", memberCode: "B598549", content: "", updateTime: "2026-07-11 15:29:43" },
-  { memberName: "小稳", memberCode: "B671811", content: "", updateTime: "2026-07-11 13:52:02" },
-  { memberName: "Thera", memberCode: "G824771", content: "", updateTime: "2026-07-10 14:15:52" },
-  { memberName: "xy", memberCode: "B011925", content: "", updateTime: "2026-07-10 14:00:27" },
-  { memberName: "优米", memberCode: "G411232", content: "", updateTime: "2026-07-10 13:15:37" },
-];
+const data: ContentRow[] = [];
 
 const dataSource = data as unknown as Record<string, unknown>[];
 
@@ -97,7 +86,7 @@ export default function ContentVerifyPage() {
       dataSource={dataSource}
       endpoint="/api/backend/admin/community/moderation-items?page=1&page_size=20&status=pending"
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 765 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

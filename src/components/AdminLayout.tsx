@@ -6,18 +6,23 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  Bell,
   ChevronDown,
   ChevronRight,
   CircleHelp,
   ClipboardList,
   Coins,
+  CreditCard,
+  GraduationCap,
   HeartHandshake,
   LayoutGrid,
   LogOut,
   Menu,
   MessageCircle,
+  Monitor,
   Search,
   Settings,
+  Smartphone,
   Store,
   Users,
   Video,
@@ -36,20 +41,29 @@ type Group = {
 
 const groups: Group[] = [
   { label: "平台账号", icon: Users, items: [{ label: "账号管理", href: "/reg-user-all" }, { label: "登录日志", href: "/reg-user-log" }] },
-  { label: "客源线索", icon: ClipboardList, items: [{ label: "线索管理", href: "/love-customer-list" }, { label: "数据报表", href: "/love-customer-statistics" }, { label: "跟进总览", href: "/customer-follow-up" }] },
-  { label: "会员 CRM", icon: HeartHandshake, items: [{ label: "资料管理", href: "/love-user-list" }, { label: "线上 VIP", href: "/love-user-vip" }, { label: "会员认证", href: "/love-user-auth" }, { label: "内容核查", href: "/content-verify" }, { label: "会员统计", href: "/love-user-statistics" }] },
-  { label: "会员服务", icon: HeartHandshake, items: [{ label: "服务申请", href: "/love-interview" }, { label: "预约管理", href: "/love-appointment" }, { label: "服务商品", href: "/love-partner-config" }] },
-  { label: "总店红娘", icon: Users, items: [{ label: "红娘管理", href: "/love-matchmaker-list" }, { label: "服务分配", href: "/love-matchmaker-distribution" }, { label: "分配明细", href: "/love-matchmaker-distribution-details" }] },
-  { label: "分店管理", icon: Store, items: [{ label: "门店管理", href: "/mendian-list" }, { label: "分店红娘", href: "/branch-matchmaker-list" }, { label: "分店报表", href: "/branch-report-list" }] },
-  { label: "推广红娘", icon: Coins, items: [{ label: "推广管理", href: "/vip-popularize-record" }, { label: "推广明细", href: "/love-partner-bonus-details" }] },
-  { label: "合伙红娘", icon: Users, items: [{ label: "合伙人管理", href: "/love-partner-list" }, { label: "团队关系", href: "/love-partner-relation" }, { label: "分成配置", href: "/love-partner-bonus-config" }] },
-  { label: "活动报名", icon: CalendarDays, items: [{ label: "活动管理", href: "/active-list" }, { label: "报名管理", href: "/active-signupmanager" }, { label: "互选记录", href: "/mutual-selection-record" }] },
+  { label: "客源线索", icon: ClipboardList, items: [{ label: "线索管理", href: "/love-customer-list" }, { label: "数据报表", href: "/love-customer-statistics" }, { label: "跟进全览", href: "/customer-follow-up" }, { label: "功能配置", href: "/love-customer-config" }] },
+  { label: "会员CRM", icon: HeartHandshake, items: [{ label: "资料管理", href: "/love-user-list" }, { label: "线上VIP", href: "/love-user-vip" }, { label: "线下VIP", href: "/love-user-vip-underline" }, { label: "会员认证", href: "/love-user-auth" }, { label: "内容核查", href: "/content-verify" }, { label: "线上行为", href: "/love-user-behavior" }, { label: "数据报表", href: "/love-user-statistics" }, { label: "跟进全览", href: "/love-user-follow-up" }] },
+  { label: "会员服务", icon: HeartHandshake, items: [{ label: "红娘牵线", href: "/vip-line-record" }, { label: "约见申请", href: "/love-interview" }, { label: "约会管理", href: "/love-appointment" }] },
+  { label: "总店红娘", icon: Users, items: [{ label: "红娘管理", href: "/love-matchmaker-list" }, { label: "分派配置", href: "/love-matchmaker-apportion" }, { label: "分成配置", href: "/love-matchmaker-distribution" }, { label: "分成明细", href: "/love-matchmaker-distribution-details" }] },
+  { label: "分店管理", icon: Store, items: [{ label: "分站配置", href: "/branch-config" }, { label: "门店管理", href: "/mendian-list" }, { label: "分店红娘", href: "/branch-matchmaker-list" }, { label: "分店报表", href: "/branch-report-list" }, { label: "分成明细", href: "/branch-distribution-list" }] },
+  { label: "推广红娘", icon: Coins, items: [{ label: "红娘管理", href: "/poplove-matchmaker-list" }, { label: "分成配置", href: "/poplove-matchmaker-distribution" }, { label: "分成明细", href: "/poplove-matchmaker-distribution-details" }] },
+  { label: "合伙红娘", icon: Users, items: [{ label: "功能配置", href: "/love-partner-config" }, { label: "分成配置", href: "/love-partner-bonus-config" }, { label: "合伙人管理", href: "/love-partner-list" }, { label: "团队关系", href: "/love-partner-relation" }, { label: "分成明细", href: "/love-partner-bonus-details" }] },
+  { label: "活动报名", icon: CalendarDays, items: [{ label: "参数配置", href: "/active-config" }, { label: "活动管理", href: "/active-list" }, { label: "报名管理", href: "/active-signupmanager" }, { label: "互选活动", href: "/mutual-selection-list" }, { label: "互选记录", href: "/mutual-selection-record" }] },
   { label: "商家联盟", icon: Store, items: [{ label: "运营方案", href: "/active-alliance" }, { label: "功能配置", href: "/merchant-alliance-config" }, { label: "商家管理", href: "/merchant-management" }, { label: "商品管理", href: "/merchant-product" }, { label: "订单管理", href: "/merchant-order" }] },
-  { label: "短视频", icon: Video, items: [{ label: "视频管理", href: "/short-video-list" }, { label: "评论管理", href: "/short-video-comment" }, { label: "打赏记录", href: "/short-video-tip" }] },
-  { label: "运营工具", icon: LayoutGrid, items: [{ label: "内容单页", href: "/single-page" }, { label: "推文助手", href: "/generate-tool" }, { label: "应用中心", href: "/plugin-center" }] },
-  { label: "财务管理", icon: Coins, items: [{ label: "财务订单", href: "/system-finance-order" }, { label: "财务统计", href: "/finance-statistic" }, { label: "提现审核", href: "/system-cashout-history" }, { label: "分成配置", href: "/finance-config" }] },
-  { label: "系统管理", icon: Settings, items: [{ label: "基础设置", href: "/system-setting-basic" }, { label: "管理员", href: "/system-setting-admin-user" }, { label: "系统日志", href: "/system-setting-admin-log" }] },
-  { label: "公众号", icon: MessageCircle, items: [{ label: "粉丝管理", href: "/wechat-fans" }, { label: "菜单配置", href: "/wechat-menu" }, { label: "自动回复", href: "/wechat-autoreply" }] },
+  { label: "短视频", icon: Video, items: [{ label: "参数配置", href: "/short-video-config" }, { label: "视频管理", href: "/short-video-list" }, { label: "红包记录", href: "/short-video-red-packet" }, { label: "评论管理", href: "/short-video-comment" }, { label: "会员主页", href: "/short-video-homepage" }, { label: "打赏管理", href: "/short-video-tip" }] },
+  { label: "运营工具", icon: LayoutGrid, items: [{ label: "自由收款", href: "/free-pay" }, { label: "内容单页", href: "/single-page" }, { label: "落地页", href: "/customer-landing" }, { label: "自由表单", href: "/free-form" }, { label: "批量资料卡", href: "/tool-lovecard" }, { label: "会员分区", href: "/tool-theme" }, { label: "短信群发", href: "/sms-group" }, { label: "送礼物", href: "/love-gift-wrap" }, { label: "推文助手", href: "/generate-tool" }, { label: "吸粉二维码", href: "/qrcode-wrap" }, { label: "礼品管理", href: "/gift-list" }, { label: "兑换管理", href: "/gift-exchange" }] },
+  { label: "财务管理", icon: Coins, items: [{ label: "系统配置", href: "/finance-config" }, { label: "收入明细", href: "/system-finance-order" }, { label: "积分明细", href: "/system-credit-history" }, { label: "余额提现", href: "/system-cashout-history" }, { label: "统计报表", href: "/finance-statistic" }, { label: "合同管理", href: "/e-contract-list" }, { label: "模板管理", href: "/e-contract-template" }, { label: "印章管理", href: "/e-contract-yinzhang" }, { label: "合同配置", href: "/e-contract-config" }] },
+  { label: "系统管理", icon: Settings, items: [{ label: "系统配置", href: "/system-setting-basic" }, { label: "广告管理", href: "/system-setting-adconfig" }, { label: "外呼平台", href: "/outbound-call-platform" }, { label: "外呼状态", href: "/out-call-list" }, { label: "呼叫记录", href: "/out-call-record" }, { label: "签名配置", href: "/sms-signature" }, { label: "通知配置", href: "/sms-notices" }, { label: "短信群发", href: "/sms-group" }, { label: "发送记录", href: "/sms-record" }, { label: "账号管理", href: "/system-setting-admin-user" }, { label: "权限分组", href: "/system-setting-admin-group" }, { label: "系统日志", href: "/system-setting-admin-log" }] },
+  { label: "平台配置", icon: LayoutGrid, items: [{ label: "基本配置", href: "/platform-config-basic" }, { label: "导航配置", href: "/platform-navconfig" }, { label: "平台布局", href: "/platform-page" }, { label: "权限配置", href: "/power-config" }, { label: "内容配置", href: "/platform-content" }, { label: "基础数据", href: "/platform-base" }, { label: "收费配置", href: "/platform-payconfig" }] },
+  { label: "公众号", icon: MessageCircle, items: [{ label: "参数配置", href: "/wechat-config" }, { label: "关注粉丝", href: "/wechat-fans" }, { label: "菜单配置", href: "/wechat-menu" }, { label: "自动回复", href: "/wechat-autoreply" }, { label: "模板消息", href: "/wechat-template" }, { label: "消息群发", href: "/wechat-send" }] },
+  { label: "小程序", icon: MessageCircle, items: [{ label: "参数配置", href: "/miniprogram-config" }] },
+];
+
+const utilityLinks: Array<Item & { icon: React.ComponentType<{ className?: string }> }> = [
+  { label: "应用中心", href: "/plugin-center", icon: LayoutGrid },
+  { label: "婚创学苑", href: "/operate-center", icon: CalendarDays },
+  { label: "工单反馈", href: "/system-feedback", icon: MessageCircle },
+  { label: "软件授权", href: "/system-empower", icon: CircleHelp },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -90,10 +104,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-full items-center px-4">
           <Link href="/home" className={cn("shrink-0 text-[15px] font-semibold tracking-wide", collapsed ? "w-12" : "w-52")}>婚恋运营管理系统</Link>
           {!collapsed && <span className="text-xs text-white/55">为婚恋行业发展提供科技赋能</span>}
-          <div className="ml-auto flex items-center gap-4 text-xs text-white/75">
-            <span className="hidden md:inline-flex items-center gap-1.5"><CircleHelp className="h-3.5 w-3.5" />帮助中心</span>
-            <span className="hidden md:inline-flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5" />工单反馈</span>
-            <span>{accountName}</span>
+          <div className="ml-auto flex h-full items-center gap-1 text-xs text-white/75">
+            <span className="hidden lg:inline-flex h-full items-center px-2 text-white/65">云端图库</span>
+            <span className="hidden md:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><Smartphone className="h-3.5 w-3.5" />手机版</span>
+            <Link href="/" className="hidden md:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><Monitor className="h-3.5 w-3.5" />电脑版</Link>
+            <Link href="/crm/home" className="hidden lg:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><HeartHandshake className="h-3.5 w-3.5" />红娘工作台</Link>
+            <span className="hidden xl:inline-flex h-full items-center gap-1 px-2 text-white/55">当前版本</span>
+            <span className="hidden lg:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><Bell className="h-3.5 w-3.5" />更新报告</span>
+            <Link href="/system-feedback" className="inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><MessageCircle className="h-3.5 w-3.5" />工单反馈</Link>
+            <span className="hidden xl:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><GraduationCap className="h-3.5 w-3.5" />用好系统</span>
+            <span className="hidden lg:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><CreditCard className="h-3.5 w-3.5" />充值</span>
+            <span className="mx-1 h-4 w-px bg-white/15" />
+            <span className="px-2 text-white">{accountName}</span>
             <button className="inline-flex items-center gap-1 text-white/60 hover:text-white" onClick={() => logoutAdmin().then(() => router.replace("/login"))}><LogOut className="h-3.5 w-3.5" />退出</button>
           </div>
         </div>
@@ -114,6 +136,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {expanded && <div className="pb-1">{group.items.map((item) => <Link key={item.href} href={item.href} className={cn("block py-2 pl-11 pr-3 text-[13px] text-[#666] hover:text-[#3658f7]", pathname === item.href && "bg-[#edf2ff] font-medium text-[#3658f7]")}>{item.label}</Link>)}</div>}
             </div>;
           })}
+          <div className="mt-2 border-t border-[#f0f2f5] pt-2">
+            {utilityLinks.map(({ label, href, icon: Icon }) => <Link key={href} href={href} className={cn("mx-2 mb-1 flex items-center rounded px-3 py-2 text-sm hover:bg-[#f3f6ff]", pathname === href ? "bg-[#edf2ff] text-[#3658f7]" : "text-[#555]", collapsed && "justify-center px-0")} title={collapsed ? label : undefined}><Icon className="h-4 w-4 shrink-0" />{!collapsed && <span className="ml-3">{label}</span>}</Link>)}
+          </div>
         </nav>
         <button onClick={() => setCollapsed((value) => !value)} className="flex h-10 w-full items-center justify-center border-t border-[#f0f0f0] text-[#999] hover:text-[#3658f7]" aria-label="折叠侧边栏"><Menu className="h-4 w-4" /></button>
       </aside>

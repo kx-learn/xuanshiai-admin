@@ -16,19 +16,7 @@ const columns: ColumnDef[] = [
   { title: "操作", key: "action", width: 160 },
 ];
 
-const data: Record<string, unknown>[] = [
-  {
-    id: 1,
-    shareCover: "预览",
-    identifier: "123",
-    shareContent: "标题：南京单身摘要：给你发一个高颜值对象链接：sdfghjk",
-    qrcodeValidity: "生效中有效期至：2026-08-02 11:40:09",
-    createTime: "2026-07-03 11:40:10",
-    pushCount: "1",
-    followCount: "0",
-    qrcode: "查看",
-  },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (
@@ -41,7 +29,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 1 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />

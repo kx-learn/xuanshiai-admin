@@ -37,11 +37,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, signId: "SIGN001", signContent: "宣誓爱", signSource: "企事业单位", remark: "主签名", status: "已通过", createTime: "2026-06-01 10:00:00" },
-  { id: 2, signId: "SIGN002", signContent: "婚恋平台", signSource: "企事业单位", remark: "备用签名", status: "已通过", createTime: "2026-06-15 14:00:00" },
-  { id: 3, signId: "SIGN003", signContent: "相亲交友", signSource: "企事业单位", remark: "推广用", status: "审核中", createTime: "2026-07-10 09:00:00" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (

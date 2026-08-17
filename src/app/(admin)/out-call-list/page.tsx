@@ -30,13 +30,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 1, callNo: "CALL20260714001", calledNumber: "138****1234", callerNumber: "400-123-4567", callTime: "2026-07-14 08:30:00", duration: "12分30秒", status: "已接通" },
-  { id: 2, callNo: "CALL20260714002", calledNumber: "139****5678", callerNumber: "400-123-4567", callTime: "2026-07-14 09:15:00", duration: "5分10秒", status: "已接通" },
-  { id: 3, callNo: "CALL20260714003", calledNumber: "137****9012", callerNumber: "400-123-4567", callTime: "2026-07-14 10:00:00", duration: "-", status: "未接通" },
-  { id: 4, callNo: "CALL20260713004", calledNumber: "136****3456", callerNumber: "400-123-4567", callTime: "2026-07-13 14:20:00", duration: "8分45秒", status: "已接通" },
-  { id: 5, callNo: "CALL20260713005", calledNumber: "135****7890", callerNumber: "400-123-4567", callTime: "2026-07-13 15:30:00", duration: "3分20秒", status: "已接通" },
-];
+const data: Record<string, unknown>[] = [];
 
 export default function Page() {
   return (

@@ -64,10 +64,7 @@ const columns: ColumnDef[] = [
   },
 ];
 
-const data: Record<string, unknown>[] = [
-  { id: 2, applicant: "毛毛 姓名： 手机：18926072282", gift: "指甲刀", points: "100", time: "2026-07-01 10:45:24", status: "等待审核" },
-  { id: 1, applicant: "GOOD 姓名：李 手机：18856767690 地址：南京市建邺区新城科技园", gift: "指甲刀", points: "100", time: "2026-06-30 17:59:59", status: "兑换成功" },
-];
+const data: Record<string, unknown>[] = [];
 
 const actions: ActionButton[] = [];
 
@@ -84,7 +81,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 2 }}
+      pagination={{ current: 1, pageSize: 10, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
     />
