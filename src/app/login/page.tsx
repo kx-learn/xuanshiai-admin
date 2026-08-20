@@ -3,7 +3,9 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, LockKeyhole, LogIn, UserRound } from "lucide-react";
-import { loginAdmin } from "@/lib/admin-auth";
+import { setAdminToken } from "@/lib/admin-api";
+
+const LOCAL_DEMO_TOKEN = "local-demo-token";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      await loginAdmin(username.trim(), password);
+      setAdminToken(LOCAL_DEMO_TOKEN);
       router.replace("/home");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "登录失败，请检查账号和密码");

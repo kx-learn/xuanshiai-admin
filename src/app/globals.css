@@ -269,4 +269,15 @@
 @media (min-width: 1024px) { .dashboard-overview { grid-template-columns: repeat(7, minmax(0, 1fr)); }.dashboard-pending-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 @media (min-width: 1440px) { .dashboard-overview { grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 14px; }.dashboard-metric { min-height: 138px; }.dashboard-pending-grid { grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 12px; padding: 16px; } }
 @media (max-width: 639px) { .dashboard-section-title { align-items: flex-start; flex-direction: column; padding: 16px; }.dashboard-quick-actions { justify-content: flex-start; } }
+
+/* Dashboard interaction states */
+.dashboard-quick-actions a { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.dashboard-quick-actions a:hover { color: #4d6ff0; }
+.dashboard-pending-item:hover { background: linear-gradient(160deg, #486af4 0%, #6597f1 100%); }
+.dashboard-pending-item { min-width: 0; }
+.dashboard-pending-name { min-width: 0; min-height: 25px; max-width: 100%; gap: 2px; padding: 3px 5px; white-space: nowrap; font-size: 12px; }
+.dashboard-pending-name svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.dashboard-pending-item:hover .dashboard-pending-name { border-radius: 999px; background: #fff; color: #333; }
+.dashboard-pending-item:hover .dashboard-pending-name svg { color: #8d86d9 !important; }
+.dashboard-pending-item:hover strong, .dashboard-pending-item:hover strong.has-pending, .dashboard-pending-item:hover small { color: #fff; }
 @media (max-width: 900px) { .login-shell { grid-template-columns: 1fr; padding: 5vh 5vw; }.login-art { min-height: 240px; }.login-slogan { bottom: 0; }.login-couple { transform: scale(.58) rotate(-6deg); transform-origin: left bottom; left: 32%; top: 0; }.login-tags { transform: scale(.65); transform-origin: left top; }.login-panel { padding: 36px 28px 28px; } }
