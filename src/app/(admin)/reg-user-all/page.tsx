@@ -55,6 +55,11 @@ export default function RegUserAllPage() {
   }, [query]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const links = Array.from(document.querySelectorAll<HTMLElement>(".admin-pagination span:not(.ellipsis):not(.page-size)"));
+    const handlers = links.map((link) => { const handler = () => { const page = Number(link.textContent?.trim()); if (page) void load(page); }; link.addEventListener("click", handler); return [link, handler] as const; });
+    return () => handlers.forEach(([link, handler]) => link.removeEventListener("click", handler));
+  }, [load, result.items]);
   const toggleAccountStatus = (account: AdminAccountItem) => {
     const currentStatus = accountStatuses[account.id] ?? account.status;
     setAccountStatuses((current) => ({ ...current, [account.id]: currentStatus === 1 ? 3 : 1 }));

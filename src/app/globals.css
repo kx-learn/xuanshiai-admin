@@ -282,11 +282,14 @@
 .admin-pagination button:disabled { color: #c5c9d0; cursor: not-allowed; }
 .admin-pagination .active { border-color: #3658f7; color: #3658f7; }
 .admin-pagination .ellipsis { min-width: 24px; border: 0; }
-.admin-pagination .page-size { width: 118px; justify-content: space-around; }
+.admin-pagination .page-size { position: relative; width: 118px; justify-content: center; padding-right: 16px; font-size: 0; }
+.admin-pagination .page-size::before { content: "20 条/页"; font-size: 14px; }
+.admin-pagination .page-size::after { position: absolute; right: 13px; top: 50%; width: 6px; height: 6px; border-right: 1.5px solid #555; border-bottom: 1.5px solid #555; content: ""; transform: translateY(-65%) rotate(45deg); }
+.admin-pagination .page-link { cursor: pointer; }
 .account-status-toggle { position: relative; display: inline-flex; width: 58px; height: 25px; flex: 0 0 58px; align-items: center; justify-content: center; border: 1px solid #bdbdbd; border-radius: 999px; padding: 0; background: #bdbdbd; color: #fff; font-size: 12px; line-height: 1; white-space: nowrap; box-sizing: border-box; }
 .account-status-toggle .status-label { white-space: nowrap; }
-.account-status-toggle:not(.active) .status-label { position: absolute; right: 6px; }
-.account-status-toggle.active .status-label { position: absolute; left: 6px; }
+.account-status-toggle:not(.active) .status-label { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); }
+.account-status-toggle.active .status-label { position: absolute; top: 50%; left: 6px; transform: translateY(-50%); }
 .account-status-toggle .knob { position: absolute; top: 2px; left: 2px; display: block; width: 19px; height: 19px; border-radius: 50%; background: #fff; }
 .account-status-toggle.active { background: #3658f7; }
 .account-status-toggle.active .knob { right: 2px; left: auto; }
@@ -298,6 +301,44 @@
 .account-table td:last-child .mt-2 { flex-wrap: nowrap; gap: 10px; }
 /* Keep cancellation actions on separate lines without relying on Tailwind's escaped class selector. */
 .admin-card table td:last-child button { display: block; margin: 0 0 4px; white-space: nowrap; }
+.reg-user-cancel-page table td:last-child { white-space: nowrap; }
+.reg-user-cancel-page table { table-layout: fixed; }
+.reg-user-cancel-page table th:last-child, .reg-user-cancel-page table td:last-child { width: 180px; max-width: 180px; overflow: hidden; }
+.reg-user-cancel-page table td:last-child button { display: inline-block; margin: 0 8px 0 0; font-size: 14px; }
+.reg-user-cancel-page table td:last-child button:last-child { margin-right: 0; }
+.customer-lead-page { overflow: hidden; }
+.customer-lead-page .lead-profile { display: flex; align-items: center; gap: 8px; min-width: 170px; }
+.customer-lead-page .lead-avatar { display: grid; width: 54px; height: 54px; place-items: end center; border-radius: 5px; background: linear-gradient(#dcecff 0 70%, #1688e8 70%); color: #fff; font-size: 11px; font-weight: 600; }
+.customer-lead-page .lead-tag { display: inline-block; margin-left: 5px; border-radius: 10px; background: #ff9418; padding: 2px 5px; color: #fff; font-size: 11px; }
+.customer-lead-page .lead-actions { display: flex; gap: 5px; margin-top: 7px; white-space: nowrap; }
+.customer-lead-page .lead-actions button { border: 1px solid #6f8dff; border-radius: 4px; background: #fff; padding: 2px 7px; color: #3658f7; font-size: 12px; }
+.customer-lead-page table { min-width: 1700px; }
+.customer-lead-page select { appearance: auto; min-width: 132px; color: #8f97a5; }
+.customer-lead-page section { border-radius: 4px; }
+.customer-lead-page .lead-actions button { white-space: nowrap; }
+.customer-lead-page .lead-more-button { position: relative; padding-right: 18px; }
+.customer-lead-page .lead-more-button::after { position: absolute; top: 50%; right: 6px; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; content: ""; transform: translateY(-65%) rotate(45deg); }
+.customer-lead-page table th, .customer-lead-page table td { padding: 6px 8px; font-size: 12px; }
+.customer-lead-page table tbody tr { height: 68px; }
+.customer-lead-page .lead-cell-select { height: 32px; font-size: 12px; }
+.customer-lead-page .lead-avatar { width: 46px; height: 46px; }
+.customer-lead-page .lead-actions { gap: 3px; margin-top: 4px; }
+.customer-lead-page .lead-actions button { padding: 2px 5px; font-size: 11px; }
+.customer-lead-page table th { height: 46px; background: #fafafa; color: #333; font-weight: 600; }
+.customer-lead-page table td { border-bottom: 1px solid #edf0f5; vertical-align: middle; }
+.customer-lead-page .lead-cell-select { width: 150px; height: 40px; border: 1px solid #e1e4e9; border-radius: 7px; background: #fff; padding: 0 10px; color: #333; font-size: 14px; }
+.customer-lead-page .lead-cell-select.valid { width: 95px; color: #42b957; }
+.customer-lead-page .lead-filter-grid { position: relative; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.customer-lead-page .lead-more-filters { align-self: center; color: #5680f8; font-size: 14px; white-space: nowrap; }
+.customer-lead-page > section > .lead-more-filters { display: flex; width: max-content; align-items: center; margin-top: 10px; border: 0; background: transparent; }
+.customer-lead-page .lead-search-row { align-items: flex-end; }
+.customer-lead-page .lead-search-row label { width: 290px; margin-top: 0; }
+.customer-lead-page .lead-search-row label input { height: 40px; }
+.customer-lead-page .lead-chevron { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.customer-lead-page .lead-extra-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 12px; }
+.customer-lead-page .lead-extra-filters select, .customer-lead-page .lead-extra-filters input:not([type="checkbox"]) { width: 100%; height: 40px; border: 1px solid #ddd; border-radius: 6px; background: #fff; padding: 0 12px; color: #9aa1ad; font-size: 14px; }
+.customer-lead-page .lead-extra-filters label { display: flex; align-items: center; gap: 6px; color: #555; font-size: 14px; }
+@media (max-width: 900px) { .customer-lead-page .lead-extra-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .dashboard-pending-item:hover .dashboard-pending-name { border-radius: 999px; background: #fff; color: #333; }
 .dashboard-pending-item:hover .dashboard-pending-name svg { color: #8d86d9 !important; }
 .dashboard-pending-item:hover strong, .dashboard-pending-item:hover strong.has-pending, .dashboard-pending-item:hover small { color: #fff; }

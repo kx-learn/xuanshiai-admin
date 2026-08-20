@@ -36,6 +36,11 @@ export default function RegUserLogPage() {
     finally { setLoading(false); }
   }, [query]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const links = Array.from(document.querySelectorAll<HTMLElement>(".admin-pagination span:not(.ellipsis):not(.page-size)"));
+    const handlers = links.map((link) => { const handler = () => { const page = Number(link.textContent?.trim()); if (page) void load(page); }; link.addEventListener("click", handler); return [link, handler] as const; });
+    return () => handlers.forEach(([link, handler]) => link.removeEventListener("click", handler));
+  }, [load, result.items]);
   return <div>
     <AdminBreadcrumb items={getBreadcrumb("平台账号", "登录日志")} />
     <div className="admin-card mb-4 overflow-hidden"><div className="border-b border-[#edf0f5] px-7 py-5"><h1 className="text-lg font-semibold">账号登录日志</h1></div><div className="admin-card-body flex items-center gap-0"><input value={query.username} onChange={(event) => setQuery({ ...query, username: event.target.value })} placeholder="账号关键词搜索" className="h-10 w-64 rounded-l border border-r-0 px-3 text-sm" /><Button size="sm" variant="primary" className="h-10 rounded-l-none rounded-r" onClick={() => void load(1)}>搜索</Button><div className="ml-auto"><Button variant="primary" className="h-10">一键删除全部日志</Button></div></div></div>
