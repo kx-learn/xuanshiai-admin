@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [collapsed, setCollapsed] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [accountName, setAccountName] = useState("管理员");
-  const activeGroup = useMemo(() => groups.find((group) => group.items.some((item) => pathname === item.href)), [pathname]);
+  const activeGroup = useMemo(() => groups.find((group) => group.items.some((item) => pathname === item.href) || (group.label === "平台账号" && pathname === "/reg-user-cancel")), [pathname]);
   const [open, setOpen] = useState(activeGroup?.label ?? "平台账号");
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <button onClick={() => setOpen(expanded ? "" : group.label)} className={cn("mx-2 flex w-[calc(100%-16px)] items-center rounded px-3 py-2 text-sm text-[#555] hover:bg-[#f3f6ff]", collapsed && "justify-center px-0")} title={collapsed ? group.label : undefined}>
                 <Icon className="h-4 w-4 shrink-0" />{!collapsed && <><span className="ml-3 flex-1 text-left">{group.label}</span>{expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</>}
               </button>
-              {expanded && <div className="pb-1">{group.items.map((item) => <Link key={item.href} href={item.href} className={cn("block py-2 pl-11 pr-3 text-[13px] text-[#666] hover:text-[#3658f7]", pathname === item.href && "bg-[#edf2ff] font-medium text-[#3658f7]")}>{item.label}</Link>)}</div>}
+              {expanded && <div className="pb-1">{group.items.map((item) => <Link key={item.href} href={item.href} className={cn("block py-2 pl-11 pr-3 text-[13px] text-[#666] hover:text-[#3658f7]", (pathname === item.href || (pathname === "/reg-user-cancel" && item.href === "/reg-user-all")) && "bg-[#edf2ff] font-medium text-[#3658f7]")}>{item.label}</Link>)}</div>}
             </div>;
           })}
           <div className="mt-2 border-t border-[#f0f2f5] pt-2">

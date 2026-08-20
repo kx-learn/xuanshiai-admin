@@ -9,6 +9,6 @@ const groups: Record<string, { label: string; href: string; children: { label: s
 };
 
 export function getBreadcrumb(groupKey: string, pageLabel: string): BreadcrumbItem[] {
-  const group = groups[groupKey];
+  const group = groups[groupKey] ?? Object.values(groups).find((item) => item.label === groupKey);
   return [{ label: "首页", href: "/" }, ...(group ? [{ ...group }] : []), { label: pageLabel }];
 }

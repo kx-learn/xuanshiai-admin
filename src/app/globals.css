@@ -277,6 +277,27 @@
 .dashboard-pending-item { min-width: 0; }
 .dashboard-pending-name { min-width: 0; min-height: 25px; max-width: 100%; gap: 2px; padding: 3px 5px; white-space: nowrap; font-size: 12px; }
 .dashboard-pending-name svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.admin-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 12px 16px; }
+.admin-pagination button, .admin-pagination span { display: inline-flex; min-width: 34px; height: 34px; align-items: center; justify-content: center; border: 1px solid #d9dfe8; border-radius: 8px; background: #fff; color: #333; font-size: 14px; }
+.admin-pagination button:disabled { color: #c5c9d0; cursor: not-allowed; }
+.admin-pagination .active { border-color: #3658f7; color: #3658f7; }
+.admin-pagination .ellipsis { min-width: 24px; border: 0; }
+.admin-pagination .page-size { width: 118px; justify-content: space-around; }
+.account-status-toggle { position: relative; display: inline-flex; width: 58px; height: 25px; flex: 0 0 58px; align-items: center; justify-content: center; border: 1px solid #bdbdbd; border-radius: 999px; padding: 0; background: #bdbdbd; color: #fff; font-size: 12px; line-height: 1; white-space: nowrap; box-sizing: border-box; }
+.account-status-toggle .status-label { white-space: nowrap; }
+.account-status-toggle:not(.active) .status-label { position: absolute; right: 6px; }
+.account-status-toggle.active .status-label { position: absolute; left: 6px; }
+.account-status-toggle .knob { position: absolute; top: 2px; left: 2px; display: block; width: 19px; height: 19px; border-radius: 50%; background: #fff; }
+.account-status-toggle.active { background: #3658f7; }
+.account-status-toggle.active .knob { right: 2px; left: auto; }
+.account-table th, .account-table td { padding: 7px 6px; font-size: 12px; }
+.account-table { min-width: 1050px !important; table-layout: fixed; }
+.account-table tbody tr { height: 76px; }
+.account-table small { font-size: 12px; }
+.account-table td:last-child { white-space: nowrap; }
+.account-table td:last-child .mt-2 { flex-wrap: nowrap; gap: 10px; }
+/* Keep cancellation actions on separate lines without relying on Tailwind's escaped class selector. */
+.admin-card table td:last-child button { display: block; margin: 0 0 4px; white-space: nowrap; }
 .dashboard-pending-item:hover .dashboard-pending-name { border-radius: 999px; background: #fff; color: #333; }
 .dashboard-pending-item:hover .dashboard-pending-name svg { color: #8d86d9 !important; }
 .dashboard-pending-item:hover strong, .dashboard-pending-item:hover strong.has-pending, .dashboard-pending-item:hover small { color: #fff; }
