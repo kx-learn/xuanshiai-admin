@@ -10,6 +10,10 @@ export async function loginAdmin(username: string, password: string) {
 }
 
 export async function logoutAdmin() {
+  if (getAdminToken() === "local-demo-token") {
+    clearAdminToken();
+    return;
+  }
   try {
     if (getAdminToken()) await adminEndpoints.logout();
   } finally {

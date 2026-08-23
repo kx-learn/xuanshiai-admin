@@ -7,18 +7,21 @@ import {
   BarChart3,
   CalendarDays,
   Bell,
+  Cloud,
   ChevronDown,
   ChevronRight,
   CircleHelp,
   ClipboardList,
   Coins,
   CreditCard,
+  CircleUserRound,
   GraduationCap,
   HeartHandshake,
   LayoutGrid,
   LogOut,
   Menu,
   MessageCircle,
+  Gift,
   Monitor,
   Search,
   Settings,
@@ -31,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { getAdminToken } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { logoutAdmin } from "@/lib/admin-auth";
+
+const LOCAL_DEMO_TOKEN = "local-demo-token";
 
 type Item = { label: string; href: string };
 type Group = {
@@ -72,12 +77,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [collapsed, setCollapsed] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [accountName, setAccountName] = useState("管理员");
-  const activeGroup = useMemo(() => groups.find((group) => group.items.some((item) => pathname === item.href)), [pathname]);
-  const [open, setOpen] = useState(activeGroup?.label ?? "平台账号");
+  const activeGroup = useMemo(() => groups.find((group) => group.items.some((item) => pathname === item.href) || (group.label === "平台账号" && pathname === "/reg-user-cancel")), [pathname]);
+  const [openGroups, setOpenGroups] = useState<string[]>(activeGroup ? [activeGroup.label] : ["平台账号"]);
 
   useEffect(() => {
     if (!getAdminToken()) {
       router.replace("/login");
+      return;
+    }
+    if (getAdminToken() === LOCAL_DEMO_TOKEN) {
+      setAccountName("admin");
+      setAuthReady(true);
       return;
     }
     adminEndpoints.me()
@@ -89,7 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [router]);
 
   useEffect(() => {
-    if (activeGroup) setOpen(activeGroup.label);
+    if (activeGroup) setOpenGroups((current) => current.includes(activeGroup.label) ? current : [...current, activeGroup.label]);
   }, [activeGroup]);
 
   if (!authReady) {
@@ -100,40 +110,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-[#f4f6fa] text-[#333]">
-      <header className="fixed inset-x-0 top-0 z-40 h-12 bg-[#1f2b3d] text-white">
-        <div className="flex h-full items-center px-4">
-          <Link href="/home" className={cn("shrink-0 text-[15px] font-semibold tracking-wide", collapsed ? "w-12" : "w-52")}>婚恋运营管理系统</Link>
-          {!collapsed && <span className="text-xs text-white/55">为婚恋行业发展提供科技赋能</span>}
-          <div className="ml-auto flex h-full items-center gap-1 text-xs text-white/75">
-            <span className="hidden lg:inline-flex h-full items-center px-2 text-white/65">云端图库</span>
-            <span className="hidden md:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><Smartphone className="h-3.5 w-3.5" />手机版</span>
-            <Link href="/" className="hidden md:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><Monitor className="h-3.5 w-3.5" />电脑版</Link>
-            <Link href="/crm/home" className="hidden lg:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><HeartHandshake className="h-3.5 w-3.5" />红娘工作台</Link>
-            <span className="hidden xl:inline-flex h-full items-center gap-1 px-2 text-white/55">当前版本</span>
-            <span className="hidden lg:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><Bell className="h-3.5 w-3.5" />更新报告</span>
-            <Link href="/system-feedback" className="inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><MessageCircle className="h-3.5 w-3.5" />工单反馈</Link>
-            <span className="hidden xl:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><GraduationCap className="h-3.5 w-3.5" />用好系统</span>
-            <span className="hidden lg:inline-flex h-full items-center gap-1 px-2 hover:bg-white/10 hover:text-white"><CreditCard className="h-3.5 w-3.5" />充值</span>
-            <span className="mx-1 h-4 w-px bg-white/15" />
-            <span className="px-2 text-white">{accountName}</span>
-            <button className="inline-flex items-center gap-1 text-white/60 hover:text-white" onClick={() => logoutAdmin().then(() => router.replace("/login"))}><LogOut className="h-3.5 w-3.5" />退出</button>
-          </div>
+      <header className="fixed inset-x-0 top-0 z-40 h-[58px] bg-[#272d45] text-white shadow-sm">
+        <div className="flex h-full items-center gap-1 px-2 lg:px-4">
+          <Link href="/home" aria-label="首页" className="flex w-[78px] shrink-0 items-center"><span className="font-serif text-[22px] font-bold italic leading-none text-[#6e92f6]">163R</span></Link>
+          <div className="translate-x-2 hidden items-center gap-1 whitespace-nowrap text-[11px] font-medium text-[#d9dceb] xl:flex"><span>⌘ 当前版本：V9.0</span><button className="rounded bg-[#3d455f] px-2 py-1.5">更新报告</button><Link href="/system-feedback" className="rounded bg-[#3d455f] px-2 py-1.5">工单反馈</Link><span className="rounded bg-[#3d455f] px-2 py-1.5">用好系统</span><span className="rounded bg-[#3d455f] px-2 py-1.5">充值</span></div>
+          <div className="ml-auto flex min-w-0 items-center gap-1 whitespace-nowrap"><button className="hidden items-center gap-1 rounded bg-[#3d5cf1] px-2 py-1.5 text-[11px] font-semibold sm:inline-flex"><Bell className="h-3 w-3" />红娘课堂</button><button className="hidden items-center gap-1 rounded bg-[#4a62ed] px-2 py-1.5 text-[11px] font-semibold md:inline-flex"><Gift className="h-3 w-3" />婚创学苑</button><button className="hidden items-center gap-1 rounded bg-[#eb3d7d] px-2 py-1.5 text-[11px] font-semibold lg:inline-flex"><Cloud className="h-3 w-3" />云端图库</button><label className="hidden h-7 w-[250px] shrink-0 items-center gap-1.5 rounded-full bg-[#3c435c] px-2.5 text-[#aeb4c8] xl:flex"><input className="min-w-0 flex-1 whitespace-nowrap bg-transparent text-[11px] outline-none placeholder:text-[#aeb4c8]" placeholder="输入会员昵称/手机号/编号/姓名" /><Search className="h-3 w-3 shrink-0" /></label><div className="hidden items-center gap-1.5 text-[11px] text-[#e0e2eb] lg:flex"><span className="inline-flex items-center gap-1"><Smartphone className="h-3 w-3" />手机版</span><span className="inline-flex items-center gap-1"><Monitor className="h-3 w-3" />电脑版</span><Link href="/crm/home" className="inline-flex items-center gap-1"><HeartHandshake className="h-3 w-3" />红娘工作台</Link></div><button className="flex shrink-0 items-center gap-1 text-[11px]" onClick={() => logoutAdmin().then(() => router.replace("/login"))}><CircleUserRound className="h-5 w-5 text-[#d8d9df]" /><span>{accountName}</span><ChevronDown className="h-3 w-3" /></button></div>
         </div>
       </header>
 
-      <aside className="fixed bottom-0 left-0 top-12 z-30 border-r border-[#e7eaf0] bg-white transition-[width]" style={{ width: sidebarWidth }}>
+      <aside className="fixed bottom-0 left-0 top-[58px] z-30 border-r border-[#e7eaf0] bg-white transition-[width]" style={{ width: sidebarWidth }}>
         <nav className="sidebar-scroll h-[calc(100%-40px)] overflow-y-auto py-2">
           <Link href="/home" className={cn("mx-2 mb-1 flex items-center rounded px-3 py-2 text-sm hover:bg-[#f3f6ff]", pathname === "/home" ? "bg-[#edf2ff] text-[#3658f7]" : "text-[#555]", collapsed && "justify-center px-0")} title={collapsed ? "概览" : undefined}>
             <BarChart3 className="h-4 w-4 shrink-0" />{!collapsed && <span className="ml-3">概览</span>}
           </Link>
           {groups.map((group) => {
             const Icon = group.icon;
-            const expanded = open === group.label && !collapsed;
+            const expanded = openGroups.includes(group.label) && !collapsed;
             return <div key={group.label}>
-              <button onClick={() => setOpen(expanded ? "" : group.label)} className={cn("mx-2 flex w-[calc(100%-16px)] items-center rounded px-3 py-2 text-sm text-[#555] hover:bg-[#f3f6ff]", collapsed && "justify-center px-0")} title={collapsed ? group.label : undefined}>
+              <button onClick={() => setOpenGroups((current) => current.includes(group.label) ? current.filter((label) => label !== group.label) : [...current, group.label])} className={cn("mx-2 flex w-[calc(100%-16px)] items-center rounded px-3 py-2 text-sm text-[#555] hover:bg-[#f3f6ff]", collapsed && "justify-center px-0")} title={collapsed ? group.label : undefined}>
                 <Icon className="h-4 w-4 shrink-0" />{!collapsed && <><span className="ml-3 flex-1 text-left">{group.label}</span>{expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</>}
               </button>
-              {expanded && <div className="pb-1">{group.items.map((item) => <Link key={item.href} href={item.href} className={cn("block py-2 pl-11 pr-3 text-[13px] text-[#666] hover:text-[#3658f7]", pathname === item.href && "bg-[#edf2ff] font-medium text-[#3658f7]")}>{item.label}</Link>)}</div>}
+              {expanded && <div className="pb-1">{group.items.map((item) => <Link key={item.href} href={item.href} className={cn("block py-2 pl-11 pr-3 text-[13px] text-[#666] hover:text-[#3658f7]", (pathname === item.href || (pathname === "/reg-user-cancel" && item.href === "/reg-user-all")) && "bg-[#edf2ff] font-medium text-[#3658f7]")}>{item.label}</Link>)}</div>}
             </div>;
           })}
           <div className="mt-2 border-t border-[#f0f2f5] pt-2">
@@ -143,15 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <button onClick={() => setCollapsed((value) => !value)} className="flex h-10 w-full items-center justify-center border-t border-[#f0f0f0] text-[#999] hover:text-[#3658f7]" aria-label="折叠侧边栏"><Menu className="h-4 w-4" /></button>
       </aside>
 
-      <main className="min-h-screen pt-12 transition-[margin]" style={{ marginLeft: sidebarWidth }}>
-        <div className="border-b border-[#e9ecf2] bg-white px-6 py-2.5">
-          <div className="flex items-center gap-4 text-xs text-[#8c96a8]">
-            <span className="font-medium text-[#333]">红娘课堂</span>
-            <Link href="/operate-center" className="hover:text-[#3658f7]">婚创学苑</Link>
-            <span className="ml-auto inline-flex items-center gap-2 rounded border border-[#e1e5ec] px-2 py-1 text-[#8c96a8]"><Search className="h-3.5 w-3.5" />输入会员昵称/手机/编号/姓名</span>
-            <Link href="/crm/home" className="text-[#3658f7]">红娘工作台</Link>
-          </div>
-        </div>
+      <main className="min-h-screen pt-[58px] transition-[margin]" style={{ marginLeft: sidebarWidth }}>
         <div className="p-6">{children}</div>
       </main>
     </div>
