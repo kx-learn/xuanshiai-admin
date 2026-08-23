@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { FileDown, Plus, Search } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { getAdminToken } from "@/lib/admin-api";
+import PageSizeSelect from "@/components/PageSizeSelect";
 
 type Lead = {
   id: number;
@@ -62,6 +64,8 @@ export default function Page() {
     [source, setSource] = useState(""),
     [message, setMessage] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"professional" | "simple">("professional");
+  const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
   const [modal, setModal] = useState<
       "create" | "edit" | "follow" | "assign" | null
     >(null),
@@ -111,6 +115,14 @@ export default function Page() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".customer-lead-page table tbody tr"));
+    if (viewMode === "professional") rows.forEach((row) => { const cell = row.cells[0]; if (cell && !cell.querySelector("input[type=checkbox]")) { const box = document.createElement("input"); box.type = "checkbox"; cell.prepend(box); } if (cell && cell.querySelector("input[type=checkbox]") && !row.querySelector(".lead-selection-cell")) { const box = cell.querySelector("input[type=checkbox]")!; const selectionCell = document.createElement("td"); selectionCell.className = "lead-selection-cell"; selectionCell.appendChild(box); row.insertBefore(selectionCell, cell); } });
+    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>(".customer-lead-page table tbody input[type=checkbox]"));
+    boxes.forEach((box, index) => { const item = data.items[index]; if (item) box.checked = selectedLeadIds.includes(item.id); });
+    const handlers = boxes.map((box, index) => { const handler = () => { const item = data.items[index]; if (!item) return; setSelectedLeadIds((current) => box.checked ? [...new Set([...current, item.id])] : current.filter((id) => id !== item.id)); }; box.addEventListener("change", handler); return [box, handler] as const; });
+    return () => handlers.forEach(([box, handler]) => box.removeEventListener("change", handler));
+  }, [selectedLeadIds, data.items, viewMode]);
   const open = (kind: NonNullable<typeof modal>, lead?: Lead) => {
     setCurrent(lead || null);
     setForm(
@@ -235,13 +247,13 @@ export default function Page() {
         </span>
       </section>
       <section className="bg-white px-5 pt-4">
-        <div className="flex items-center justify-between border-b">
-          <div className="flex gap-7 text-sm">
-            <b className="border-b-2 border-[#3658f7] pb-3 text-[#3658f7]">
+        <div className="lead-tabs flex items-center justify-between border-b">
+          <div>
+            <b className="text-[#3658f7]">
               线索管理
             </b>
-            <button className="pb-3 text-[#666]">弃海客源</button>
-            <button className="pb-3 text-[#666]">弃海记录</button>
+            <Link href="/love-customer-abandon">弃海客源(0)</Link>
+            <Link href="/love-customer-abandon-log">弃海记录</Link>
           </div>
           <div className="flex gap-2 pb-3">
             <button
@@ -251,15 +263,9 @@ export default function Page() {
               <Plus size={15} />
               添加客源
             </button>
-            <button
-              onClick={exportCsv}
-              className="flex items-center gap-1 rounded border px-3 py-1.5 text-sm"
-            >
-              <FileDown size={15} />
-              导出 Excel
-            </button>
             <button className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white">▣ 智能录入</button>
             <button className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white">⌁ 数据报表</button>
+            <button onClick={exportCsv} className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"><FileDown size={15} />导出EXCEL</button>
           </div>
         </div>
         <div className="lead-filter-grid grid gap-3 pt-4 md:grid-cols-4 xl:grid-cols-8">
@@ -279,8 +285,8 @@ export default function Page() {
               <option value="">{label}</option><option>不限</option><option>已设置</option><option>未设置</option>
             </select>
           ))}
-          <Select label="客源状态" value={status} set={setStatus} options={[["", "全部"], ...Object.entries(statuses)]} />
-          <Field label="客户来源" value={source} set={setSource} />
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"><option value="">客源状态：不限</option>{Object.entries(statuses).map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
+          <input value={source} onChange={(e) => setSource(e.target.value)} placeholder="客户来源" className="h-10 rounded border border-[#ddd] px-3 text-sm placeholder:text-[#9aa1ad]" />
         </div>
         <button className="lead-more-filters" onClick={() => setShowMoreFilters((value) => !value)}>{showMoreFilters ? "收起选项" : "更多选项"}<span className="lead-chevron" /></button>
         {showMoreFilters && <div className="lead-extra-filters">
@@ -291,11 +297,11 @@ export default function Page() {
           <label><input type="checkbox" /> 隐藏今日已跟进</label><label><input type="checkbox" /> 隐藏今日已通话</label><label><input type="checkbox" /> 有电话</label><label><input type="checkbox" /> 有微信</label>
         </div>}
         <div className="lead-search-row flex flex-wrap items-end gap-3 py-4">
-          <Field label="称呼/微信/手机/ID" value={keyword} set={setKeyword} />
+          <div className="flex items-end"><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="请输入称呼/微信号/手机号/ID" className="h-10 w-[430px] rounded border border-[#ddd] px-3 text-sm placeholder:text-[#b4bac5]" /></div>
           <div className="flex items-end gap-2">
             <button
               onClick={() => void load()}
-              className="flex h-8 items-center gap-1 rounded bg-[#3658f7] px-4 text-sm text-white"
+              className="flex h-10 items-center gap-1 rounded bg-[#3658f7] px-5 text-sm text-white"
             >
               <Search size={14} />
               搜索
@@ -306,75 +312,42 @@ export default function Page() {
                 setStatus("");
                 setSource("");
               }}
-              className="h-8 rounded border px-3 text-sm"
+              className="h-10 rounded border px-4 text-sm"
             >
               重置
             </button>
           </div>
           <span className="pb-2 text-sm">排序：录入时间</span>
-          <span className="pb-2 text-sm text-[#3658f7]">简洁 | 专业</span>
+          <div className="lead-mode-switch">{viewMode === "simple" && <button className="lead-settings" aria-label="简洁模式设置">⚙</button>}<button className={viewMode === "simple" ? "active" : ""} onClick={() => setViewMode("simple")}>简洁</button><button className={viewMode === "professional" ? "active" : ""} onClick={() => setViewMode("professional")}>专业</button></div>
         </div>
-        <div className="grid grid-cols-2 gap-px border-y bg-[#eef0f5] md:grid-cols-6">
+        <div className="lead-metrics-grid grid grid-cols-2 gap-3 md:grid-cols-6">
           {[
             ["全部", data.total],
             ["未分派", data.items.filter((x) => !x.matchmaker_id).length],
-            ["待联系", data.items.filter((x) => x.status === "NEW").length],
-            [
-              "有意向",
-              data.items.filter((x) => x.status === "INTENDED").length,
-            ],
-            [
-              "今日需跟进",
-              data.items.filter(
-                (x) =>
-                  x.next_follow_at &&
-                  new Date(x.next_follow_at).toDateString() ===
-                    new Date().toDateString(),
-              ).length,
-            ],
-            [
-              "已入库",
-              data.items.filter((x) => x.status === "CONVERTED").length,
-            ],
+            ["今日跟进", 0], ["从未跟进", data.items.length], ["超3天未跟进", 7], ["今日需跟进", 0],
           ].map(([n, c]) => (
-            <div key={String(n)} className="bg-white px-4 py-3">
+            <div key={String(n)} className={`lead-metric-card ${n === "全部" ? "selected" : ""}`}>
               <div className="text-xs text-[#888]">{n}</div>
               <div className="mt-1 text-xl">{String(c)}</div>
             </div>
           ))}
-        </div>
-        <div className="py-3 text-sm text-[#777]">
-          共 {data.total} 条，按录入时间倒序 | 专业模式
         </div>
       </section>
       <div className="overflow-x-auto bg-white">
         <table className="w-full min-w-[1580px] text-sm">
           <thead className="bg-[#fafafa] text-[#666]">
             <tr>
-              {[
-                "客源ID",
-                "资料",
-                "客户意向",
-                "来源",
-                "审核",
-                "录入人",
-                "状态",
-                "分派跟进",
-                "跟进",
-                "通话",
-                "入库状态",
-                "操作",
-              ].map((x) => (
+              {(viewMode === "simple" ? ["", "标记", "客源ID", "称呼", "姓名", "性别", "出生", "婚况", "学历", "身高", "职业", "来源", "录入", "跟进", "状态", "审核", "意向", "标签", "入库状态", "描述", "操作"] : ["", "客源ID", "资料", "客户意向", "来源", "审核", "录入人", "状态", "分派跟进", "跟进", "通话", "入库状态", "操作"]).map((x, index) => (
                 <th
                   key={x}
                   className="border-b px-3 py-3 text-left font-normal"
                 >
-                  {x}
+                  {index === 0 ? <input type="checkbox" aria-label="全选线索" checked={data.items.length > 0 && selectedLeadIds.length === data.items.length} onChange={(event) => setSelectedLeadIds(event.target.checked ? data.items.map((item) => item.id) : [])} /> : x}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className={viewMode === "simple" ? "lead-simple-body" : "lead-professional-body"}>
             {loading ? (
               <tr>
                 <td colSpan={12} className="p-10 text-center text-[#999]">
@@ -393,7 +366,7 @@ export default function Page() {
                   key={x.id}
                   className="border-b align-top hover:bg-[#fafcff]"
                 >
-                  <td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
+                  {viewMode === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">⚑ ⚑ ⚑</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name}</td><td className="px-3 py-3">-</td><td className="px-3 py-3"><span className="simple-sex">男</span></td><td className="px-3 py-3">1995年(31岁)</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">管理员<br />{x.created_at}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="待分派"><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="未设置"><option>未设置</option><option>有效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="请选择"><option>请选择</option><option>低意向</option><option>中意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">B970357</small>}</td><td className="px-3 py-3">-</td><td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button>入库</button><button>详情</button><button onClick={() => open("follow", x)}>跟进</button><button>溯源</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
                   <td className="px-3 py-3">
                     <div className="lead-profile"><div className="lead-avatar">男 31岁</div><div><b>{x.name}</b><span className="lead-tag">有电话</span></div></div>
                     <div className="lead-actions"><button>基本资料</button><button>择偶要求</button><button onClick={() => open("follow", x)}>跟进信息</button><button className="lead-more-button">更多</button></div>
@@ -428,30 +401,18 @@ export default function Page() {
                       <span>未入库</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button onClick={() => (x.converted_user_id ? undefined : open("edit", x))}>{x.converted_user_id ? "查看会员" : "一键入库"}</button></td>
+                  <td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button onClick={() => (x.converted_user_id ? undefined : open("edit", x))}>{x.converted_user_id ? "查看会员" : "一键入库"}</button></td></>}
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+      {selectedLeadIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedLeadIds.length}</b> 项</span><select><option>更换分派跟进</option></select><select><option>更换推广红娘</option></select><button>有效</button><button>待核</button><button>无效</button><button>打标签</button><button>批量删除</button><button>批量弃海</button><button>批量入库</button></div>}
+      <PageSizeSelect total={data.total} />
       {message && <p className="mt-3 text-sm text-red-600">{message}</p>}
-      <div className="flex justify-end gap-3 bg-white p-4 text-sm">
-        <button
-          disabled={data.page <= 1}
-          onClick={() => void load(data.page - 1)}
-          className="rounded border px-3 py-1"
-        >
-          上一页
-        </button>
-        <span className="py-1">第 {data.page} 页</span>
-        <button
-          disabled={!data.has_more}
-          onClick={() => void load(data.page + 1)}
-          className="rounded border px-3 py-1"
-        >
-          下一页
-        </button>
+      <div className="admin-pagination">
+        <button disabled={data.page <= 1} onClick={() => void load(data.page - 1)}>‹</button><button className="active">{data.page}</button><button disabled={!data.has_more} onClick={() => void load(data.page + 1)}>›</button><span className="page-size">20 条/页</span>
       </div>
       {modal && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4">

@@ -1,0 +1,8 @@
+"use client";
+import Link from "next/link";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { getBreadcrumb } from "@/lib/breadcrumb-config";
+
+export default function AbandonPage() {
+  return <div className="customer-lead-page"><AdminBreadcrumb items={getBreadcrumb("客源线索", "弃海客源")} /><section className="mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b]"><h2 className="mb-1 font-semibold text-[#26324a]">💡 须知</h2><p>客源线索（简称“线索库”）是指您广泛通过各种渠道获取到的单身潜在客户简单信息以快速便捷的形式收集汇总到“线索管理”中，分派给红娘进行销售跟进，并丰富完善更多信息。</p><p>根据业务进展情况可将客源线索一键入库转入到会员资料库（会员CRM）中，系统会自动生成账号，该账号初始登录密码为：abc123；</p><p>已入库到“会员CRM”的客户线索在本页面中仅做记录查询，请在会员资料中管理，本页不再提供编辑和任何操作；删除客源记录不影响会员资料中的数据。</p></section><section className="admin-card overflow-hidden"><div className="lead-tabs flex items-center gap-8 border-b px-8"><Link href="/love-customer-list">线索管理</Link><Link href="/love-customer-abandon" className="active text-[#3658f7]">弃海客源(0)</Link><Link href="/love-customer-abandon-log">弃海记录</Link></div><div className="flex gap-3 px-8 py-5"><select className="h-10 rounded border px-3"><option>审核状态：不限</option></select><select className="h-10 rounded border px-3"><option>分派跟进：不限</option></select><input className="h-10 w-80 rounded border px-3" placeholder="请输入称呼/微信号/手机号/ID" /><button className="rounded bg-[#3658f7] px-5 text-white">搜索</button></div><table className="w-full table-fixed"><thead><tr>{["客源ID","资料","客户意向","来源","审核","录入人","状态","分派跟进","跟进","通话","入库状态","操作"].map((x) => <th key={x} className="border-b bg-[#fafafa] p-3 text-left">{x}</th>)}</tr></thead><tbody><tr><td colSpan={12} className="h-52 text-center text-[#c5c9d0]">暂无数据</td></tr></tbody></table></section></div>;
+}
