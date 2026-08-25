@@ -35,8 +35,6 @@ import { getAdminToken } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { logoutAdmin } from "@/lib/admin-auth";
 
-const LOCAL_DEMO_TOKEN = "local-demo-token";
-
 type Item = { label: string; href: string };
 type Group = {
   label: string;
@@ -83,11 +81,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!getAdminToken()) {
       router.replace("/login");
-      return;
-    }
-    if (getAdminToken() === LOCAL_DEMO_TOKEN) {
-      setAccountName("admin");
-      setAuthReady(true);
       return;
     }
     adminEndpoints.me()

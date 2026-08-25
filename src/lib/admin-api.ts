@@ -12,6 +12,15 @@ export function setAdminToken(token: string) {
 export function clearAdminToken() {
   if (typeof window !== "undefined") window.localStorage.removeItem(ADMIN_TOKEN_KEY);
 }
+
+/** Backend stores uploaded media as paths; resolve them against the configured API host. */
+export function resolveMediaUrl(value?: string | null) {
+  if (!value) return undefined;
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  const base = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+  return new URL(value.startsWith("/") ? value : `/${value}`, base).toString();
+}
+
 export async function adminApi<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
   const url = typeof window === "undefined"

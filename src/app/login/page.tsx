@@ -1,11 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, LockKeyhole, LogIn, UserRound } from "lucide-react";
-import { setAdminToken } from "@/lib/admin-api";
-
-const LOCAL_DEMO_TOKEN = "local-demo-token";
+import { clearAdminToken } from "@/lib/admin-api";
+import { loginAdmin } from "@/lib/admin-auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +16,8 @@ export default function LoginPage() {
   const [sliderValue, setSliderValue] = useState(0);
   const [sliderTouched, setSliderTouched] = useState(false);
   const verified = sliderValue === 100 && sliderTouched;
+
+  useEffect(() => { clearAdminToken(); }, []);
 
   function resetVerification() {
     setSliderValue(0);
@@ -32,7 +33,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      setAdminToken(LOCAL_DEMO_TOKEN);
+      await loginAdmin(username.trim(), password);
       router.replace("/home");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "登录失败，请检查账号和密码");
