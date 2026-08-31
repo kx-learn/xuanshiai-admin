@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  CalendarDays,
   ChevronDown,
   Download,
   FileText,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -16,6 +18,7 @@ import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Button } from "@/components/ui/button";
 import MemberDetailWorkspace from "@/components/MemberDetailWorkspace";
+import Link from "next/link";
 
 type Member = {
   id: number;
@@ -37,6 +40,7 @@ type Member = {
   education?: string | null;
   job?: string | null;
   auth_status?: number | null;
+  intention_level?: number | null;
   last_follow_at?: string | null;
   next_follow_at?: string | null;
 };
@@ -47,6 +51,7 @@ type Page = {
   page_size: number;
   has_more: boolean;
 };
+type Matchmaker = { user_id: number; nickname?: string | null; is_available?: boolean };
 type Statistics = {
   total: number;
   unassigned: number;
@@ -115,6 +120,7 @@ export default function LoveUserListPage() {
   const [draft, setDraft] = useState<Filters>(initialFilters);
   const [sortBy, setSortBy] = useState("created_at");
   const [activeQuickFilter, setActiveQuickFilter] = useState("all");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [followMember, setFollowMember] = useState<Member | null>(null);
   const [detailMember, setDetailMember] = useState<Member | null>(null);
   const [detailTab, setDetailTab] = useState("基本资料");
@@ -125,6 +131,10 @@ export default function LoveUserListPage() {
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [rowAuth, setRowAuth] = useState<Record<number, string>>({});
+  const [rowIntentions, setRowIntentions] = useState<Record<number, string>>({});
+  const [rowMatchmakers, setRowMatchmakers] = useState<Record<number, string>>({});
+  const [matchmakers, setMatchmakers] = useState<Matchmaker[]>([]);
   const [importing, setImporting] = useState(false);
   const [memberForm, setMemberForm] = useState({
     nickname: "",
@@ -167,6 +177,11 @@ export default function LoveUserListPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    void adminApi<{ items: Matchmaker[] }>("admin/matchmaker/matchmakers", {
+      query: { page: 1, page_size: 50 },
+    }).then((result) => setMatchmakers(result.items)).catch(() => setMatchmakers([]));
+  }, []);
   useEffect(() => {
     setSelectedIds([]);
   }, [page, pageSize, filters]);
@@ -273,6 +288,29 @@ export default function LoveUserListPage() {
       await load();
     } finally {
       setSaving(false);
+    }
+  }
+  async function updateMemberField(memberId: number, body: Record<string, number | null>) {
+    try {
+      await adminApi(`admin/matchmaker/members/${memberId}`, { method: "PATCH", body });
+      await load();
+    } catch (error) {
+      alert(error instanceof Error ? `修改失败：${error.message}` : "修改失败");
+      await load();
+    }
+  }
+  async function updateAssignment(memberId: number, value: string) {
+    const matchmakerId = value ? Number(value) : null;
+    if (value && !Number.isInteger(matchmakerId)) return;
+    try {
+      await adminApi(`admin/matchmaker/members/${memberId}/assignment`, {
+        method: "PATCH",
+        body: { matchmaker_id: matchmakerId },
+      });
+      await load();
+    } catch (error) {
+      alert(error instanceof Error ? `分派失败：${error.message}` : "分派失败");
+      await load();
     }
   }
   async function importMembers(file?: File) {
@@ -427,7 +465,10 @@ export default function LoveUserListPage() {
               ["3", "注销"],
             ]}
           />
-          <StaticSelect label="客户意向：不限" />
+          <StaticSelect
+            label="客户意向：不限"
+            options={["高意向", "中意向", "低意向"]}
+          />
           <StaticSelect label="登记：不限" />
           <StaticSelect label="推广红娘" />
           <Select
@@ -439,30 +480,45 @@ export default function LoveUserListPage() {
               ["2", "女"],
             ]}
           />
-          <StaticSelect label="年龄：不限" />
-          <StaticSelect label="婚况：不限（多选）" />
-          <StaticSelect label="身高：不限" />
-          <StaticSelect label="学历：不限（多选）" />
-          <StaticSelect label="职业：不限（多选）" />
-          <StaticSelect label="收入：不限（多选）" />
-          <StaticSelect label="现居：不限" />
-          <Select
-            value={draft.vip}
-            onChange={(vip) => setDraft({ ...draft, vip })}
-            label="会员级别：不限"
-            options={[
-              ["true", "VIP"],
-              ["false", "普通会员"],
-            ]}
-          />
-          <StaticSelect label="实名：不限" />
+          {showMoreFilters && (
+            <>
+              <StaticSelect label="年龄：不限" />
+              <StaticSelect label="婚况：不限（多选）" />
+              <StaticSelect label="身高：不限" />
+              <StaticSelect label="学历：不限（多选）" />
+              <StaticSelect label="职业：不限（多选）" />
+              <StaticSelect label="收入：不限（多选）" />
+              <StaticSelect label="现居：不限" />
+              <Select
+                value={draft.vip}
+                onChange={(vip) => setDraft({ ...draft, vip })}
+                label="会员级别：不限"
+                options={[["true", "VIP"], ["false", "普通会员"]]}
+              />
+              <StaticSelect label="实名：不限" />
+            </>
+          )}
         </div>
-        <div className="mb-4 text-xs text-[#3658f7]">更多选项</div>
+        <button
+          type="button"
+          onClick={() => setShowMoreFilters((current) => !current)}
+          aria-expanded={showMoreFilters}
+          className="mb-4 inline-flex items-center text-xs text-[#3658f7]"
+        >
+          {showMoreFilters ? "收起选项" : "更多选项"}
+          <span className={`ml-2 size-1.5 border-b border-r border-current ${showMoreFilters ? "-translate-y-px rotate-[225deg]" : "-translate-y-0.5 rotate-45"}`} />
+        </button>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex h-8">
-            <span className="flex items-center border border-r-0 border-[#d9d9d9] px-3 text-xs text-[#595959]">
-              智能搜索
-            </span>
+            <label className="relative flex h-8 items-center border border-r-0 border-[#d9d9d9] bg-white text-xs text-[#595959]">
+              <select className="h-full appearance-none bg-transparent py-0 pl-3 pr-7 outline-none">
+                <option>智能搜索</option>
+                <option>昵称</option>
+                <option>手机号</option>
+                <option>会员编号</option>
+              </select>
+              <span className="pointer-events-none absolute right-3 top-3 size-1.5 rotate-45 border-b border-r border-[#8c8c8c]" />
+            </label>
             <input
               value={draft.search}
               onChange={(e) => setDraft({ ...draft, search: e.target.value })}
@@ -521,7 +577,7 @@ export default function LoveUserListPage() {
             </button>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-7">
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-8">
           {[
             ["all", "全部", stats.total, () => quickFilter("all")],
             [
@@ -560,17 +616,30 @@ export default function LoveUserListPage() {
               0,
               () => quickFilter("today_login", "today_login"),
             ],
+            ["calendar", "预约跟进日历", "", null],
           ].map(([key, label, amount, handler]) => {
             const selected = activeQuickFilter === key;
+            if (key === "calendar") {
+              return (
+                <Link
+                  key={String(key)}
+                  href="/love-appointment"
+                  className="flex h-14 items-center justify-center gap-2 bg-[#fafafa] text-xs text-[#595959] hover:bg-[#f3f6ff]"
+                >
+                  <CalendarDays className="size-4 text-[#3658f7]" />
+                  {String(label)}
+                </Link>
+              );
+            }
             return (
               <button
                 key={String(key)}
                 onClick={handler as () => void}
                 aria-pressed={selected}
-                className={`h-14 px-3 text-left text-xs transition-colors ${selected ? "bg-[#eef2ff] text-[#3658f7]" : "bg-[#fafafa] text-[#595959] hover:bg-[#f3f6ff]"}`}
+                className={`flex h-14 flex-col justify-center px-3 text-left transition-colors ${selected ? "bg-[#eef2ff] text-[#3658f7]" : "bg-[#fafafa] text-[#595959] hover:bg-[#f3f6ff]"}`}
               >
-                <b className="mr-1 text-base font-medium">{String(amount)}</b>
-                {String(label)}
+                <span className="text-xs">{String(label)}</span>
+                <b className="mt-1 text-base font-medium">{String(amount)}</b>
               </button>
             );
           })}
@@ -693,17 +762,26 @@ export default function LoveUserListPage() {
                       </div>
                     </td>
                     <td className="p-3">
-                      <span
-                        className={
-                          m.auth_status === 2
-                            ? "text-[#52c41a]"
-                            : m.auth_status === 3
-                              ? "text-[#ff4d4f]"
-                              : "text-[#fa8c16]"
-                        }
+                      <select
+                        value={rowAuth[m.id] ?? String(m.auth_status ?? 0)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setRowAuth({ ...rowAuth, [m.id]: value });
+                          void updateMemberField(m.id, { auth_status: Number(value) });
+                        }}
+                        className="h-7 w-[72px] border border-[#d9d9d9] bg-white px-1 text-xs text-[#595959] outline-none focus:border-[#3658f7]"
                       >
-                        {authLabel(m.auth_status)}
-                      </span>
+                        <option value="0">待审</option>
+                        <option value="1">审核中</option>
+                        <option value="2">通过</option>
+                        <option value="3">未通过</option>
+                      </select>
+                      <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-[11px] text-[#3658f7]">
+                        <button type="button" onClick={() => { setRowAuth({ ...rowAuth, [m.id]: "2" }); void updateMemberField(m.id, { auth_status: 2 }); }}>免审核</button>
+                        <button type="button" title="编辑审核状态" aria-label="编辑审核状态" onClick={() => { setRowAuth({ ...rowAuth, [m.id]: "1" }); void updateMemberField(m.id, { auth_status: 1 }); }}>
+                          <Pencil className="size-3" />
+                        </button>
+                      </div>
                     </td>
                     <td className="p-3">
                       <div
@@ -724,15 +802,27 @@ export default function LoveUserListPage() {
                       </div>
                     </td>
                     <td className="p-3 text-[#262626]">
-                      跟进：
-                      <br />
-                      {m.matchmaker_id ? `红娘 #${m.matchmaker_id}` : "未分派"}
+                      <select
+                        value={rowMatchmakers[m.id] ?? (m.matchmaker_id ? String(m.matchmaker_id) : "")}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setRowMatchmakers({ ...rowMatchmakers, [m.id]: value });
+                          void updateAssignment(m.id, value);
+                        }}
+                        className="h-7 w-[120px] border border-[#d9d9d9] bg-white px-1 text-xs text-[#595959] outline-none focus:border-[#3658f7]"
+                      >
+                        <option value="">未分派</option>
+                        {matchmakers.map((matchmaker) => (
+                          <option key={matchmaker.user_id} value={matchmaker.user_id}>
+                            {matchmaker.nickname || `红娘 #${matchmaker.user_id}`}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="mt-1 text-[11px] text-[#8c8c8c]">推广：-</div>
                     </td>
                     <td className="p-3">
                       <div
-                        className={
-                          m.last_follow_at ? "text-[#595959]" : "text-[#fa8c16]"
-                        }
+                        className={m.last_follow_at ? "text-[#3658f7]" : "text-[#3658f7]"}
                       >
                         {m.last_follow_at
                           ? `最后：${formatTime(m.last_follow_at)}`
@@ -750,7 +840,22 @@ export default function LoveUserListPage() {
                         放入弃海
                       </button>
                     </td>
-                    <td className="p-3 text-[#8c8c8c]">请选择</td>
+                    <td className="p-3">
+                      <select
+                        value={rowIntentions[m.id] ?? String(m.intention_level ?? "")}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setRowIntentions({ ...rowIntentions, [m.id]: value });
+                          void updateMemberField(m.id, { intention_level: value ? Number(value) : null });
+                        }}
+                        className="h-7 w-[92px] border border-[#d9d9d9] bg-white px-1 text-xs text-[#8c8c8c] outline-none focus:border-[#3658f7]"
+                      >
+                        <option value="">请选择</option>
+                        <option value="3">高意向</option>
+                        <option value="2">中意向</option>
+                        <option value="1">低意向</option>
+                      </select>
+                    </td>
                     <td className="p-3 text-[#595959]">
                       <div>自己注册</div>
                       <div className="mt-1 text-[#8c8c8c]">
@@ -943,15 +1048,34 @@ function Select({
     </select>
   );
 }
-function StaticSelect({ label }: { label: string }) {
+function StaticSelect({ label, options: customOptions }: { label: string; options?: string[] }) {
+  const options = customOptions ?? (label.includes("婚况")
+    ? ["未婚", "离异", "丧偶"]
+    : label.includes("学历")
+      ? ["高中", "大专", "本科", "硕士"]
+      : label.includes("职业")
+        ? ["企业职员", "个体经营", "教师", "公务员"]
+        : label.includes("收入")
+          ? ["3000以下", "3000-8000", "8000以上"]
+          : label.includes("年龄")
+            ? ["18-25岁", "26-35岁", "36-45岁"]
+            : ["不限", "已选择"]);
   return (
-    <button
-      type="button"
-      className="flex h-8 min-w-[108px] items-center justify-between border border-[#d9d9d9] px-2 text-left text-xs text-[#8c8c8c]"
-    >
-      {label}
-      <span className="ml-2 size-1.5 rotate-45 border-b border-r border-[#bfbfbf]" />
-    </button>
+    <label className="relative block min-w-[108px]">
+      <select
+        defaultValue=""
+        className={`${selectClass} w-full appearance-none pr-7 text-[#8c8c8c]`}
+        aria-label={label}
+      >
+        <option value="">{label}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      <span className="pointer-events-none absolute right-3 top-3 size-1.5 rotate-45 border-b border-r border-[#bfbfbf]" />
+    </label>
   );
 }
 function ToolButton({

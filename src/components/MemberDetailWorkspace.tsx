@@ -26,6 +26,22 @@ type Member = {
   birthday?: string | null;
   is_married?: number | null;
   height?: number | null;
+  weight?: number | null;
+  zodiac?: string | null;
+  household?: string | null;
+  ethnicity?: string | null;
+  house?: string | null;
+  car?: string | null;
+  smoking?: string | null;
+  hometown_province_code?: string | null;
+  hometown_city_code?: string | null;
+  hometown_district_code?: string | null;
+  residence_province_code?: string | null;
+  residence_city_code?: string | null;
+  residence_district_code?: string | null;
+  household_province_code?: string | null;
+  household_city_code?: string | null;
+  household_district_code?: string | null;
   income?: number | null;
   hometown?: string | null;
   residence?: string | null;
@@ -69,6 +85,78 @@ const tabs: Tab[] = [
   { key: "source", label: "信息溯源", endpoint: "source-records" },
 ];
 
+const zodiacOptions = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
+const educationOptions = ["博士", "硕士", "本科", "大专", "高中", "中专", "初中"];
+const occupationOptions = ["程序员", "产品经理", "教师", "医生", "设计师", "公务员", "企业管理", "销售", "自由职业", "其他"];
+const incomeOptions = [
+  ["5000", "5千以下"],
+  ["8000", "5千-1万"],
+  ["15000", "1万-2万"],
+  ["25000", "2万-3万"],
+  ["40000", "3万-5万"],
+  ["60000", "5万以上"],
+] as const;
+const ethnicityOptions = ["汉族", "蒙古族", "回族", "藏族", "维吾尔族", "苗族", "其他"];
+const choiceOptions = {
+  house: ["无房", "有房", "共有住房"],
+  car: ["无车", "有车", "计划购车"],
+  smoking: ["不吸烟", "偶尔吸烟", "经常吸烟"],
+};
+
+type RegionItem = { code: string; name: string };
+type RegionCodes = { province: string; city: string; district: string; display: string };
+
+function RegionPicker({
+  value,
+  onChange,
+}: {
+  value: RegionCodes;
+  onChange: (next: RegionCodes) => void;
+}) {
+  const [provinces, setProvinces] = useState<RegionItem[]>([]);
+  const [cities, setCities] = useState<RegionItem[]>([]);
+  const [districts, setDistricts] = useState<RegionItem[]>([]);
+
+  useEffect(() => {
+    void adminApi<{ items: RegionItem[] }>("regions/provinces").then((result) => setProvinces(result.items));
+  }, []);
+  useEffect(() => {
+    if (!value.province) { setCities([]); return; }
+    void adminApi<{ items: RegionItem[] }>("regions/cities", { query: { province_code: value.province } }).then((result) => setCities(result.items));
+  }, [value.province]);
+  useEffect(() => {
+    // Legacy records may contain a non-standard city code; wait for a valid administrative code.
+    if (!value.city || !/^\d{4}$/.test(value.city)) { setDistricts([]); return; }
+    void adminApi<{ items: RegionItem[] }>("regions/districts", { query: { city_code: value.city } }).then((result) => setDistricts(result.items));
+  }, [value.city]);
+
+  const selectClass = "h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] bg-white px-3 text-[#444] outline-none focus:border-[#3658f7]";
+  const emit = (next: RegionCodes) => {
+    const names = [
+      provinces.find((item) => item.code === next.province)?.name,
+      cities.find((item) => item.code === next.city)?.name,
+      districts.find((item) => item.code === next.district)?.name,
+    ].filter(Boolean);
+    onChange({ ...next, display: names.join(" / ") });
+  };
+  return (
+    <div className="flex min-w-0 flex-1 gap-2">
+      <select value={value.province} onChange={(event) => emit({ province: event.target.value, city: "", district: "", display: "" })} className={selectClass}>
+        <option value="">请选择省</option>
+        {provinces.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+      </select>
+      <select value={value.city} disabled={!value.province} onChange={(event) => emit({ ...value, city: event.target.value, district: "", display: "" })} className={selectClass}>
+        <option value="">请选择市</option>
+        {cities.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+      </select>
+      <select value={value.district} disabled={!value.city} onChange={(event) => emit({ ...value, district: event.target.value, display: "" })} className={selectClass}>
+        <option value="">请选择区</option>
+        {districts.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+      </select>
+    </div>
+  );
+}
+
 export default function MemberDetailWorkspace({
   member,
   initialTab = "basic",
@@ -89,6 +177,22 @@ export default function MemberDetailWorkspace({
     gender: String(member.gender || 1),
     birthday: member.birthday || "",
     height: member.height ? String(member.height) : "",
+    weight: member.weight ? String(member.weight) : "",
+    zodiac: member.zodiac || "",
+    household: member.household || "",
+    ethnicity: member.ethnicity || "",
+    house: member.house || "",
+    car: member.car || "",
+    smoking: member.smoking || "",
+    hometown_province_code: member.hometown_province_code || "",
+    hometown_city_code: member.hometown_city_code || "",
+    hometown_district_code: member.hometown_district_code || "",
+    residence_province_code: member.residence_province_code || "",
+    residence_city_code: member.residence_city_code || "",
+    residence_district_code: member.residence_district_code || "",
+    household_province_code: member.household_province_code || "",
+    household_city_code: member.household_city_code || "",
+    household_district_code: member.household_district_code || "",
     is_married: member.is_married ? String(member.is_married) : "",
     hometown: member.hometown || "",
     residence: member.residence || "",
@@ -112,6 +216,22 @@ export default function MemberDetailWorkspace({
           gender: String(detail.gender || 1),
           birthday: detail.birthday || "",
           height: detail.height ? String(detail.height) : "",
+          weight: detail.weight ? String(detail.weight) : "",
+          zodiac: detail.zodiac || "",
+          household: detail.household || "",
+          ethnicity: detail.ethnicity || "",
+          house: detail.house || "",
+          car: detail.car || "",
+          smoking: detail.smoking || "",
+          hometown_province_code: detail.hometown_province_code || "",
+          hometown_city_code: detail.hometown_city_code || "",
+          hometown_district_code: detail.hometown_district_code || "",
+          residence_province_code: detail.residence_province_code || "",
+          residence_city_code: detail.residence_city_code || "",
+          residence_district_code: detail.residence_district_code || "",
+          household_province_code: detail.household_province_code || "",
+          household_city_code: detail.household_city_code || "",
+          household_district_code: detail.household_district_code || "",
           is_married: detail.is_married ? String(detail.is_married) : "",
           hometown: detail.hometown || "",
           residence: detail.residence || "",
@@ -202,17 +322,71 @@ export default function MemberDetailWorkspace({
       await adminApi(`admin/matchmaker/members/${member.id}`, {
         method: "PATCH",
         body: {
-          ...profile,
+          nickname: profile.nickname || null,
+          birthday: profile.birthday || null,
+          height: profile.height ? Number(profile.height) : null,
+          weight: profile.weight ? Number(profile.weight) : null,
+          zodiac: profile.zodiac || null,
+          household: profile.household || null,
+          ethnicity: profile.ethnicity || null,
+          house: profile.house || null,
+          car: profile.car || null,
+          smoking: profile.smoking || null,
+          hometown_province_code: profile.hometown_province_code || null,
+          hometown_city_code: profile.hometown_city_code || null,
+          hometown_district_code: profile.hometown_district_code || null,
+          residence_province_code: profile.residence_province_code || null,
+          residence_city_code: profile.residence_city_code || null,
+          residence_district_code: profile.residence_district_code || null,
+          household_province_code: profile.household_province_code || null,
+          household_city_code: profile.household_city_code || null,
+          household_district_code: profile.household_district_code || null,
+          income: profile.income ? Number(profile.income) : null,
+          hometown: profile.hometown || null,
+          residence: profile.residence || null,
+          education: profile.education || null,
+          job: profile.job || null,
+          self_intro: profile.self_intro || null,
+          ideal_partner: profile.ideal_partner || null,
           tags: selectedTags,
           gender: Number(profile.gender),
           is_married: profile.is_married ? Number(profile.is_married) : null,
-          height: profile.height ? Number(profile.height) : null,
-          income: profile.income ? Number(profile.income) : null,
         },
       });
+      const refreshed = await adminApi<Member>(`admin/matchmaker/members/${member.id}`);
+      setProfile((current) => ({
+        ...current,
+        nickname: refreshed.nickname || "",
+        gender: String(refreshed.gender || 1),
+        birthday: refreshed.birthday || "",
+        height: refreshed.height ? String(refreshed.height) : "",
+        weight: refreshed.weight ? String(refreshed.weight) : "",
+        zodiac: refreshed.zodiac || "",
+        household: refreshed.household || "",
+        ethnicity: refreshed.ethnicity || "",
+        house: refreshed.house || "",
+        car: refreshed.car || "",
+        smoking: refreshed.smoking || "",
+        hometown_province_code: refreshed.hometown_province_code || "",
+        hometown_city_code: refreshed.hometown_city_code || "",
+        hometown_district_code: refreshed.hometown_district_code || "",
+        residence_province_code: refreshed.residence_province_code || "",
+        residence_city_code: refreshed.residence_city_code || "",
+        residence_district_code: refreshed.residence_district_code || "",
+        household_province_code: refreshed.household_province_code || "",
+        household_city_code: refreshed.household_city_code || "",
+        household_district_code: refreshed.household_district_code || "",
+        income: refreshed.income ? String(refreshed.income) : "",
+        hometown: refreshed.hometown || "",
+        residence: refreshed.residence || "",
+        education: refreshed.education || "",
+        job: refreshed.job || "",
+        self_intro: refreshed.self_intro || "",
+        ideal_partner: refreshed.ideal_partner || "",
+      }));
       notify("资料已保存");
-    } catch {
-      notify("资料保存失败");
+    } catch (error) {
+      notify(error instanceof Error ? error.message.slice(0, 120) : "资料保存失败");
     } finally {
       setSavingProfile(false);
     }
@@ -225,8 +399,8 @@ export default function MemberDetailWorkspace({
         body: { [key]: profile[key] || null },
       });
       notify("资料已保存");
-    } catch {
-      notify("资料保存失败");
+    } catch (error) {
+      notify(error instanceof Error ? error.message.slice(0, 120) : "资料保存失败");
     } finally {
       setSavingProfile(false);
     }
@@ -474,68 +648,84 @@ export default function MemberDetailWorkspace({
                   ["购房", "house"],
                   ["购车", "car"],
                   ["吸烟", "smoking"],
-                ].map(([label, key], i) => (
-                  <label
-                    key={label}
-                    className="flex items-center gap-4 text-sm"
-                  >
-                    <span className="w-16 shrink-0 text-right text-[#888]">
-                      {i < 4 ? <b className="mr-1 text-red-500">*</b> : null}
-                      {label}
-                    </span>
-                    {key === "gender" || key === "is_married" ? (
-                      <select
-                        value={profile[key] ?? ""}
-                        onChange={(event) =>
-                          setProfile((current) => ({
-                            ...current,
-                            [key]: event.target.value,
-                          }))
-                        }
-                        className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] bg-white px-4 text-[#444] outline-none focus:border-[#3658f7]"
-                      >
-                        <option value="">未填写</option>
-                        {key === "gender" ? (
-                          <>
-                            <option value="1">男</option>
-                            <option value="2">女</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="1">未婚</option>
-                            <option value="2">离异</option>
-                            <option value="3">丧偶</option>
-                          </>
-                        )}
-                      </select>
-                    ) : (
-                      <input
-                        type={
-                          key === "birthday"
-                            ? "date"
-                            : key === "height" || key === "income" || key === "weight"
-                              ? "number"
-                              : "text"
-                        }
-                        value={
-                          key === "id"
-                            ? `G${String(member.id).padStart(6, "0")}`
-                            : ["zodiac", "weight", "household", "ethnicity", "house", "car", "smoking"].includes(key)
-                              ? "暂无数据"
-                              : (profile[key] ?? "")
-                        }
-                        readOnly={key === "id" || ["zodiac", "weight", "household", "ethnicity", "house", "car", "smoking"].includes(key)}
-                        onChange={(event) =>
-                          setProfile((current) => ({
-                            ...current,
-                            [key]: event.target.value,
-                          }))
-                        }
-                        className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] px-4 text-[#444] outline-none focus:border-[#3658f7]"
-                      />
-                    )}
-                  </label>
-                ))}
+                ].map(([label, key], i) => {
+                  const value = key === "id" ? `G${String(member.id).padStart(6, "0")}` : profile[key] ?? "";
+                  const update = (nextValue: string) => setProfile((current) => ({ ...current, [key]: nextValue }));
+                  const regionKey = ["hometown", "residence", "household"].includes(key) ? key : null;
+                  const regionValue = regionKey ? {
+                    province: profile[`${regionKey}_province_code`] ?? "",
+                    city: profile[`${regionKey}_city_code`] ?? "",
+                    district: profile[`${regionKey}_district_code`] ?? "",
+                    display: value,
+                  } : null;
+                  const selectOptions = key === "zodiac"
+                    ? zodiacOptions
+                    : key === "education"
+                          ? educationOptions
+                          : key === "job"
+                            ? occupationOptions
+                            : key === "ethnicity"
+                              ? ethnicityOptions
+                              : key === "house"
+                                ? choiceOptions.house
+                                : key === "car"
+                                  ? choiceOptions.car
+                                  : key === "smoking"
+                                    ? choiceOptions.smoking
+                                    : [];
+                  return (
+                    <label key={label} className="flex items-center gap-4 text-sm">
+                      <span className="w-16 shrink-0 text-right text-[#888]">
+                        {i < 4 ? <b className="mr-1 text-red-500">*</b> : null}
+                        {label}
+                      </span>
+                      {key === "gender" ? (
+                        <span className="flex h-11 items-center gap-5">
+                          {[['1', '男'], ['2', '女']].map(([optionValue, optionLabel]) => (
+                            <span key={optionValue} className="inline-flex items-center gap-2">
+                              <input type="radio" name={`gender-${member.id}`} checked={value === optionValue} onChange={() => update(optionValue)} />
+                              {optionLabel}
+                            </span>
+                          ))}
+                        </span>
+                      ) : key === "id" ? (
+                        <input value={value} readOnly className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] bg-[#fafafa] px-4 text-[#777] outline-none" />
+                      ) : key === "birthday" ? (
+                        <input type="date" value={value} onChange={(event) => update(event.target.value)} className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] px-4 text-[#444] outline-none focus:border-[#3658f7]" />
+                      ) : regionKey && regionValue ? (
+                        <RegionPicker value={regionValue} onChange={(next) => setProfile((current) => ({
+                          ...current,
+                          [key]: next.display,
+                          [`${regionKey}_province_code`]: next.province,
+                          [`${regionKey}_city_code`]: next.city,
+                          [`${regionKey}_district_code`]: next.district,
+                        }))} />
+                      ) : key === "is_married" ? (
+                        <select value={value} onChange={(event) => update(event.target.value)} className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] bg-white px-4 text-[#444] outline-none focus:border-[#3658f7]">
+                          <option value="">未填写</option>
+                          <option value="1">未婚</option>
+                          <option value="2">离异</option>
+                          <option value="3">丧偶</option>
+                        </select>
+                      ) : key === "income" ? (
+                        <select value={value} onChange={(event) => update(event.target.value)} className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] bg-white px-4 text-[#444] outline-none focus:border-[#3658f7]">
+                          <option value="">请选择收入</option>
+                          {incomeOptions.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+                        </select>
+                      ) : selectOptions.length > 0 ? (
+                        <select value={value} onChange={(event) => update(event.target.value)} className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] bg-white px-4 text-[#444] outline-none focus:border-[#3658f7]">
+                          <option value="">{key === "job" ? "请选择职业" : "请选择"}</option>
+                          {selectOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      ) : (
+                        <div className="flex min-w-0 flex-1 items-center">
+                          <input type={key === "height" || key === "weight" || key === "income" ? "number" : "text"} value={value} onChange={(event) => update(event.target.value)} className="h-11 min-w-0 flex-1 rounded border border-[#d9d9d9] px-4 text-[#444] outline-none focus:border-[#3658f7]" />
+                          {(key === "height" || key === "weight") ? <span className="-ml-14 w-14 text-center text-[#777]">{key === "height" ? "cm" : "kg"}</span> : null}
+                        </div>
+                      )}
+                    </label>
+                  );
+                })}
               </div>
             </>
           ) : selected.key === "intro" || selected.key === "requirement" ? (
