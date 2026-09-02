@@ -5,16 +5,17 @@ import ListPage, { type ColumnDef, type ActionButton, type SearchField } from "@
 
 const columns: ColumnDef[] = [
   { title: "ID", key: "id", width: 60 },
-  { title: "申请牵线人", key: "initiator", width: 200 },
-  { title: "牵线对象", key: "target", width: 200 },
-  { title: "牵线红娘", key: "matchmaker", width: 100 },
-  { title: "支付状态", key: "payStatus", width: 90 },
+  { title: "申请牵线人", key: "user_id", width: 200 },
+  { title: "牵线对象", key: "requirement", width: 200 },
+  { title: "牵线红娘", key: "matchmaker_id", width: 100 },
+  { title: "支付状态", key: "order_id", width: 90, render: () => <span className="text-[#52a26b]">已支付</span> },
   {
     title: "牵线状态",
     key: "matchStatus",
     width: 90,
     render: (row: Record<string, unknown>) => {
-      const status = String(row.matchStatus ?? "");
+    const status = String(row.status ?? "");
+    const statusLabel: Record<string,string> = { "0":"待牵线", "1":"牵线中", "2":"牵线成功", "3":"牵线失败" };
       const colorMap: Record<string, string> = {
         "成功": "#52c41a",
         "失败": "#ff4d4f",
@@ -45,13 +46,13 @@ const columns: ColumnDef[] = [
             border: `1px solid ${borderMap[status] || "#d9d9d9"}`,
           }}
         >
-          {status || "-"}
+          {statusLabel[status] || status || "-"}
         </span>
       );
     },
   },
-  { title: "申请时间", key: "applyTime", width: 160 },
-  { title: "完成时间", key: "completeTime", width: 160 },
+  { title: "申请时间", key: "created_at", width: 160 },
+  { title: "完成时间", key: "end_at", width: 160 },
   { title: "操作", key: "action", width: 120 },
 ];
 
@@ -80,6 +81,7 @@ export default function Page() {
       columns={columns}
       dataSource={data}
       rowKey="id"
+      endpoint="/api/backend/admin/matchmaker/service-requests"
       pagination={{ current: 1, pageSize: 20, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}

@@ -5,17 +5,17 @@ import ListPage, { type ColumnDef, type ActionButton, type SearchField } from "@
 
 const columns: ColumnDef[] = [
   { title: "ID", key: "id", width: 60 },
-  { title: "提交人", key: "submitter", width: 180 },
-  { title: "想约见", key: "targetPerson", width: 180 },
-  { title: "提交时间", key: "submitTime", width: 160 },
-  { title: "红娘", key: "matchmaker", width: 100 },
+  { title: "提交人", key: "user_id", width: 180 },
+  { title: "想约见", key: "target_user_id", width: 180 },
+  { title: "提交时间", key: "created_at", width: 160 },
+  { title: "红娘", key: "matchmaker_id", width: 100 },
   {
     title: "状态标记",
     key: "status",
     width: 90,
     render: (row: Record<string, unknown>) => {
       const status = String(row.status ?? "");
-      const isPending = status === "待处理";
+      const isPending = status === "PENDING" || status === "0" || status === "待处理";
       return (
         <span
           style={{
@@ -28,7 +28,7 @@ const columns: ColumnDef[] = [
             border: `1px solid ${isPending ? "#ffd591" : "#b7eb8f"}`,
           }}
         >
-          {status}
+          {status === "PENDING" || status === "0" ? "待处理" : status || "已处理"}
         </span>
       );
     },
@@ -59,6 +59,7 @@ export default function Page() {
       dataSource={data}
       rowKey="id"
       pagination={{ current: 1, pageSize: 10, total: 0 }}
+      endpoint="/api/backend/admin/matchmaker/meetings/requests"
       onSearch={() => {}}
       onReset={() => {}}
     />

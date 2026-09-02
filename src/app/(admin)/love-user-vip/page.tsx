@@ -1,38 +1,24 @@
 "use client";
+import { useEffect, useState } from "react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef, type ActionButton, type SearchField } from "@/components/ListPage";
+import { adminEndpoints } from "@/lib/admin-endpoints";
 
-const columns: ColumnDef[] = [
-  { title: "会员", key: "nickname" }, { title: "套餐", key: "package_type" }, { title: "支付金额", key: "amount" },
-  { title: "订单号", key: "order_no" }, { title: "开通时间", key: "start_at" }, { title: "有效期至", key: "end_at" }, { title: "状态", key: "status" },
-];
-
-const searchFields: SearchField[] = [
-  { label: "会员", type: "input", placeholder: "请输入会员昵称/姓名/编号", width: 220 },
-  { label: "VIP级别", type: "select", options: [{ label: "全部", value: "" }, { label: "新人专享", value: "new" }, { label: "臻爱专享", value: "premium" }], width: 130 },
-  { label: "开通方式", type: "select", options: [{ label: "全部", value: "" }, { label: "后台开通", value: "admin" }, { label: "自助开通", value: "self" }], width: 120 },
-  { label: "VIP状态", type: "select", options: [{ label: "全部", value: "" }, { label: "未过期", value: "active" }, { label: "已过期", value: "expired" }], width: 120 },
-  { label: "开通时间", type: "dateRange" },
-];
-
-const actions: ActionButton[] = [
-  { label: "导出EXCEL", variant: "primary" },
-];
+type Row = { membership_id:number; user_id:number; nickname?:string|null; package_type?:string|null; amount?:number|null; start_at?:string|null; end_at?:string|null; open_method?:string|null; open_nature?:string|null; line_total?:number; line_remaining?:number };
+const date = (v?: string|null) => v ? v.replace("T", " ").slice(0, 19) : "-";
+const level = (v?: string|null) => v === "premium" ? "臻爱专享" : "新人专享";
+const nature = (v?: string|null) => ({first:"首次开通",renew:"续费开通",upgrade:"升级开通",again:"再次开通"} as Record<string,string>)[v || ""] || "首次开通";
 
 export default function LoveUserVipPage() {
-  return (
-    <ListPage
-      breadcrumb={getBreadcrumb("会员CRM", "线上VIP")}
-      pageTitle="线上VIP"
-      searchFields={searchFields}
-      actions={actions}
-      columns={columns}
-      dataSource={[]}
-      rowKey="membership_id"
-      endpoint="/api/backend/admin/members/vip"
-      pagination={{ current: 1, pageSize: 20, total: 0 }}
-      onSearch={() => undefined}
-      onReset={() => undefined}
-    />
-  );
+  const [rows,setRows]=useState<Row[]>([]),[total,setTotal]=useState(0),[page,setPage]=useState(1),[loading,setLoading]=useState(true),[selected,setSelected]=useState<number[]>([]);
+  const [filters,setFilters]=useState({search:"",level:"",status:"",nature:""}),[applied,setApplied]=useState(filters);
+  const load=async(p:number,f=applied)=>{setLoading(true);try{const d=await adminEndpoints.vipMembers({page:p,page_size:20,search:f.search||undefined,vip_level:f.level||undefined,vip_status:f.status||undefined,open_nature:f.nature||undefined});setRows((d as {items:Row[]}).items||[]);setTotal(Number((d as {total:number}).total||0));setSelected([]);}catch{setRows([]);setTotal(0);}finally{setLoading(false);}};
+  useEffect(()=>{void load(1);},[applied]);
+  const pages=Math.max(1,Math.ceil(total/20)),all=rows.length>0&&rows.every(r=>selected.includes(r.membership_id));
+  const search=()=>{setApplied(filters);setPage(1)};
+  const exportRows=()=>{const csv=["会员,VIP级别,开通方式,开通性质,开通时间,有效期,状态,支付金额",...rows.map(r=>[r.nickname||"",level(r.package_type),r.open_method==="self"?"自助开通":"后台开通",nature(r.open_nature),date(r.start_at),date(r.end_at),r.end_at&&new Date(r.end_at)<=new Date()?"已过期":"未过期",r.amount??0].join(","))].join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="线上VIP.csv";a.click();URL.revokeObjectURL(a.href)};
+  return <div><AdminBreadcrumb items={getBreadcrumb("会员CRM","线上VIP")}/><h1 className="mb-3 text-xl font-medium text-[#333]">线上VIP</h1>
+    <section className="mb-4 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-3 text-sm text-[#46516b]"><strong className="mr-2 text-[#26324a]">须知</strong>每条VIP信息可多次发起合同，在“财务管理-电子合同-合同管理”中可见您发起的合同内容和状态。</section>
+    <div className="admin-card mb-4"><div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 text-sm"><label>级别：<select value={filters.level} onChange={e=>setFilters(v=>({...v,level:e.target.value}))} className="ml-2 h-8 w-28 rounded border bg-white px-2"><option value="">不限</option><option value="new">新人专享</option><option value="premium">臻爱专享</option></select></label><fieldset className="flex items-center gap-3"><legend>VIP状态</legend>{[["","全部"],["active","未过期"],["expired","已过期"]].map(([v,l])=><label key={v}><input type="radio" name="status" checked={filters.status===v} onChange={()=>setFilters(f=>({...f,status:v}))}/> {l}</label>)}</fieldset><fieldset className="flex items-center gap-3"><legend>开通性质</legend>{[["","全部"],["first","首次开通"],["renew","续费开通"],["upgrade","升级开通"],["again","再次开通"]].map(([v,l])=><label key={v}><input type="radio" name="nature" checked={filters.nature===v} onChange={()=>setFilters(f=>({...f,nature:v}))}/> {l}</label>)}</fieldset><label className="ml-auto">按昵称搜 <input value={filters.search} onChange={e=>setFilters(v=>({...v,search:e.target.value}))} placeholder="请输入" className="ml-2 h-8 w-44 rounded border px-3"/></label><button onClick={search} className="h-8 rounded bg-[#3658f7] px-4 text-white">搜 索</button><button onClick={()=>{const f={search:"",level:"",status:"",nature:""};setFilters(f);setApplied(f);setPage(1)}} className="h-8 rounded border px-4">重置</button><button className="h-8 rounded bg-[#3658f7] px-4 text-white">导出EXCEL</button></div></div>
+    <div className="admin-card overflow-x-auto"><table className="w-full min-w-[1180px] table-fixed"><thead><tr><th className="w-10 border-b bg-[#fafafa] p-3"><input type="checkbox" checked={all} onChange={()=>setSelected(all?[]:rows.map(r=>r.membership_id))}/></th>{["会员","VIP级别","开通方式","开通性质","开通时间","有效期","VIP状态","支付金额","增加牵线次数","牵线剩余次数","操作"].map(h=><th key={h} className="border-b bg-[#fafafa] p-3 text-left text-sm font-medium">{h}</th>)}</tr></thead><tbody>{loading?<tr><td colSpan={12} className="p-10 text-center text-[#999]">加载中...</td></tr>:rows.length===0?<tr><td colSpan={12} className="p-10 text-center text-[#999]">暂无数据</td></tr>:rows.map(r=><tr key={r.membership_id}><td className="border-b p-3"><input type="checkbox" checked={selected.includes(r.membership_id)} onChange={()=>setSelected(v=>v.includes(r.membership_id)?v.filter(x=>x!==r.membership_id):[...v,r.membership_id])}/></td><td className="border-b p-3 text-sm"><div>{r.nickname||"未命名会员"}</div><small className="text-[#999]">编号：{r.user_id}</small></td><td className="border-b p-3 text-sm">{level(r.package_type)}</td><td className="border-b p-3 text-sm">{r.open_method==="self"?"自助开通":"后台开通"}</td><td className="border-b p-3 text-sm">{nature(r.open_nature)}</td><td className="border-b p-3 text-sm">{date(r.start_at)}</td><td className="border-b p-3 text-sm">{date(r.end_at)}</td><td className="border-b p-3 text-sm">{r.end_at&&new Date(r.end_at)<=new Date()?"已过期":"未过期"}</td><td className="border-b p-3 text-sm">{r.amount??0}</td><td className="border-b p-3 text-sm">{r.line_total??0}</td><td className="border-b p-3 text-sm">{r.line_remaining??0}</td><td className="border-b p-3 text-sm"><button className="mr-3 text-[#3658f7]" onClick={()=>window.location.href=`/love-user-list?member=${r.user_id}`}>查看资料</button><button className="text-[#3658f7]">发起合同</button></td></tr>)}</tbody></table>{selected.length>0&&<div className="flex h-11 items-center gap-3 border-t px-4 text-xs">已选 {selected.length} 条<button className="border px-3 py-1">批量操作</button><button className="ml-auto text-[#3658f7]" onClick={()=>setSelected([])}>取消选择</button></div>}<div className="flex items-center justify-end gap-1 px-5 py-4 text-sm"><button disabled={page<=1} onClick={()=>{setPage(page-1);void load(page-1)}} className="grid size-7 place-items-center border"><span className="size-1.5 rotate-45 border-b border-l"/></button>{Array.from({length:Math.min(7,pages)},(_,i)=>i+1).map(n=><button key={n} onClick={()=>{setPage(n);void load(n)}} className={`grid size-7 place-items-center border ${page===n?"border-[#3658f7] text-[#3658f7]":""}`}>{n}</button>)}<button disabled={page>=pages} onClick={()=>{setPage(page+1);void load(page+1)}} className="grid size-7 place-items-center border"><span className="size-1.5 -rotate-45 border-r border-t"/></button><span className="relative ml-3"><select className="h-7 appearance-none border bg-white py-0 pl-2 pr-7 text-xs"><option>20 条/页</option></select><i className="pointer-events-none absolute right-2 top-2 size-1.5 rotate-45 border-b border-r"/></span><span className="ml-2 text-[#999]">共 {total} 条</span></div></div></div>;
 }

@@ -51,7 +51,7 @@ export default function LoveAppointmentPage() {
       columns={columns}
       dataSource={[]}
       rowKey="id"
-      endpoint="/api/backend/admin/matchmaker/meetings?page=1&page_size=20"
+      endpoint="/api/backend/admin/matchmaker/meetings"
       pagination={{ current: 1, pageSize: 20, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
