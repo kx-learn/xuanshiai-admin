@@ -83,6 +83,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace("/login");
       return;
     }
+    if (getAdminToken() === "local-demo-token") {
+      setAccountName("管理员");
+      setAuthReady(true);
+      return;
+    }
     adminEndpoints.me()
       .then((result) => {
         setAccountName(String(result.account?.display_name ?? result.account?.username ?? "管理员"));

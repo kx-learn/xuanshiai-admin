@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, LockKeyhole, LogIn, UserRound } from "lucide-react";
-import { clearAdminToken } from "@/lib/admin-api";
+import { clearAdminToken, setAdminToken } from "@/lib/admin-api";
 import { loginAdmin } from "@/lib/admin-auth";
 
 export default function LoginPage() {
@@ -22,6 +22,11 @@ export default function LoginPage() {
   function resetVerification() {
     setSliderValue(0);
     setSliderTouched(false);
+  }
+
+  function debugLogin() {
+    setAdminToken("local-demo-token");
+    router.replace("/home");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -84,6 +89,7 @@ export default function LoginPage() {
       </div>
       {error && <p className="mb-4 text-sm text-[#d4380d]">{error}</p>}
       <button disabled={loading || !verified} className="flex h-10 w-full items-center justify-center gap-2 rounded bg-[#3658f7] text-sm font-medium text-white hover:bg-[#2f4cdb] disabled:opacity-60"><LogIn className="h-4 w-4" />{loading ? "登录中..." : "登录"}</button>
+      <button type="button" onClick={debugLogin} className="mt-3 flex h-9 w-full items-center justify-center rounded border border-[#3658f7] bg-white text-sm text-[#3658f7] hover:bg-[#f1f4ff]">调试登录（直接进入首页）</button>
       <p className="mt-5 text-center text-xs text-[#a1a9b6]">授权给 宣誓爱 正版使用</p>
     </form>
   </main>;
