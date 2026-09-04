@@ -1,7 +1,7 @@
 import { adminApi } from "@/lib/admin-api";
 
 export type PageQuery = { page?: number; page_size?: number; status?: number | string; keyword?: string };
-export type ReviewPayload = { status?: number; reason?: string; action?: string; hide_content?: boolean; restore_content?: boolean };
+export type ReviewPayload = { status?: number; reason?: string; result?: string; action?: string; hide_content?: boolean; restore_content?: boolean };
 export type AdminListQuery = PageQuery & Record<string, string | number | undefined>;
 export type JsonBody = Record<string, unknown>;
 export type DashboardQuery = { from?: string; to?: string };
@@ -47,6 +47,7 @@ export const adminEndpoints = {
   logout: () => adminApi<void>("admin/matchmaker/auth/logout", { method: "POST" }),
   bootstrap: () => adminApi<Record<string, unknown>>("admin/bootstrap"),
   dashboard: (query: DashboardQuery = {}) => adminApi<Record<string, unknown>>("admin/dashboard", { method: "GET", query }),
+  memberStatistics: (query: DashboardQuery = {}) => adminApi<Record<string, unknown>>("admin/member-statistics", { method: "GET", query }),
   dashboardStats: () => adminApi<Record<string, unknown>>("admin/dashboard/stats"),
   adminAccounts: (query: AdminListQuery = {}) => adminApi<{ items: AdminAccountItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/matchmaker/accounts", { method: "GET", query }),
   adminAccount: (id: number | string) => adminApi<AdminAccountItem>(`admin/matchmaker/accounts/${id}`),
@@ -127,6 +128,12 @@ export const adminEndpoints = {
   reviewMedia: (mediaId: number | string, body: ReviewPayload) => adminApi(`admin/media/${mediaId}/review`, { method: "PATCH", body }),
   reviewCertification: (userId: number | string, kind: "education" | "house" | "marriage", body: { status: 2 | 3; reason?: string }) =>
     adminApi(`admin/users/${userId}/certifications/${kind}/review`, { method: "PATCH", body }),
+  crmRealnameReviews: (query: AdminListQuery = {}) => list("admin/matchmaker/members/realname-reviews", query),
+  reviewCrmRealname: (userId: number | string, body: { status: 2 | 3 | 4; reason?: string }) =>
+    update(`admin/matchmaker/members/${userId}/realname/review`, body),
+  crmCertificationReviews: (query: AdminListQuery = {}) => list("admin/matchmaker/members/certification-reviews", query),
+  reviewCrmCertification: (userId: number | string, kind: "education" | "house" | "marriage", body: { status: 2 | 3; reason?: string }) =>
+    update(`admin/matchmaker/members/${userId}/certifications/${kind}/review`, body),
   reviewMatchmakerApplication: (applicationId: number | string, body: Record<string, unknown>) =>
     adminApi(`admin/matchmaker/applications/${applicationId}`, { method: "PATCH", body }),
   grantAdmin: (body: { user_id: number; permissions: string[] }) => adminApi("admin/users/grant", { method: "POST", body }),

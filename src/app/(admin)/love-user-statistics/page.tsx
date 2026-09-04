@@ -1,32 +1,64 @@
 "use client";
-import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef } from "@/components/ListPage";
 
-const columns: ColumnDef[] = [
-  { title: "日期", key: "date" },
-  { title: "新增注册", key: "newRegistrations" },
-  { title: "新增VIP", key: "newVip" },
-  { title: "活跃用户", key: "activeUsers" },
-  { title: "牵线次数", key: "matchCount" },
-  { title: "成功脱单", key: "successCount" },
+import { useEffect, useMemo, useState } from "react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+
+type Item = Record<string, unknown>;
+type TabKey = "growth" | "follow" | "intention" | "basic" | "requirement" | "browse" | "popularity";
+
+const tabs: { key: TabKey; label: string }[] = [
+  { key: "growth", label: "会员增长统计" }, { key: "follow", label: "会员跟进统计" },
+  { key: "intention", label: "会员意向统计" }, { key: "basic", label: "会员基本状况统计" },
+  { key: "requirement", label: "会员择偶要求统计" }, { key: "browse", label: "浏览统计" }, { key: "popularity", label: "人气统计" },
 ];
-
-const data: Record<string, unknown>[] = [];
+const numberFormat = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 });
+const asRecord = (value: unknown): Item => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Item : {};
+const valueOf = (value: unknown) => Number.isFinite(Number(value)) ? numberFormat.format(Number(value)) : "0";
+function defaultRange() { const now = new Date(); const to = now.toISOString().slice(0, 10); now.setDate(now.getDate() - 14); return { from: now.toISOString().slice(0, 10), to }; }
+function Donut({ items }: { items: { label: string; value: number }[] }) {
+  const total = items.reduce((sum, item) => sum + item.value, 0); const colors = ["#3658f7", "#6d83f8", "#52b7a5", "#f2b84b", "#e77c8b", "#9b8de8", "#8c97a6", "#45a7d8"]; let cursor = 0;
+  const segments = items.map((item, index) => { const start = cursor; cursor += total ? item.value / total * 360 : 0; return `${colors[index % colors.length]} ${start}deg ${cursor}deg`; });
+  return <div className="flex flex-wrap items-center gap-8 px-6 py-8"><div className="relative size-48 shrink-0 rounded-full" style={{ background: total ? `conic-gradient(${segments.join(",")})` : "#edf0f5" }}><div className="absolute inset-9 flex flex-col items-center justify-center rounded-full bg-white"><strong className="text-2xl font-medium text-[#333]">{valueOf(total)}</strong><span className="text-xs text-[#999]">合计</span></div></div><div className="grid min-w-[180px] flex-1 grid-cols-1 gap-3 sm:grid-cols-2">{items.map((item, index) => <div className="flex items-center justify-between gap-4 text-sm" key={item.label}><span className="flex items-center gap-2 text-[#666]"><i className="size-2.5 rounded-full" style={{ background: colors[index % colors.length] }} />{item.label}</span><strong className="font-medium text-[#333]">{valueOf(item.value)}</strong></div>)}</div></div>;
+}
 
 export default function LoveUserStatisticsPage() {
-  return (
-    <ListPage
-      breadcrumb={getBreadcrumb("会员CRM", "数据报表")}
-      pageTitle="会员数据报表"
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: data.length }}
-      searchFields={[
-        { label: "日期范围", type: "dateRange" },
-      ]}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
-  );
+  const initialRange = useMemo(defaultRange, []);
+  const [tab, setTab] = useState<TabKey>("growth"); const [period, setPeriod] = useState("日报");
+  const [from, setFrom] = useState(initialRange.from); const [to, setTo] = useState(initialRange.to);
+  const [appliedRange, setAppliedRange] = useState(initialRange); const [report, setReport] = useState<Item>({});
+  const [loading, setLoading] = useState(true); const [selected, setSelected] = useState<string[]>([]); const [groups, setGroups] = useState<Record<string, { label: string; value: number }[]>>({});
+  const [page, setPage] = useState(1); const [pageSize, setPageSize] = useState(20);
+
+  useEffect(() => { let active = true; setLoading(true); Promise.all([adminEndpoints.dashboard(appliedRange), adminEndpoints.memberStatistics(appliedRange)]).then(([payload, statistics]) => { if (active) { setReport(payload); const raw = asRecord(statistics.groups); setGroups(Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, Array.isArray(value) ? value.map((item) => { const row = asRecord(item); return { label: String(row.label ?? "未填写"), value: Number(row.value ?? 0) }; }) : []]))); } }).catch(() => { if (active) { setReport({}); setGroups({}); } }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [appliedRange]);
+
+  const metrics = asRecord(report.metrics); const trends = Array.isArray(report.trends) ? report.trends.map(asRecord).reverse() : [];
+  const memberGender = asRecord(report.member_gender); const rows = tab === "growth" ? trends : [];
+  const changeTab = (key: TabKey) => { setTab(key); setPage(1); setSelected([]); };
+  const toggleAll = () => setSelected((items) => allSelected ? items.filter((key) => !currentKeys.includes(key)) : [...new Set([...items, ...currentKeys])]);
+  const toggleRow = (key: string) => setSelected((items) => items.includes(key) ? items.filter((item) => item !== key) : [...items, key]);
+  const peakDay = trends.reduce<Item>((best, current) => Number(current.member_count ?? 0) > Number(best.member_count ?? 0) ? current : best, {});
+  const monthlyGroups = trends.reduce<Record<string, number>>((result, row) => { const month = String(row.date ?? "").slice(0, 7); if (month) result[month] = (result[month] ?? 0) + Number(row.member_count ?? 0); return result; }, {});
+  const peakMonth = Object.entries(monthlyGroups).reduce<[string, number]>((best, item) => item[1] > best[1] ? item : best, ["--", 0]);
+  const statRows: Record<Exclude<TabKey, "growth">, { label: string; value: unknown }[]> = {
+    follow: [{ label: "客源线索", value: metrics.customer_lead_count }, { label: "服务红娘", value: metrics.service_matchmaker_count }, { label: "成功脱单", value: metrics.successful_match_count }],
+    intention: [{ label: "会员总数", value: metrics.member_count }, { label: "线上 VIP", value: metrics.online_vip_count }, { label: "线下 VIP", value: metrics.offline_vip_count }],
+    basic: [{ label: "男会员", value: memberGender.male ?? metrics.male_member_count }, { label: "女会员", value: memberGender.female ?? metrics.female_member_count }, { label: "会员总数", value: metrics.member_count }],
+    requirement: [], browse: [], popularity: [],
+  };
+  const activeStats = tab === "growth" ? [] : (groups[tab] ?? []).map((item) => ({ label: item.label, value: item.value }));
+  const totalPages = Math.max(1, Math.ceil((tab === "growth" ? rows.length : activeStats.length) / pageSize)); const safePage = Math.min(page, totalPages);
+  const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize); const currentKeys = tab === "growth" ? pagedRows.map((row, index) => String(row.date ?? index)) : activeStats.slice((safePage - 1) * pageSize, safePage * pageSize).map((row) => row.label);
+  const allSelected = currentKeys.length > 0 && currentKeys.every((key) => selected.includes(key));
+
+  return <div className="mx-auto max-w-[1600px]">
+    <AdminBreadcrumb items={[{ label: "会员CRM" }, { label: "数据报表" }]} /><h1 className="mb-3 text-xl font-medium text-[#333]">会员数据报表</h1>
+    <div className="mb-4 flex overflow-x-auto border-b border-[#ededed]">{tabs.map((item) => <button type="button" key={item.key} onClick={() => changeTab(item.key)} className={`shrink-0 border-b-2 px-4 py-3 text-sm ${tab === item.key ? "border-[#3658f7] text-[#3658f7]" : "border-transparent text-[#666]"}`}>{item.label}</button>)}</div>
+    <section className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3"><div className="border border-[#eee] bg-white px-5 py-4"><p className="mb-2 text-sm text-[#777]">总人数</p><strong className="text-2xl font-medium text-[#333]">{valueOf(metrics.member_count)}</strong></div><div className="border border-[#eee] bg-white px-5 py-4"><p className="mb-2 text-sm text-[#777]">单日新增最高</p><strong className="text-2xl font-medium text-[#333]">{valueOf(peakDay.member_count)}</strong><span className="ml-2 text-xs text-[#999]">{String(peakDay.date ?? "--")}</span></div><div className="border border-[#eee] bg-white px-5 py-4"><p className="mb-2 text-sm text-[#777]">单月新增最高</p><strong className="text-2xl font-medium text-[#333]">{valueOf(peakMonth[1])}</strong><span className="ml-2 text-xs text-[#999]">{peakMonth[0]}</span></div></section>
+    <section className="mb-4 border border-[#eee] bg-white px-4 py-3"><div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-2 text-sm text-[#666]"><span className="whitespace-nowrap">统计时间</span><input aria-label="开始日期" type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="h-8 border border-[#d9d9d9] px-2 text-sm" /><span>至</span><input aria-label="结束日期" type="date" value={to} onChange={(event) => setTo(event.target.value)} className="h-8 border border-[#d9d9d9] px-2 text-sm" /></div><button type="button" onClick={() => { setSelected([]); setPage(1); setAppliedRange({ from, to }); }} className="h-8 bg-[#3658f7] px-4 text-sm text-white">查询</button>{tab === "growth" && <div className="ml-auto flex overflow-hidden border border-[#d9d9d9] text-sm">{["日报", "月报", "年报"].map((item) => <button type="button" key={item} onClick={() => setPeriod(item)} className={`h-8 min-w-12 border-r border-[#d9d9d9] px-3 last:border-r-0 ${period === item ? "bg-[#3658f7] text-white" : "bg-white text-[#666]"}`}>{item}</button>)}</div>}</div></section>
+    <section className="overflow-hidden border border-[#eee] bg-white">{loading ? <div className="p-10 text-center text-sm text-[#999]">加载中...</div> : tab === "growth" ? <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-sm"><thead><tr className="bg-[#fafafa] text-[#555]"><th className="w-11 border-b border-[#eee] p-3"><input aria-label="全选本页" type="checkbox" checked={allSelected} onChange={toggleAll} /></th><th className="border-b border-[#eee] p-3 text-left font-medium">日期</th><th className="border-b border-[#eee] p-3 text-right font-medium">新增会员</th><th className="border-b border-[#eee] p-3 text-right font-medium">新增 VIP 会员</th><th className="border-b border-[#eee] p-3 text-right font-medium">新增红娘牵线</th><th className="border-b border-[#eee] p-3 text-right font-medium">退款订单</th><th className="border-b border-[#eee] p-3 text-right font-medium">净收入(元)</th></tr></thead><tbody>{pagedRows.length ? pagedRows.map((row, index) => { const key = String(row.date ?? index); return <tr key={key} className="hover:bg-[#fafafa]"><td className="border-b border-[#eee] p-3 text-center"><input aria-label={`选择 ${key}`} type="checkbox" checked={selected.includes(key)} onChange={() => toggleRow(key)} /></td><td className="border-b border-[#eee] p-3 text-[#555]">{key}</td><td className="border-b border-[#eee] p-3 text-right">{valueOf(row.member_count)}</td><td className="border-b border-[#eee] p-3 text-right">{valueOf(row.paid_count)}</td><td className="border-b border-[#eee] p-3 text-right">{valueOf(row.lead_count)}</td><td className="border-b border-[#eee] p-3 text-right">{valueOf(row.completed_refund_count)}</td><td className="border-b border-[#eee] p-3 text-right">{valueOf(row.net_amount)}</td></tr>; }) : <tr><td colSpan={7} className="p-10 text-center text-[#999]">暂无数据</td></tr>}</tbody></table></div> : <div><div className="border-b border-[#eee] px-4 py-3 text-sm font-medium text-[#555]">{tabs.find((item) => item.key === tab)?.label}</div>{activeStats.length ? <><Donut items={activeStats.map((item) => ({ label: item.label, value: Number(item.value) }))} /><table className="w-full text-sm"><thead><tr className="bg-[#fafafa]"><th className="w-11 border-b border-[#eee] p-3"><input aria-label="全选统计" type="checkbox" checked={allSelected} onChange={toggleAll} /></th><th className="border-b border-[#eee] p-3 text-left font-medium">统计项</th><th className="border-b border-[#eee] p-3 text-right font-medium">数量</th></tr></thead><tbody>{activeStats.map((row) => <tr key={row.label}><td className="border-b border-[#eee] p-3 text-center"><input aria-label={`选择 ${row.label}`} type="checkbox" checked={selected.includes(row.label)} onChange={() => toggleRow(row.label)} /></td><td className="border-b border-[#eee] p-3">{row.label}</td><td className="border-b border-[#eee] p-3 text-right">{valueOf(row.value)}</td></tr>)}</tbody></table></> : <div className="p-10 text-center text-sm text-[#999]">暂无数据</div>}</div>}
+      {selected.length > 0 && <div className="flex h-11 items-center gap-3 border-t border-[#eee] px-4 text-xs text-[#666]"><span>已选 {selected.length} 条</span><button type="button" className="border border-[#d9d9d9] px-3 py-1">批量导出</button><button type="button" onClick={() => setSelected([])} className="ml-auto text-[#3658f7]">取消选择</button></div>}
+      <div className="flex items-center justify-between px-4 py-4 text-sm text-[#999]"><span>共 {tab === "growth" ? rows.length : activeStats.length} 条</span><div className="flex items-center gap-1"><button type="button" aria-label="上一页" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-7 place-items-center border border-[#d9d9d9] disabled:text-[#d9d9d9]"><span className="size-1.5 rotate-45 border-b border-l border-current" /></button>{Array.from({ length: totalPages }, (_, index) => index + 1).slice(0, 5).map((item) => <button type="button" key={item} onClick={() => setPage(item)} className={`size-7 border text-xs ${safePage === item ? "border-[#3658f7] text-[#3658f7]" : "border-[#d9d9d9] text-[#666]"}`}>{item}</button>)}{totalPages > 5 && <span className="px-1">...</span>}<button type="button" aria-label="下一页" disabled={safePage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="grid size-7 place-items-center border border-[#d9d9d9] disabled:text-[#d9d9d9]"><span className="size-1.5 -rotate-45 border-r border-t border-current" /></button><label className="relative ml-2"><select aria-label="每页条数" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="h-7 appearance-none border border-[#d9d9d9] bg-white py-0 pl-2 pr-7 text-xs text-[#666]"><option value={20}>20 条/页</option><option value={50}>50 条/页</option><option value={100}>100 条/页</option></select><span className="pointer-events-none absolute right-2 top-2 size-1.5 rotate-45 border-b border-r border-[#666]" /></label></div></div>
+    </section>
+  </div>;
 }

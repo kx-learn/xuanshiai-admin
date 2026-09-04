@@ -5,7 +5,7 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Button } from "@/components/ui/button";
 
 export interface TabConfig { key: string; label: string }
-export interface SearchField { label: string; type: "input" | "select" | "dateRange"; placeholder?: string; options?: { label: string; value: string }[]; width?: number }
+export interface SearchField { label: string; key?: string; type: "input" | "select" | "dateRange"; placeholder?: string; options?: { label: string; value: string }[]; width?: number }
 export interface ActionButton { label: string; icon?: string; variant?: "primary" | "default" | "link" | "danger"; onClick?: () => void }
 export interface ColumnDef { title: string; key: string; width?: number | string; render?: (row: Record<string, unknown>) => React.ReactNode; align?: "left" | "center" | "right" }
 export interface PaginationInfo { current: number; pageSize: number; total: number }
@@ -95,7 +95,7 @@ export default function ListPage({
         {field.type === "select" && <select value={searchValues[String(index)] || ""} onChange={(event) => setSearchValues((current) => ({ ...current, [String(index)]: event.target.value }))} className="h-8 rounded-md border border-[#d9d9d9] bg-white px-3 text-sm" style={{ width: field.width || 140 }}><option value="">全部</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>}
         {field.type === "dateRange" && <><input type="date" className="h-8 rounded-md border border-[#d9d9d9] px-2" /><span>-</span><input type="date" className="h-8 rounded-md border border-[#d9d9d9] px-2" /></>}
       </div>)}
-      {onSearch && <Button size="sm" variant="primary" onClick={() => { const values: Record<string, string> = {}; searchFields.forEach((field, index) => { const key = field.label.includes("昵称") || field.label === "会员" ? "search" : field.label.includes("认证") ? "auth_status" : "search"; values[key] = searchValues[String(index)] || ""; }); setAppliedSearch(values); setRemotePage(1); onSearch(); }}>搜索</Button>}{onReset && <Button size="sm" variant="default" onClick={() => { setSearchValues({}); setAppliedSearch({}); setRemotePage(1); onReset(); }}>重置</Button>}<div className="flex-1" />
+      {onSearch && <Button size="sm" variant="primary" onClick={() => { const values: Record<string, string> = {}; searchFields.forEach((field, index) => { const key = field.key || (field.label.includes("昵称") || field.label === "会员" ? "search" : field.label.includes("认证") ? "auth_status" : "search"); values[key] = searchValues[String(index)] || ""; }); setAppliedSearch(values); setRemotePage(1); onSearch(); }}>搜索</Button>}{onReset && <Button size="sm" variant="default" onClick={() => { setSearchValues({}); setAppliedSearch({}); setRemotePage(1); onReset(); }}>重置</Button>}<div className="flex-1" />
       {actions.map((action, index) => <Button key={index} size="sm" variant={action.variant || "default"} onClick={action.onClick}>{action.icon && <span className="mr-1">{action.icon}</span>}{action.label}</Button>)}
     </div></div>}
     <div className="admin-card overflow-x-auto">
