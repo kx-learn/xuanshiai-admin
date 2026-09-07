@@ -1,9 +1,11 @@
 "use client";
+import { useState } from "react";
 
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import ListPage, { type ColumnDef } from "@/components/ListPage";
+import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 
-const columns: ColumnDef[] = [
+const baseColumns: ColumnDef[] = [
   { title: "编号", key: "id", width: 80 },
   { title: "申请单 ID", key: "request_id", width: 100 },
   { title: "组织/门店", key: "organization_id", width: 110 },
@@ -32,9 +34,20 @@ const columns: ColumnDef[] = [
   { title: "创建时间", key: "created_at", width: 180 },
 ];
 
+const memberIdFromRow = (row: Record<string, unknown>) => Number(row.member_id ?? row.user_id ?? row.applicant_user_id ?? row.requester_id ?? 0);
+
 export default function LoveAppointmentPage() {
+  const [detailMember, setDetailMember] = useState<{ id: number; nickname?: string | null; memberCode?: string | null } | null>(null);
+  const columns: ColumnDef[] = [...baseColumns, {
+    title: "操作", key: "action", width: 180,
+    render: (row) => {
+      const id = memberIdFromRow(row);
+      return <button type="button" className="whitespace-nowrap text-[#3658f7] disabled:text-[#bbb]" disabled={!id} onClick={() => setDetailMember({ id, nickname: typeof row.nickname === "string" ? row.nickname : typeof row.user_name === "string" ? row.user_name : null, memberCode: String(row.member_code ?? row.member_no ?? row.user_id ?? id) })}>查看会员资料</button>;
+    },
+  }];
   return (
-    <ListPage
+    <>
+      <ListPage
       breadcrumb={getBreadcrumb("会员服务", "预约管理")}
       pageTitle="约见管理"
       searchFields={[
@@ -55,6 +68,8 @@ export default function LoveAppointmentPage() {
       pagination={{ current: 1, pageSize: 20, total: 0 }}
       onSearch={() => {}}
       onReset={() => {}}
-    />
+      />
+      {detailMember && <MemberQuickProfileDrawer memberId={detailMember.id} nickname={detailMember.nickname} memberCode={detailMember.memberCode} onClose={() => setDetailMember(null)} />}
+    </>
   );
 }
