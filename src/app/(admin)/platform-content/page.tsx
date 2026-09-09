@@ -1,15 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import {
+  useConfigDomain,
+  showConfigToast,
+  asStr,
+  asBool,
+  type Dict,
+} from "@/lib/platform-config";
 
 /* ------------------------------------------------------------------ */
 /* 富文本编辑器（复用 cf-editor 样式）                                */
 /* ------------------------------------------------------------------ */
 const TOOLS = ["H", "B", "T₁", "T₂", "I", "U", "S", "字体", "引用", "✓", "链接", "🖼", "表格", "代码", "😊"];
 
-function RichEditor() {
+function RichEditor({ seed, onEdit }: { seed?: string; onEdit?: (html: string) => void }) {
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const dirtyRef = useRef(false);
+  const appliedSeedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (dirtyRef.current) return;
+    if (appliedSeedRef.current === (seed ?? "")) return;
+    appliedSeedRef.current = seed ?? "";
+    if (editorRef.current && seed) editorRef.current.innerHTML = seed;
+  }, [seed]);
   return (
     <div className="cc-editor">
       <div className="cc-editor-toolbar">
@@ -17,7 +33,16 @@ function RichEditor() {
           <button type="button" key={t} className="cf-tool">{t}</button>
         ))}
       </div>
-      <div className="cc-editor-text" contentEditable suppressContentEditableWarning />
+      <div
+        ref={editorRef}
+        className="cc-editor-text"
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => {
+          dirtyRef.current = true;
+          onEdit?.(editorRef.current?.innerHTML ?? "");
+        }}
+      />
     </div>
   );
 }
@@ -108,6 +133,16 @@ const warnItems = [
 ];
 
 function CopyTab() {
+  const copyDomain = useConfigDomain<Dict>("platform_content", {
+    home_popup_enabled: true,
+    join_service_html: "",
+    join_promoter_html: "",
+    promoter_center_html: "",
+    promoter_slogan: "帮别人脱单的时候，你的生活也会变得更甜~",
+    offline_appointment_intro: "",
+    offline_vip_tip: "",
+  });
+
   const [homePopup, setHomePopup] = useState(true);
   const [appointment, setAppointment] = useState(
     "线下约见是我们的线下高端1对1服务 红娘根据您的择偶需求撮合安排与您心仪的嘉宾线下见面，完成初次约会。在这里您可以查看到您所有的约会记录，并可以针对每次的约会进行反馈，以及对红娘的服务打分。"
@@ -115,8 +150,55 @@ function CopyTab() {
   const [vipTip, setVipTip] = useState(
     "该会员已在线下门店进行了资料认证和证件留档，红娘对该会员情况已非常了解，赶快联系红娘安排与ta直接见面相互了解吧！"
   );
-  const [promotion, setPromotion] = useState("在平台公众号和红娘朋友圈推广展示");
   const [slogan, setSlogan] = useState("帮别人脱单的时候，你的生活也会变得更甜~");
+  const [joinServiceHtml, setJoinServiceHtml] = useState("");
+  const [joinPromoterHtml, setJoinPromoterHtml] = useState("");
+  const [promoterCenterHtml, setPromoterCenterHtml] = useState("");
+
+  useEffect(() => {
+    if (!copyDomain.ready) return;
+    const c = copyDomain.snapshot?.config ?? {};
+    setHomePopup(asBool(c.home_popup_enabled, true));
+    setAppointment(asStr(c.offline_appointment_intro, appointment));
+    setVipTip(asStr(c.offline_vip_tip, vipTip));
+    setSlogan(asStr(c.promoter_slogan, "帮别人脱单的时候，你的生活也会变得更甜~"));
+    setJoinServiceHtml(asStr(c.join_service_html, ""));
+    setJoinPromoterHtml(asStr(c.join_promoter_html, ""));
+    setPromoterCenterHtml(asStr(c.promoter_center_html, ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copyDomain.ready]);
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    void copyDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveCopy = async (summary = "保存文案配置") => {
+    const ok = await copyDomain.save(
+      {
+        home_popup_enabled: homePopup,
+        join_service_html: joinServiceHtml,
+        join_promoter_html: joinPromoterHtml,
+        promoter_center_html: promoterCenterHtml,
+        promoter_slogan: slogan,
+        offline_appointment_intro: appointment,
+        offline_vip_tip: vipTip,
+      },
+      summary,
+    );
+    if (!ok && copyDomain.error) showConfigToast(copyDomain.error, "error");
+    return ok;
+  };
+
+  useEffect(() => {
+    if (!copyDomain.ready) return;
+    const timer = setTimeout(() => void saveCopy("自动保存文案配置"), 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copyDomain.ready, homePopup, appointment, vipTip, slogan, joinServiceHtml, joinPromoterHtml, promoterCenterHtml]);
 
   return (
     <div className="cc-form">
@@ -144,7 +226,7 @@ function CopyTab() {
       </Row>
 
       <Row label="加入服务红娘">
-        <RichEditor />
+        <RichEditor seed={joinServiceHtml} onEdit={setJoinServiceHtml} />
         <Banner title="红娘顾问招聘启事" from="#e8d5ff" to="#cbd6ff" height={170} />
         <div className="cc-plain pt12">
           🌟 公司简介
@@ -153,7 +235,7 @@ function CopyTab() {
       </Row>
 
       <Row label="加入推广红娘">
-        <RichEditor />
+        <RichEditor seed={joinPromoterHtml} onEdit={setJoinPromoterHtml} />
         <Banner title="全民做红娘 成就好姻缘" from="#f7d6e6" to="#d6c6ff" height={160} />
         <div className="cc-plain mt12">
           成为本平台的推广红娘您不仅能获得红娘拉新奖励，还能获得名下客户日后在平台上所有消费的分成，同时还能够实现有经验的业务进行融合，合作共赢！欢迎社会各界商家、个人加入合作。
@@ -165,7 +247,7 @@ function CopyTab() {
       </Row>
 
       <Row label="推广红娘中心介绍">
-        <RichEditor />
+        <RichEditor seed={promoterCenterHtml} onEdit={setPromoterCenterHtml} />
         <div className="cc-plain mt12">
           在平台中登录状态下分享/转发 会员详情页面/会员海报/活动详情页/活动海报会包含你的专属参数，引流进来的注册会员均计入到你的推广名下，该会员资料审核通过后你即可获得提成。
         </div>
@@ -188,7 +270,16 @@ function CopyTab() {
       </Row>
 
       <div className="cc-submit">
-        <button type="button" className="nv-ok-btn">确定提交</button>
+        <button
+          type="button"
+          className="nv-ok-btn"
+          onClick={async () => {
+            const ok = await saveCopy("保存文案配置");
+            if (ok) showConfigToast("文案配置已保存");
+          }}
+        >
+          确定提交
+        </button>
       </div>
     </div>
   );
@@ -198,11 +289,64 @@ function CopyTab() {
 /* 自定义页面 Tab                                                      */
 /* ------------------------------------------------------------------ */
 function CustomTab() {
+  const customDomain = useConfigDomain<Dict>("platform_custom_pages", {
+    about_html: "",
+    custom_name: "私人定制",
+    custom_desc_html: "",
+    cheat_title: "防骗提醒",
+    cheat_html: "",
+  });
   const [customName, setCustomName] = useState("私人定制");
+  const [aboutHtml, setAboutHtml] = useState("");
+  const [customDescHtml, setCustomDescHtml] = useState("");
+  const [cheatTitle, setCheatTitle] = useState("防骗提醒");
+  const [cheatHtml, setCheatHtml] = useState("");
+
+  useEffect(() => {
+    if (!customDomain.ready) return;
+    const c = customDomain.snapshot?.config ?? {};
+    setCustomName(asStr(c.custom_name, "私人定制"));
+    setAboutHtml(asStr(c.about_html, ""));
+    setCustomDescHtml(asStr(c.custom_desc_html, ""));
+    setCheatTitle(asStr(c.cheat_title, "防骗提醒"));
+    setCheatHtml(asStr(c.cheat_html, ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customDomain.ready]);
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    void customDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveCustom = async (summary = "保存自定义页面") => {
+    const ok = await customDomain.save(
+      {
+        about_html: aboutHtml,
+        custom_name: customName,
+        custom_desc_html: customDescHtml,
+        cheat_title: cheatTitle,
+        cheat_html: cheatHtml,
+      },
+      summary,
+    );
+    if (!ok && customDomain.error) showConfigToast(customDomain.error, "error");
+    return ok;
+  };
+
+  useEffect(() => {
+    if (!customDomain.ready) return;
+    const timer = setTimeout(() => void saveCustom("自动保存自定义页面"), 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customDomain.ready, customName, aboutHtml, customDescHtml, cheatTitle, cheatHtml]);
+
   return (
     <div className="cc-form">
       <Row label="关于我们">
-        <RichEditor />
+        <RichEditor seed={aboutHtml} onEdit={setAboutHtml} />
         <Banner title="指纹图案" from="#e8d5ff" to="#cbd6ff" height={200} />
       </Row>
 
@@ -211,7 +355,7 @@ function CustomTab() {
       </Row>
 
       <Row label="私人定制描述">
-        <RichEditor />
+        <RichEditor seed={customDescHtml} onEdit={setCustomDescHtml} />
         <Banner title="无需注册曝光" from="#f7d6e6" to="#d6c6ff" height={150} />
         <div className="cc-item-list">
           {privateItems.map((it, i) => (
@@ -227,8 +371,8 @@ function CustomTab() {
       </Row>
 
       <Row label="相亲防骗提醒">
-        <input className="cf-input" defaultValue="防骗提醒" />
-        <RichEditor />
+        <input className="cf-input" value={cheatTitle} onChange={(e) => setCheatTitle(e.target.value)} />
+        <RichEditor seed={cheatHtml} onEdit={setCheatHtml} />
         <Banner title="恋爱" from="#e8f0ff" to="#d6c6ff" height={180} />
       </Row>
 
@@ -244,7 +388,16 @@ function CustomTab() {
       </Row>
 
       <div className="cc-submit">
-        <button type="button" className="nv-ok-btn">确定提交</button>
+        <button
+          type="button"
+          className="nv-ok-btn"
+          onClick={async () => {
+            const ok = await saveCustom("保存自定义页面");
+            if (ok) showConfigToast("自定义页面已保存");
+          }}
+        >
+          确定提交
+        </button>
       </div>
     </div>
   );
@@ -261,9 +414,56 @@ const memberRows = [
   { name: "完全私密", desc: "在平台中不展示您的任何资料.也不会被会员搜索到.完全保护您的个人隐私" },
 ];
 
+const MEMBER_CODES = ["public", "delegate", "pause", "single", "secret"];
+
 function MemberTab() {
+  const memberDomain = useConfigDomain<Dict>("platform_member_states", { items: [] });
   const [texts, setTexts] = useState<string[]>(memberRows.map((r) => r.name));
   const [descs, setDescs] = useState<string[]>(memberRows.map((r) => r.desc));
+
+  useEffect(() => {
+    if (!memberDomain.ready) return;
+    const raw = memberDomain.snapshot?.config?.items;
+    if (Array.isArray(raw) && raw.length > 0) {
+      const list = raw as unknown as { code?: string; text: string; desc: string }[];
+      const byCode = new Map(list.map((item, idx) => [item.code ?? MEMBER_CODES[idx] ?? String(idx), item]));
+      setTexts(memberRows.map((r, i) => byCode.get(MEMBER_CODES[i])?.text ?? texts[i]));
+      setDescs(memberRows.map((r, i) => byCode.get(MEMBER_CODES[i])?.desc ?? descs[i]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberDomain.ready]);
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    void memberDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveMember = async (summary = "保存会员中心状态文案") => {
+    const ok = await memberDomain.save(
+      {
+        items: memberRows.map((r, i) => ({
+          code: MEMBER_CODES[i],
+          state: r.name,
+          text: texts[i],
+          desc: descs[i],
+        })),
+      },
+      summary,
+    );
+    if (!ok && memberDomain.error) showConfigToast(memberDomain.error, "error");
+    return ok;
+  };
+
+  useEffect(() => {
+    if (!memberDomain.ready) return;
+    const timer = setTimeout(() => void saveMember("自动保存会员中心状态文案"), 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberDomain.ready, texts, descs]);
+
   return (
     <div className="cc-form">
       <div className="nv-notice">
@@ -304,14 +504,20 @@ function MemberTab() {
       </div>
 
       <div className="cc-submit">
-        <button type="button" className="nv-ok-btn">确定提交</button>
+        <button
+          type="button"
+          className="nv-ok-btn"
+          onClick={async () => {
+            const ok = await saveMember("保存会员中心状态文案");
+            if (ok) showConfigToast("会员中心状态文案已保存");
+          }}
+        >
+          确定提交
+        </button>
       </div>
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* 主页面                                                            */
 /* ------------------------------------------------------------------ */
 const TABS = ["文案配置", "自定义页面", "会员中心"];
 

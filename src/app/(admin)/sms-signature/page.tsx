@@ -1,7 +1,27 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useConfigDomain, asStr, type Dict } from "@/lib/platform-config";
 
 export default function Page() {
+  const domain = useConfigDomain<Dict>("sys_sms", {});
+  const [signature, setSignature] = useState("南京信达宜管家");
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    void domain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!domain.ready || !domain.snapshot) return;
+    const c = domain.snapshot.config as Dict;
+    setSignature(asStr(c.signature, "南京信达宜管家"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain.ready]);
+
   return (
     <div className="obc-page">
       <AdminBreadcrumb
@@ -51,7 +71,7 @@ export default function Page() {
             <div className="sy-row">
               <label className="sy-label">您的短信签名</label>
               <div className="sy-ctrl">
-                <input className="sy-input obc-input" value="南京信达宜管家" readOnly />
+                <input className="sy-input obc-input" value={signature} readOnly />
               </div>
             </div>
 

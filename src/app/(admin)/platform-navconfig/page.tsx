@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import {
+  useConfigDomain,
+  showConfigToast,
+  type Dict,
+} from "@/lib/platform-config";
 
 /* ------------------------------------------------------------------ */
 /* 数据类型                                                            */
@@ -188,6 +193,8 @@ const ICON_ROWS: IconRow[] = [
 /* 小组件                                                              */
 /* ------------------------------------------------------------------ */
 
+const NAV_DEFAULTS: Dict = { sections: SECTIONS, icon_rows: ICON_ROWS };
+
 function StyleEntry({ style }: { style: StyleSet }) {
   return (
     <div className="nv-style">
@@ -205,12 +212,13 @@ function StyleEntry({ style }: { style: StyleSet }) {
   );
 }
 
-function ItemRow({ item, index, total, onChange, onMove }: {
+function ItemRow({ item, index, total, onChange, onMove, onOk }: {
   item: NavItem;
   index: number;
   total: number;
   onChange: (patch: Partial<NavItem>) => void;
   onMove: (dir: -1 | 1) => void;
+  onOk?: () => void;
 }) {
   return (
     <div className="nv-item">
@@ -220,7 +228,7 @@ function ItemRow({ item, index, total, onChange, onMove }: {
         <span className="nv-icon-swatch">🎨</span>
         更改图标
       </button>
-      <button type="button" className="nv-ok-btn">确定</button>
+      <button type="button" className="nv-ok-btn" onClick={onOk}>确定</button>
       <button
         type="button"
         className={`nv-switch ${item.show ? "on" : ""}`}
@@ -246,8 +254,47 @@ function ItemRow({ item, index, total, onChange, onMove }: {
 /* ------------------------------------------------------------------ */
 
 export default function PlatformNavconfigPage() {
+  const navDomain = useConfigDomain<Dict>("platform_navigation", NAV_DEFAULTS);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [sections, setSections] = useState<Section[]>(SECTIONS);
+
+  // 初次加载：服务端回填（保留默认“风格”配置，避免纯展示样式丢失）
+  useEffect(() => {
+    if (!navDomain.ready) return;
+    const raw = navDomain.snapshot?.config?.sections;
+    if (Array.isArray(raw) && raw.length > 0) {
+      const defaultsByKey = Object.fromEntries(SECTIONS.map((s) => [s.key, s.styles]));
+      setSections(
+        (raw as unknown as Section[]).map((sec) => ({
+          styles: sec.styles ?? defaultsByKey[sec.key],
+          ...sec,
+        })),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navDomain.ready]);
+
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    void navDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveNav = async (summary = "保存导航配置") => {
+    const ok = await navDomain.save({ sections }, summary);
+    if (!ok && navDomain.error) showConfigToast(navDomain.error, "error");
+    return ok;
+  };
+
+  // 改动即自动保存
+  useEffect(() => {
+    if (!navDomain.ready) return;
+    const timer = setTimeout(() => void saveNav("自动保存导航配置"), 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navDomain.ready, sections]);
 
   const toggleCollapse = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
@@ -315,6 +362,11 @@ export default function PlatformNavconfigPage() {
                           total={sec.items.length}
                           onChange={(patch) => updateItem(sec.key, i, patch)}
                           onMove={(dir) => moveItem(sec.key, i, dir)}
+                          onOk={() => {
+                            void saveNav("保存导航配置").then((ok) => {
+                              if (ok) showConfigToast("导航配置已保存");
+                            });
+                          }}
                         />
                       ))}
                     </div>

@@ -1,11 +1,52 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useConfigDomain, showConfigToast, asStr, type Dict } from "@/lib/platform-config";
 
 const providers = ["建讯通讯", "厚朴通讯", "云客"];
 
 export default function Page() {
   const [provider, setProvider] = useState(providers[0]);
+  const [account, setAccount] = useState("");
+  const [center, setCenter] = useState("");
+  const [record, setRecord] = useState("https://node-api-gz-hunlian01.puntel.com");
+  const domain = useConfigDomain<Dict>("sys_outbound", {});
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    void domain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!domain.ready || !domain.snapshot) return;
+    const c = domain.snapshot.config as Dict;
+    setProvider(asStr(c.provider, providers[0]));
+    setAccount(asStr(c.account_name, ""));
+    setCenter(asStr(c.call_center_url, ""));
+    setRecord(asStr(c.record_download_url, "https://node-api-gz-hunlian01.puntel.com"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain.ready]);
+
+  const flush = async (summary = "自动保存外呼平台") => {
+    const ok = await domain.save(
+      { provider, account_name: account, call_center_url: center, record_download_url: record },
+      summary,
+    );
+    if (!ok && domain.error) showConfigToast(domain.error, "error");
+    return ok;
+  };
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  useEffect(() => {
+    if (!domain.ready || !loaded.current) return;
+    const timer = setTimeout(() => void flushRef.current(), 700);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, account, center, record]);
 
   return (
     <div className="obc-page">
@@ -71,16 +112,16 @@ export default function Page() {
             </div>
 
             <div className="sy-row">
-              <label className="sy-label">建讯外呼账户名称</label>
+              <label className="sy-label">{provider}外呼账户名称</label>
               <div className="sy-ctrl">
-                <input className="sy-input obc-input" placeholder="请输入建讯外呼账户名称" />
+                <input className="sy-input obc-input" value={account} onChange={(e) => setAccount(e.target.value)} placeholder={`请输入${provider}外呼账户名称`} />
               </div>
             </div>
 
             <div className="sy-row">
-              <label className="sy-label">建讯外呼呼叫中心地址</label>
+              <label className="sy-label">{provider}外呼呼叫中心地址</label>
               <div className="sy-ctrl">
-                <input className="sy-input obc-input" placeholder="请输入建讯外呼呼叫中心地址" />
+                <input className="sy-input obc-input" value={center} onChange={(e) => setCenter(e.target.value)} placeholder={`请输入${provider}外呼呼叫中心地址`} />
               </div>
             </div>
 
@@ -89,14 +130,24 @@ export default function Page() {
               <div className="sy-ctrl">
                 <input
                   className="sy-input obc-input obc-input-readonly"
-                  value="https://node-api-gz-hunlian01.puntel.com"
+                  value={record}
+                  onChange={(e) => setRecord(e.target.value)}
                   readOnly
                 />
               </div>
             </div>
 
             <div className="obc-actions">
-              <button type="button" className="obc-save">保存</button>
+              <button
+                type="button"
+                className="obc-save"
+                onClick={async () => {
+                  const ok = await flushRef.current("保存外呼平台配置");
+                  if (ok) showConfigToast("已保存");
+                }}
+              >
+                保存
+              </button>
             </div>
           </div>
         </div>

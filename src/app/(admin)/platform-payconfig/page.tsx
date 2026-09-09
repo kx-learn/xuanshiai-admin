@@ -1,7 +1,63 @@
 "use client";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  useConfigDomain,
+  showConfigToast,
+  asStr,
+  asObject,
+  type Dict,
+} from "@/lib/platform-config";
+
+const PACKAGE_DEFAULTS = [
+  { name: "牵线套餐1", count: "1", fee: "199", on: true },
+  { name: "牵线套餐2", count: "3", fee: "199", on: false },
+  { name: "牵线套餐3", count: "5", fee: "299", on: false },
+  { name: "牵线套餐4", count: "10", fee: "399", on: false },
+  { name: "牵线套餐5", count: "10", fee: "1100", on: false },
+  { name: "牵线套餐6", count: "12", fee: "1200", on: false },
+  { name: "牵线套餐7", count: "14", fee: "1350", on: false },
+  { name: "牵线套餐8", count: "16", fee: "1500", on: false },
+  { name: "牵线套餐9", count: "18", fee: "1600", on: false },
+  { name: "牵线套餐10", count: "20", fee: "1700", on: false },
+];
+
+const VIP_DEFAULTS = [
+  { name: "新人专享", days: "90", fee: "299", times: "3" },
+  { name: "心动专享", days: "150", fee: "520", times: "5" },
+  { name: "挚爱专享", days: "365", fee: "999", times: "20" },
+];
+
+const TOP_DEFAULTS = [
+  { days: "7", fee: "15" },
+  { days: "30", fee: "50" },
+  { days: "90", fee: "99" },
+  { days: "180", fee: "150" },
+  { days: "270", fee: "199" },
+  { days: "365", fee: "269" },
+];
+
+const PARTNER_DEFAULT_FEES = ["999", "1999", "3999"];
+
+const PAY_DEFAULTS: Dict = {
+  audit_fee: { male: "0", female: "0", forced: "no" },
+  realname_fee: "0",
+  marriage_query_fee: "0",
+  match_days: "365",
+  single_match: { fee: "199", allow_single: "allow", free_on_realname: "0" },
+  match_packages: PACKAGE_DEFAULTS,
+  vip: { page: "open", types: VIP_DEFAULTS },
+  top_packages: TOP_DEFAULTS,
+  promoter_fee: "99",
+  partner_fees: PARTNER_DEFAULT_FEES,
+  blow_fee: "9.9",
+  promote_show_fee: "39",
+};
+
+function rowsAs<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) && value.length > 0 ? (value as T[]) : fallback;
+}
 
 /* 蓝色带点提示 */
 function Tip({ children }: { children: React.ReactNode }) {
@@ -90,6 +146,8 @@ function Row({
 }
 
 export default function PlatformPayconfigPage() {
+  const payDomain = useConfigDomain<Dict>("platform_pay", PAY_DEFAULTS);
+
   const [men, setMen] = useState("0");
   const [women, setWomen] = useState("0");
   const [force, setForce] = useState<"no" | "yes">("no");
@@ -100,39 +158,80 @@ export default function PlatformPayconfigPage() {
   const [allowSingle, setAllowSingle] = useState<"allow" | "not">("allow");
   const [freeMatch, setFreeMatch] = useState("0");
 
-  const [packages, setPackages] = useState([
-    { name: "牵线套餐1", count: "1", fee: "199", on: true },
-    { name: "牵线套餐2", count: "3", fee: "199", on: false },
-    { name: "牵线套餐3", count: "5", fee: "299", on: false },
-    { name: "牵线套餐4", count: "10", fee: "399", on: false },
-    { name: "牵线套餐5", count: "10", fee: "1100", on: false },
-    { name: "牵线套餐6", count: "12", fee: "1200", on: false },
-    { name: "牵线套餐7", count: "14", fee: "1350", on: false },
-    { name: "牵线套餐8", count: "16", fee: "1500", on: false },
-    { name: "牵线套餐9", count: "18", fee: "1600", on: false },
-    { name: "牵线套餐10", count: "20", fee: "1700", on: false },
-  ]);
-
-  const [vipTypes, setVipTypes] = useState([
-    { name: "新人专享", days: "90", fee: "299", times: "3" },
-    { name: "心动专享", days: "150", fee: "520", times: "5" },
-    { name: "挚爱专享", days: "365", fee: "999", times: "20" },
-  ]);
+  const [packages, setPackages] = useState(PACKAGE_DEFAULTS);
+  const [vipTypes, setVipTypes] = useState(VIP_DEFAULTS);
   const [vipPage, setVipPage] = useState<"open" | "close">("open");
-
-  const [topPackages, setTopPackages] = useState([
-    { days: "7", fee: "15" },
-    { days: "30", fee: "50" },
-    { days: "90", fee: "99" },
-    { days: "180", fee: "150" },
-    { days: "270", fee: "199" },
-    { days: "365", fee: "269" },
-  ]);
+  const [topPackages, setTopPackages] = useState(TOP_DEFAULTS);
 
   const [promoteFee, setPromoteFee] = useState("99");
-  const [partnerFees, setPartnerFees] = useState(["999", "1999", "3999"]);
+  const [partnerFees, setPartnerFees] = useState(PARTNER_DEFAULT_FEES);
   const [blowFee, setBlowFee] = useState("9.9");
   const [showFee, setShowFee] = useState("39");
+
+  // 初次加载：把服务端配置回填到页面
+  useEffect(() => {
+    if (!payDomain.ready) return;
+    const c = payDomain.snapshot?.config ?? {};
+    const audit = asObject(c.audit_fee, PAY_DEFAULTS.audit_fee as Dict);
+    const single = asObject(c.single_match, PAY_DEFAULTS.single_match as Dict);
+    const vip = asObject(c.vip, PAY_DEFAULTS.vip as Dict);
+    setMen(asStr(audit.male, "0"));
+    setWomen(asStr(audit.female, "0"));
+    setForce((audit.forced as string) === "yes" ? "yes" : "no");
+    setRealName(asStr(c.realname_fee, "0"));
+    setMarry(asStr(c.marriage_query_fee, "0"));
+    setMatchDays(asStr(c.match_days, "365"));
+    setSingleFee(asStr(single.fee, "199"));
+    setAllowSingle((single.allow_single as string) === "not" ? "not" : "allow");
+    setFreeMatch(asStr(single.free_on_realname, "0"));
+    setPackages(rowsAs<typeof PACKAGE_DEFAULTS[number]>(c.match_packages, PACKAGE_DEFAULTS));
+    setVipPage((vip.page as string) === "close" ? "close" : "open");
+    setVipTypes(rowsAs<typeof VIP_DEFAULTS[number]>(vip.types, VIP_DEFAULTS));
+    setTopPackages(rowsAs<typeof TOP_DEFAULTS[number]>(c.top_packages, TOP_DEFAULTS));
+    setPromoteFee(asStr(c.promoter_fee, "99"));
+    setPartnerFees(Array.isArray(c.partner_fees) && c.partner_fees.length > 0 ? (c.partner_fees as unknown as string[]) : PARTNER_DEFAULT_FEES);
+    setBlowFee(asStr(c.blow_fee, "9.9"));
+    setShowFee(asStr(c.promote_show_fee, "39"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payDomain.ready]);
+
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    void payDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const savePay = async (summary = "保存收费配置") => {
+    const ok = await payDomain.save(
+      {
+        audit_fee: { male: men, female: women, forced: force },
+        realname_fee: realName,
+        marriage_query_fee: marry,
+        match_days: matchDays,
+        single_match: { fee: singleFee, allow_single: allowSingle, free_on_realname: freeMatch },
+        match_packages: packages,
+        vip: { page: vipPage, types: vipTypes },
+        top_packages: topPackages,
+        promoter_fee: promoteFee,
+        partner_fees: partnerFees,
+        blow_fee: blowFee,
+        promote_show_fee: showFee,
+      },
+      summary,
+    );
+    if (!ok && payDomain.error) showConfigToast(payDomain.error, "error");
+    return ok;
+  };
+
+  // 改动即自动保存
+  useEffect(() => {
+    if (!payDomain.ready) return;
+    const timer = setTimeout(() => void savePay("自动保存收费配置"), 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payDomain.ready, men, women, force, realName, marry, matchDays, singleFee, allowSingle, freeMatch, packages, vipTypes, vipPage, topPackages, promoteFee, partnerFees, blowFee, showFee]);
 
   const updatePackage = (i: number, field: keyof (typeof packages)[number], v: string | boolean) =>
     setPackages((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: v } : p)));
@@ -364,7 +463,16 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         <div className="pay-submit">
-          <button type="button" className="pay-submit-btn">确定提交</button>
+          <button
+            type="button"
+            className="pay-submit-btn"
+            onClick={async () => {
+              const ok = await savePay("保存收费配置");
+              if (ok) showConfigToast("收费配置已保存");
+            }}
+          >
+            确定提交
+          </button>
         </div>
       </div>
     </div>

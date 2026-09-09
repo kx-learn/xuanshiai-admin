@@ -1,7 +1,12 @@
 "use client";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  useConfigDomain,
+  showConfigToast,
+  type Dict,
+} from "@/lib/platform-config";
 
 type Tag = { id: number; label: string; emoji?: string };
 
@@ -302,9 +307,12 @@ const sections: Section[] = [
   },
 ];
 
+const BASE_DEFAULTS: Dict = { sections };
+
 const SECTION_GAP = 2;
 
 export default function PlatformBasePage() {
+  const baseDomain = useConfigDomain<Dict>("platform_base_data", BASE_DEFAULTS);
   const [data, setData] = useState<Section[]>(sections);
   const [drawer, setDrawer] = useState<{ open: boolean; sectionKey: string; editing: Tag | null }>({
     open: false,
@@ -313,6 +321,38 @@ export default function PlatformBasePage() {
   });
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
+
+  // 初次加载：服务端字典回填
+  useEffect(() => {
+    if (!baseDomain.ready) return;
+    const raw = baseDomain.snapshot?.config?.sections;
+    if (Array.isArray(raw) && raw.length > 0) {
+      setData(raw as unknown as Section[]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseDomain.ready]);
+
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    void baseDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveBase = async (summary = "保存基础数据") => {
+    const ok = await baseDomain.save({ sections: data }, summary);
+    if (!ok && baseDomain.error) showConfigToast(baseDomain.error, "error");
+    return ok;
+  };
+
+  // 改动即自动保存（含直接删除标签、图标/名称编辑入口）
+  useEffect(() => {
+    if (!baseDomain.ready) return;
+    const timer = setTimeout(() => void saveBase("自动保存基础数据"), 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseDomain.ready, data]);
 
   const openAdd = (key: string) => {
     setDrawer({ open: true, sectionKey: key, editing: null });
@@ -336,22 +376,26 @@ export default function PlatformBasePage() {
 
   const submit = () => {
     if (!name.trim()) return;
+    let next: Section[];
     if (drawer.editing) {
-      setData((prev) =>
-        prev.map((s) =>
-          s.key === drawer.sectionKey
-            ? { ...s, tags: s.tags.map((x) => (x.id === drawer.editing!.id ? { ...x, label: name.trim() } : x)) }
-            : s,
-        ),
+      next = data.map((s) =>
+        s.key === drawer.sectionKey
+          ? { ...s, tags: s.tags.map((x) => (x.id === drawer.editing!.id ? { ...x, label: name.trim() } : x)) }
+          : s,
       );
     } else {
-      setData((prev) =>
-        prev.map((s) =>
-          s.key === drawer.sectionKey ? { ...s, tags: [...s.tags, t(name.trim())] } : s,
-        ),
+      const maxId = data.reduce((m, s) => Math.max(m, ...s.tags.map((x) => x.id)), 0);
+      next = data.map((s) =>
+        s.key === drawer.sectionKey ? { ...s, tags: [...s.tags, { id: maxId + 1, label: name.trim() }] } : s,
       );
     }
+    setData(next);
     closeDrawer();
+    void baseDomain
+      .save({ sections: next }, drawer.editing ? "编辑基础数据分类" : "新增基础数据分类")
+      .then((ok) => {
+        if (ok) showConfigToast(drawer.editing ? "分类已更新" : "分类已添加");
+      });
   };
 
   return (

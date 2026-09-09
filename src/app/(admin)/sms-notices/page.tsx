@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useConfigDomain, showConfigToast, asObject, type Dict } from "@/lib/platform-config";
 
 type Row = {
   id: number;
@@ -89,6 +90,55 @@ const rows: Row[] = [
 
 export default function Page() {
   const [state, setState] = useState<Row[]>(rows);
+  const domain = useConfigDomain<Dict>("sys_sms", { signature: null, send_enabled: true, notices: [] });
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    void domain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 服务端回填：合并行（服务端只存 enabled 开关差异，其余沿用默认展示字段）
+  useEffect(() => {
+    if (!domain.ready || !domain.snapshot) return;
+    const c = asObject(domain.snapshot.config, {});
+    const serverNotices = Array.isArray(c.notices) ? (c.notices as Dict[]) : [];
+    if (serverNotices.length === 0) return;
+    const flagById = new Map<number, boolean>();
+    serverNotices.forEach((n) => {
+      const id = typeof n.id === "number" ? n.id : Number(n.id);
+      if (Number.isFinite(id) && typeof n.enabled === "boolean") flagById.set(id, n.enabled);
+    });
+    setState((prev) => prev.map((r) => (flagById.has(r.id) ? { ...r, enabled: flagById.get(r.id)! } : r)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain.ready]);
+
+  const flush = async (summary = "自动保存通知配置") => {
+    const c = asObject(domain.snapshot?.config, {});
+    const ok = await domain.save(
+      { signature: c.signature ?? null, send_enabled: c.send_enabled ?? true, notices: state },
+      summary,
+    );
+    if (!ok && domain.error) showConfigToast(domain.error, "error");
+    return ok;
+  };
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  // 改动即自动保存（仅开关行变更触发）
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (!domain.ready || !loaded.current) return;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const timer = setTimeout(() => void flushRef.current("自动保存通知配置"), 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   const toggle = (id: number) => {
     setState((prev) => prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));

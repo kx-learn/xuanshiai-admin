@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useConfigDomain, showConfigToast, asObject, type Dict } from "@/lib/platform-config";
 
 type AdRow = {
   id: string;
@@ -36,8 +37,56 @@ function Switch({ on }: { on: boolean }) {
   );
 }
 
+function rowsOf(value: unknown, fallback: AdRow[]): AdRow[] {
+  if (!Array.isArray(value) || value.length === 0) return fallback;
+  return value.map((item, i) => {
+    const r = (typeof item === "object" && item ? item : {}) as Dict;
+    const base = fallback[i] ?? fallback[0];
+    return {
+      id: typeof r.id === "string" || typeof r.id === "number" ? String(r.id) : base.id,
+      code: typeof r.code === "string" ? r.code : base.code,
+      title: typeof r.title === "string" ? r.title : base.title,
+      type: typeof r.type === "string" ? r.type : base.type,
+      platform: typeof r.platform === "string" ? r.platform : base.platform,
+      on: typeof r.on === "boolean" ? r.on : base.on,
+    };
+  });
+}
+
 export default function Page() {
+  const domain = useConfigDomain<Dict>("sys_ads", { rows: initialRows });
   const [rows, setRows] = useState<AdRow[]>(initialRows);
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    void domain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 服务端回填
+  useEffect(() => {
+    if (!domain.ready || !domain.snapshot) return;
+    setRows(rowsOf(asObject(domain.snapshot.config, {}).rows, initialRows));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain.ready]);
+
+  const flush = async (summary = "自动保存广告位") => {
+    const ok = await domain.save({ rows }, summary);
+    if (!ok && domain.error) showConfigToast(domain.error, "error");
+    return ok;
+  };
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  // 改动即自动保存
+  useEffect(() => {
+    if (!domain.ready || !loaded.current) return;
+    const timer = setTimeout(() => void flushRef.current(), 700);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
 
   const toggle = (id: string) => {
     setRows((current) => current.map((row) => (row.id === id ? { ...row, on: !row.on } : row)));

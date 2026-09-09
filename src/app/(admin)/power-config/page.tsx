@@ -1,7 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import {
+  useConfigDomain,
+  showConfigToast,
+  asObject,
+  type Dict,
+} from "@/lib/platform-config";
+
+const PERM_DEFAULTS: Dict = {
+  browse: { gender: "same", pageLimit: "2", otherPage: "allow", single: "hide" },
+  view: {
+    photo: "1",
+    video: "0",
+    voice: "vip",
+    hongniang: "vip",
+    mate: "vip",
+    profile: "all",
+    intro: "vip",
+    more: "vip",
+  },
+  state: { delegate: "diamond", secret: "diamond", pause: "no", single: "no" },
+  line: { realname: "no", agreement: "no", times: "0", beLinked: "no" },
+  other: {
+    idcard: "off",
+    hongniangShow: "on",
+    multiAccount: "no",
+    avatar: "on",
+    photo: "on",
+    martial: "no",
+    edu: "no",
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /* 通用小组件                                                          */
@@ -92,6 +123,8 @@ function MiniInput({ value, width = 56, onChange }: { value: string; width?: num
 /* ------------------------------------------------------------------ */
 
 export default function PowerConfigPage() {
+  const permDomain = useConfigDomain<Dict>("platform_permissions", PERM_DEFAULTS);
+
   /* 卡片1 平台浏览展示权限 */
   const [browse, setBrowse] = useState({
     gender: "same", // 默认显示：异性/同性/所有
@@ -142,6 +175,43 @@ export default function PowerConfigPage() {
   /* 卡片4「图文解说」点击态（仅弹提示，前端模拟） */
   const [guideOpen, setGuideOpen] = useState(false);
 
+  // 初次加载：服务端权限配置回填
+  useEffect(() => {
+    if (!permDomain.ready) return;
+    const c = permDomain.snapshot?.config ?? {};
+    setBrowse(asObject(c.browse, PERM_DEFAULTS.browse as Dict) as unknown as typeof browse);
+    setView(asObject(c.view, PERM_DEFAULTS.view as Dict) as unknown as typeof view);
+    setStateAuth(asObject(c.state, PERM_DEFAULTS.state as Dict) as unknown as typeof stateAuth);
+    setLine(asObject(c.line, PERM_DEFAULTS.line as Dict) as unknown as typeof line);
+    setOther(asObject(c.other, PERM_DEFAULTS.other as Dict) as unknown as typeof other);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permDomain.ready]);
+
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    void permDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const savePerm = async (summary = "保存权限配置") => {
+    const ok = await permDomain.save(
+      { browse, view, state: stateAuth, line, other },
+      summary,
+    );
+    if (!ok && permDomain.error) showConfigToast(permDomain.error, "error");
+    return ok;
+  };
+
+  // 改动即自动保存
+  useEffect(() => {
+    if (!permDomain.ready) return;
+    const timer = setTimeout(() => void savePerm("自动保存权限配置"), 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permDomain.ready, browse, view, stateAuth, line, other]);
+
   return (
     <div className="pm-page">
       <AdminBreadcrumb
@@ -191,7 +261,14 @@ export default function PowerConfigPage() {
         </Row>
 
         <div className="pm-submit">
-          <button type="button" className="nv-ok-btn pm-submit-btn">确定提交</button>
+          <button
+            type="button"
+            className="nv-ok-btn pm-submit-btn"
+            onClick={async () => {
+              const ok = await savePerm("保存权限配置");
+              if (ok) showConfigToast("权限配置已保存");
+            }}
+          >确定提交</button>
         </div>
       </Card>
 
@@ -236,7 +313,14 @@ export default function PowerConfigPage() {
         </Row>
 
         <div className="pm-submit">
-          <button type="button" className="nv-ok-btn pm-submit-btn">确定提交</button>
+          <button
+            type="button"
+            className="nv-ok-btn pm-submit-btn"
+            onClick={async () => {
+              const ok = await savePerm("保存权限配置");
+              if (ok) showConfigToast("权限配置已保存");
+            }}
+          >确定提交</button>
         </div>
       </Card>
 
@@ -272,7 +356,14 @@ export default function PowerConfigPage() {
         </Row>
 
         <div className="pm-submit">
-          <button type="button" className="nv-ok-btn pm-submit-btn">确定提交</button>
+          <button
+            type="button"
+            className="nv-ok-btn pm-submit-btn"
+            onClick={async () => {
+              const ok = await savePerm("保存权限配置");
+              if (ok) showConfigToast("权限配置已保存");
+            }}
+          >确定提交</button>
         </div>
       </Card>
 
@@ -321,7 +412,14 @@ export default function PowerConfigPage() {
         </Info>
 
         <div className="pm-submit">
-          <button type="button" className="nv-ok-btn pm-submit-btn">确定提交</button>
+          <button
+            type="button"
+            className="nv-ok-btn pm-submit-btn"
+            onClick={async () => {
+              const ok = await savePerm("保存权限配置");
+              if (ok) showConfigToast("权限配置已保存");
+            }}
+          >确定提交</button>
         </div>
       </Card>
 
@@ -367,7 +465,14 @@ export default function PowerConfigPage() {
         <Info indent>会员在学员“已认证”的情况下，无法自行修改学历</Info>
 
         <div className="pm-submit">
-          <button type="button" className="nv-ok-btn pm-submit-btn">确定提交</button>
+          <button
+            type="button"
+            className="nv-ok-btn pm-submit-btn"
+            onClick={async () => {
+              const ok = await savePerm("保存权限配置");
+              if (ok) showConfigToast("权限配置已保存");
+            }}
+          >确定提交</button>
         </div>
       </Card>
     </div>
