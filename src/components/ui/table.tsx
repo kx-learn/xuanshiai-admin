@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Inbox } from "lucide-react";
 import type { ReactNode } from "react";
 
 export interface Column {
@@ -80,8 +81,9 @@ export function DataTable({
             </tr>
           </thead>
         </table>
-        <div className="flex items-center justify-center py-16 text-sm text-[#999]">
-          No data
+        <div className="flex flex-col items-center justify-center py-16 text-sm text-[#999]">
+          <Inbox className="mb-2 h-10 w-10 text-[#d8dde6]" strokeWidth={1.2} />
+          暂无数据
         </div>
       </div>
     );

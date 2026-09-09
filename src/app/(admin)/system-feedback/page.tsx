@@ -9,8 +9,7 @@ const mockData: Record<string, unknown>[] = [];
 
 export default function SystemFeedbackPage() {
   const columns: Column[] = [
-    { key: "id", title: "编号", dataIndex: "id", width: 70 },
-    { key: "title", title: "工单标题", dataIndex: "title" },
+    { key: "id", title: "工单ID", dataIndex: "id", width: 140 },
     {
       key: "feedbackType",
       title: "反馈类型",
@@ -25,13 +24,12 @@ export default function SystemFeedbackPage() {
         return <span className={colorMap[type] || ""}>{type}</span>;
       },
     },
-    { key: "submitter", title: "提交人", dataIndex: "submitter" },
-    { key: "submitTime", title: "提交时间", dataIndex: "submitTime" },
+    { key: "submitTime", title: "反馈时间", dataIndex: "submitTime" },
     {
       key: "status",
       title: "状态",
       dataIndex: "status",
-      width: 80,
+      width: 100,
       render: (value: unknown) => {
         const status = String(value ?? "");
         const colorMap: Record<string, string> = {
@@ -42,6 +40,7 @@ export default function SystemFeedbackPage() {
         return <span className={colorMap[status] || ""}>{status}</span>;
       },
     },
+    { key: "replyTime", title: "答复时间", dataIndex: "replyTime" },
     {
       key: "action",
       title: "操作",
@@ -58,14 +57,14 @@ export default function SystemFeedbackPage() {
       <AdminBreadcrumb
         items={[
           { label: "首页", href: "/" },
-          { label: "系统管理" },
+          { label: "官方服务" },
           { label: "工单反馈" },
         ]}
       />
       <section className="service-notice"><h2>💡 须知</h2><p>如果您发现系统中的任何使用问题、BUG、以及产品需求建议都可以在这里提交给我们，我们会在第一时间对您的工单进行有效答复</p></section>
       <AdminPageHeader
         title="工单反馈"
-        extra={<Button variant="primary" size="sm">提交工单</Button>}
+        extra={<Button variant="primary" size="sm">+ 提交新的反馈</Button>}
       />
       <div className="admin-card">
         <div className="admin-card-body">

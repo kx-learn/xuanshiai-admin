@@ -1,31 +1,165 @@
 "use client";
-import { getBreadcrumb } from "@/lib/breadcrumb-config";
 
-import ListPage, { type ColumnDef } from "@/components/ListPage";
+import { useState } from "react";
+import { Inbox, RefreshCw, Users } from "lucide-react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
-const columns: ColumnDef[] = [
-  { title: "编号", key: "id", width: 70 },
-  { title: "头像", key: "avatar", width: 60 },
-  { title: "昵称", key: "nickname" },
-  { title: "性别", key: "gender", width: 60, align: "center" },
-  { title: "关注时间", key: "followTime" },
-  { title: "标签", key: "tags" },
-  { title: "操作", key: "action", width: 100, align: "center" },
-];
+/**
+ * 关注粉丝（纯前端演示，无后端接口）
+ * 页面结构：面包屑 / 须知框 / 用户管理卡片（筛选工具栏 + 表格）
+ */
 
-const data: Record<string, unknown>[] = [];
+interface FanRow {
+  id: number;
+  nickname: string;
+  openid: string;
+  followed: boolean;
+  followTime: string;
+  group: string;
+}
 
 export default function WechatFansPage() {
+  const [group, setGroup] = useState("");
+  const [searchType, setSearchType] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [selected, setSelected] = useState<number[]>([]);
+
+  // 后端无接口，模拟空数据
+  const fans: FanRow[] = [];
+  const allChecked = fans.length > 0 && selected.length === fans.length;
+
   return (
-    <ListPage
-      breadcrumb={getBreadcrumb("公众号", "关注粉丝")}
-      pageTitle="关注粉丝"
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 0 }}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
+    <div className="wechat-fans-page">
+      <AdminBreadcrumb
+        items={[
+          { label: "首页", href: "/" },
+          { label: "公众号", href: "/wechat-fans", children: [{ label: "关注粉丝", href: "/wechat-fans" }] },
+          { label: "关注粉丝" },
+        ]}
+      />
+
+      {/* 须知 */}
+      <div className="fan-notice">
+        <div className="fan-notice-title">
+          <span className="fan-notice-icon">i</span>须知
+        </div>
+        <p>这里的粉丝是指关注了您的公众号的粉丝，昵称是指该粉丝在您的系统平台中注册的账号昵称。</p>
+      </div>
+
+      {/* 用户管理 */}
+      <div className="admin-card">
+        <div className="admin-card-header">用户管理</div>
+        <div className="admin-card-body px-6 pb-6">
+          {/* 筛选工具栏 */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                className="h-10 w-[150px] rounded border border-[#d9d9d9] bg-white px-3 text-sm text-[#6b7688] outline-none"
+              >
+                <option value="">请选择分组</option>
+                <option value="1">分组A</option>
+                <option value="2">分组B</option>
+              </select>
+
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value)}
+                className="h-10 w-[130px] rounded border border-[#d9d9d9] bg-white px-3 text-sm text-[#6b7688] outline-none"
+              >
+                <option value="">按昵称搜</option>
+                <option value="openid">按openId搜</option>
+                <option value="follow">按关注时间搜</option>
+              </select>
+
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="请输入"
+                className="h-10 w-[240px] rounded border border-[#d9d9d9] px-3 text-sm outline-none placeholder:text-[#b4bac5] focus:border-[#3658f7]"
+              />
+
+              <button type="button" className="h-10 rounded bg-[#3658f7] px-5 text-sm text-white">
+                搜索
+              </button>
+
+              <span className="text-sm text-[#6b7688]">找到粉丝：{fans.length}人</span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white">
+                <Users size={15} />
+                管理粉丝分组
+              </button>
+              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white">
+                <RefreshCw size={15} />
+                同步公众号粉丝
+              </button>
+            </div>
+          </div>
+
+          {/* 表格 */}
+          <div className="mt-4 overflow-auto rounded-[6px] border border-[#f0f0f0]">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-[#fafafa]">
+                  <th className="w-12 border-b border-[#f0f0f0] px-3 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="全选"
+                      checked={allChecked}
+                      onChange={(e) =>
+                        setSelected(e.target.checked ? fans.map((f) => f.id) : [])
+                      }
+                    />
+                  </th>
+                  <th className="border-b border-[#f0f0f0] px-3 py-3 text-left text-sm font-medium text-[#333]">ID</th>
+                  <th className="border-b border-[#f0f0f0] px-3 py-3 text-left text-sm font-medium text-[#333]">昵称</th>
+                  <th className="border-b border-[#f0f0f0] px-3 py-3 text-left text-sm font-medium text-[#333]">openId</th>
+                  <th className="border-b border-[#f0f0f0] px-3 py-3 text-left text-sm font-medium text-[#333]">是否关注</th>
+                  <th className="border-b border-[#f0f0f0] px-3 py-3 text-left text-sm font-medium text-[#333]">关注时间</th>
+                  <th className="border-b border-[#f0f0f0] px-3 py-3 text-left text-sm font-medium text-[#333]">分组</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fans.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-0">
+                      <div className="flex flex-col items-center justify-center py-16 text-sm text-[#999]">
+                        <Inbox className="mb-2 h-10 w-10 text-[#d8dde6]" strokeWidth={1.2} />
+                        暂无数据
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  fans.map((f) => (
+                    <tr key={f.id} className="border-b border-[#f0f0f0] transition-colors hover:bg-[#fafafa]">
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(f.id)}
+                          onChange={(e) =>
+                            setSelected((cur) =>
+                              e.target.checked ? [...cur, f.id] : cur.filter((id) => id !== f.id),
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-3 text-sm text-[#333]">{f.id}</td>
+                      <td className="px-3 py-3 text-sm text-[#333]">{f.nickname}</td>
+                      <td className="px-3 py-3 text-sm text-[#333]">{f.openid}</td>
+                      <td className="px-3 py-3 text-sm text-[#333]">{f.followed ? "是" : "否"}</td>
+                      <td className="px-3 py-3 text-sm text-[#333]">{f.followTime}</td>
+                      <td className="px-3 py-3 text-sm text-[#333]">{f.group || "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

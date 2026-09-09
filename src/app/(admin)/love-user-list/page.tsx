@@ -178,6 +178,14 @@ export default function LoveUserListPage() {
     void load();
   }, [load]);
   useEffect(() => {
+    const k = new URLSearchParams(window.location.search).get("keyword") ?? "";
+    if (k) {
+      const next = { ...initialFilters, search: k };
+      setFilters(next);
+      setDraft(next);
+    }
+  }, []);
+  useEffect(() => {
     void adminApi<{ items: Matchmaker[] }>("admin/matchmaker/matchmakers", {
       query: { page: 1, page_size: 50 },
     }).then((result) => setMatchmakers(result.items)).catch(() => setMatchmakers([]));
