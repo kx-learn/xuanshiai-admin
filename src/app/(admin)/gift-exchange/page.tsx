@@ -1,89 +1,120 @@
 "use client";
-import { getBreadcrumb } from "@/lib/breadcrumb-config";
 
-import ListPage, { type ColumnDef, type ActionButton } from "@/components/ListPage";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
-const columns: ColumnDef[] = [
-  { title: "ID", key: "id", width: 50 },
-  { title: "申请人", key: "applicant", width: 250 },
-  { title: "兑换礼物", key: "gift", width: 120 },
-  { title: "积分", key: "points", width: 80, align: "center" },
-  { title: "申请兑换时间", key: "time", width: 170 },
-  {
-    title: "状态",
-    key: "status",
-    width: 90,
-    render: (row: Record<string, unknown>) => {
-      const status = String(row.status ?? "");
-      const colorMap: Record<string, string> = {
-        "兑换成功": "#52c41a",
-        "等待审核": "#faad14",
-        "兑换失败": "#ff4d4f",
-      };
-      const bgMap: Record<string, string> = {
-        "兑换成功": "#f6ffed",
-        "等待审核": "#fffbe6",
-        "兑换失败": "#fff2f0",
-      };
-      const borderMap: Record<string, string> = {
-        "兑换成功": "#b7eb8f",
-        "等待审核": "#ffe58f",
-        "兑换失败": "#ffccc7",
-      };
-      return (
-        <span
-          style={{
-            display: "inline-block",
-            padding: "2px 8px",
-            fontSize: 12,
-            borderRadius: 4,
-            color: colorMap[status] || "#666",
-            backgroundColor: bgMap[status] || "#f5f5f5",
-            border: `1px solid ${borderMap[status] || "#d9d9d9"}`,
-          }}
-        >
-          {status}
-        </span>
-      );
-    },
-  },
-  {
-    title: "操作",
-    key: "action",
-    width: 160,
-    render: (row: Record<string, unknown>) => {
-      const status = String(row.status ?? "");
-      return (
-        <span className="flex items-center gap-2">
-          {status === "等待审核" && <span className="text-[#52c41a] cursor-pointer hover:opacity-80">兑换成功</span>}
-          {status === "等待审核" && <span className="text-[#ff4d4f] cursor-pointer hover:opacity-80">兑换失败</span>}
-          <span className="text-[#ff4d4f] cursor-pointer hover:opacity-80">删除</span>
-        </span>
-      );
-    },
-  },
+const breadcrumb = [
+  { label: "首页", href: "/" },
+  { label: "运营工具", href: "/free-pay" },
+  { label: "积分商城", href: "/gift-list" },
+  { label: "兑换管理" },
 ];
 
-const data: Record<string, unknown>[] = [];
+const columns = ["ID", "申请人", "兑换礼物", "积分", "申请兑换时间", "状态", "操作"];
 
-const actions: ActionButton[] = [];
-
-export default function Page() {
+function Applicant({ hasAvatar, initial, nick, name, mobile, address }: {
+  hasAvatar?: boolean;
+  initial?: string;
+  nick?: string;
+  name: string;
+  mobile: string;
+  address: string;
+}) {
   return (
-    <ListPage
-      breadcrumb={getBreadcrumb("积分商城", "兑换管理")}
-      pageTitle="兑换管理"
-      searchFields={[
-        { label: "申请人", type: "input", placeholder: "请输入申请人", width: 180 },
-        { label: "状态", type: "select", options: [{ label: "全部", value: "" }, { label: "等待审核", value: "pending" }, { label: "兑换成功", value: "success" }, { label: "兑换失败", value: "failed" }], width: 120 },
-      ]}
-      actions={actions}
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 0 }}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
+    <div className="ex-applicant">
+      {hasAvatar && (
+        <div className="ex-avatar-block">
+          <div className="ex-avatar">{initial}</div>
+          <div className="ex-nick">{nick}</div>
+        </div>
+      )}
+      <div className="ex-userinfo">
+        <div className="ex-name">{name}</div>
+        <div className="ex-meta">姓名：{name}</div>
+        <div className="ex-meta">手机：{mobile}</div>
+        <div className="ex-meta">地址：{address}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function GiftExchangePage() {
+  return (
+    <div>
+      <AdminBreadcrumb items={breadcrumb} />
+
+      <div className="finord-card ex-card">
+        <div className="ex-head">
+          <h2 className="ex-title">兑换管理</h2>
+        </div>
+
+        <div className="ex-filters">
+          <div className="ex-searchbox">
+            <select className="ex-search-select">
+              <option>按礼品搜</option>
+              <option>按申请人搜</option>
+            </select>
+            <input className="ex-search-input" placeholder="请输入" />
+            <button className="finord-btn finord-btn-primary ex-search-btn">搜索</button>
+          </div>
+        </div>
+
+        <div className="finord-table-wrap">
+          <table className="finord-table ex-table">
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th key={c}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* 行 1：无头像 */}
+              <tr>
+                <td className="ex-id">2</td>
+                <td>
+                  <Applicant name="毛毛" mobile="18926072282" address="南京市「建邺区(?)」" />
+                </td>
+                <td><a className="finord-link">指甲刀</a></td>
+                <td className="ex-points">100</td>
+                <td className="ex-time">2026-07-01 10:45:24</td>
+                <td><span className="ex-status ex-status-pending">等待审核</span></td>
+                <td>
+                  <div className="ex-ops">
+                    <a className="finord-link ex-op">兑换成功</a>
+                    <span className="ex-op-sep">/</span>
+                    <a className="finord-link ex-op">兑换失败</a>
+                    <span className="ex-op-sep">/</span>
+                    <a className="finord-link ex-op">删除</a>
+                  </div>
+                </td>
+              </tr>
+
+              {/* 行 2：带头像 */}
+              <tr>
+                <td className="ex-id">1</td>
+                <td>
+                  <Applicant hasAvatar initial="G" nick="Good Nl" name="李" mobile="18856767690" address="南京市建邺区新城科技园" />
+                </td>
+                <td><a className="finord-link">指甲刀</a></td>
+                <td className="ex-points">100</td>
+                <td className="ex-time">2026-06-30 17:59:59</td>
+                <td><span className="ex-status ex-status-success">兑换成功</span></td>
+                <td>
+                  <div className="ex-ops">
+                    <a className="finord-link ex-op">删除</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="ex-pager">
+          <span className="ex-pager-arrow">‹</span>
+          <span className="ex-pager-cur">1</span>
+          <span className="ex-pager-arrow">›</span>
+        </div>
+      </div>
+    </div>
   );
 }

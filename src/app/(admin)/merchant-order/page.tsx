@@ -1,96 +1,76 @@
 "use client";
+
+import { Download } from "lucide-react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 
-import ListPage, { type ColumnDef, type ActionButton } from "@/components/ListPage";
+const breadcrumb = getBreadcrumb("商家联盟", "订单管理");
 
-const columns: ColumnDef[] = [
-  { title: "ID", key: "id", width: 60 },
-  { title: "下单商品", key: "product", width: 200 },
-  { title: "商家", key: "merchant", width: 160 },
-  { title: "下单人", key: "buyer", width: 100 },
-  { title: "下单时间", key: "orderTime", width: 160 },
-  {
-    title: "订单状态",
-    key: "status",
-    width: 90,
-    render: (row: Record<string, unknown>) => {
-      const status = String(row.status ?? "");
-      const colorMap: Record<string, string> = {
-        "已付款": "#52c41a",
-        "待付款": "#faad14",
-        "已退款": "#ff4d4f",
-      };
-      const bgMap: Record<string, string> = {
-        "已付款": "#f6ffed",
-        "待付款": "#fffbe6",
-        "已退款": "#fff2f0",
-      };
-      const borderMap: Record<string, string> = {
-        "已付款": "#b7eb8f",
-        "待付款": "#ffe58f",
-        "已退款": "#ffccc7",
-      };
-      return (
-        <span
-          style={{
-            display: "inline-block",
-            padding: "2px 8px",
-            fontSize: 12,
-            borderRadius: 4,
-            color: colorMap[status] || "#666",
-            backgroundColor: bgMap[status] || "#f5f5f5",
-            border: `1px solid ${borderMap[status] || "#d9d9d9"}`,
-          }}
-        >
-          {status}
-        </span>
-      );
-    },
-  },
-  { title: "订单金额", key: "amount", width: 100 },
-  { title: "方式/时间", key: "payMethod", width: 130 },
-  {
-    title: "核销状态",
-    key: "verifyStatus",
-    width: 90,
-    render: (row: Record<string, unknown>) => {
-      const vs = String(row.verifyStatus ?? "");
-      return <span style={{ color: vs === "已核销" ? "#52c41a" : "#faad14" }}>{vs}</span>;
-    },
-  },
-  {
-    title: "操作",
-    key: "action",
-    width: 120,
-    render: () => (
-      <span className="flex items-center gap-2">
-        <span className="text-[#3658f7] cursor-pointer hover:opacity-80">详情</span>
-        <span className="text-[#ff4d4f] cursor-pointer hover:opacity-80">退款</span>
-      </span>
-    ),
-  },
-];
+const columns = ["ID", "下单商品", "商家", "下单人", "下单时间", "订单状态", "订单金额", "方式/时间", "核销状态", "操作"];
 
-const data: Record<string, unknown>[] = [];
-
-const actions: ActionButton[] = [];
-
-export default function Page() {
+export default function MerchantOrderPage() {
   return (
-    <ListPage
-      breadcrumb={getBreadcrumb("商家联盟", "订单管理")}
-      pageTitle="订单管理"
-      searchFields={[
-        { label: "订单号", type: "input", placeholder: "请输入订单号", width: 180 },
-        { label: "订单状态", type: "select", options: [{ label: "全部", value: "" }, { label: "已付款", value: "paid" }, { label: "待付款", value: "pending" }, { label: "已退款", value: "refunded" }], width: 120 },
-      ]}
-      actions={actions}
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 0 }}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
+    <div>
+      <AdminBreadcrumb items={breadcrumb} />
+
+      <div className="ecl-notice">
+        <div className="ecl-notice-body">
+          <span className="ecl-notice-ic">i</span>
+          <div className="ecl-notice-text">
+            <div className="ecl-notice-title">须知</div>
+            <p>1、未支付、已支付但未核销状态下的订单均可随时取消订单；</p>
+            <p>2、已支付订单（无论是否核销），若需退款，请在"财务管理-收入明细"中操作订单不可删除</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="finord-card mo-card">
+        <div className="mo-filters">
+          <div className="mo-filters-row">
+            <select className="mo-select"><option>全部商家</option></select>
+            <select className="mo-select"><option>订单状态</option></select>
+            <select className="mo-select"><option>核销状态</option></select>
+            <div className="mo-searchbox">
+              <input className="mo-input" placeholder="按商品关键词" />
+            </div>
+            <div className="mo-searchbox">
+              <input className="mo-input" placeholder="按订单号" />
+            </div>
+            <select className="mo-select"><option>按昵称</option></select>
+            <input className="mo-input" placeholder="请输入" />
+          </div>
+          <div className="mo-filters-row">
+            <div className="mo-daterange">
+              <span className="mo-text-muted">核销时间开始</span>
+              <input className="mo-date" type="date" />
+              <span className="mo-text-muted">→</span>
+              <span className="mo-text-muted">核销时间结束</span>
+              <input className="mo-date" type="date" />
+            </div>
+            <button className="finord-btn finord-btn-primary mo-export-btn"><Download size={14} /> 导出EXCEL</button>
+          </div>
+        </div>
+
+        <div className="finord-table-wrap">
+          <table className="finord-table mo-table">
+            <thead>
+              <tr>
+                {columns.map((c) => <th key={c}>{c}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={columns.length} className="mo-empty">
+                  <div className="mo-empty-inner">
+                    <div className="mo-empty-icon">📦</div>
+                    <div className="mo-empty-text">暂无数据</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
