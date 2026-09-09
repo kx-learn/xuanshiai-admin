@@ -299,6 +299,7 @@ export const adminEndpoints = {
   users: (query: AdminListQuery = {}) => list("admin/matchmaker/members", query),
   user: (id: number | string) => adminApi(`admin/matchmaker/members/${id}`),
   loginLogs: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/behavior/login-logs`, query),
+  memberFollowUpsOverview: (query: AdminListQuery = {}) => list("admin/members/follow-ups", query),
   customerLeads: (query: AdminListQuery = {}) => list("admin/customer-leads", query),
   createCustomerLead: (body: JsonBody) => create("admin/customer-leads", body),
   updateCustomerLead: (id: number | string, body: JsonBody) => update(`admin/customer-leads/${id}`, body),

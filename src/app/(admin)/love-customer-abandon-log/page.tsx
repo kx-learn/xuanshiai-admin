@@ -1,57 +1,139 @@
 "use client";
-
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Search, PackageOpen } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminEndpoints } from "@/lib/admin-endpoints";
 
-const columns = [
-  "记录ID", "客源ID", "资料", "放弃人", "放弃类型", "放弃原因",
-  "弃海时间", "分派状态（捞取人）", "捞取/分派时间",
-];
+type R = { id: number; lead_id: number; reason: string; abandoned_by: number; abandoned_at: string; restored_by: number | null; restored_at: string | null };
+type L = { id: number; name: string };
+const fmt = (v: string | null) => v ? new Date(v).toLocaleString("zh-CN", { hour12: false }) : "-";
 
-export default function AbandonLogPage() {
+export default function Page() {
+  const [rows, setRows] = useState<R[]>([]);
+  const [leads, setLeads] = useState<Record<number, L>>({});
+  const [loading, setLoading] = useState(true);
+  const [keyword, setKeyword] = useState("");
+  const [abandonedBy, setAbandonedBy] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await adminEndpoints.customerLeadAbandonments() as R[];
+      const d = await Promise.all(r.map((x) => adminEndpoints.customerLead(x.lead_id).catch(() => null)));
+      const m: Record<number, L> = {};
+      d.forEach((x) => { if (x) m[(x as L).id] = x as L });
+      setRows(r);
+      setLeads(m);
+    } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const filteredRows = useMemo(() => {
+    const kw = keyword.trim();
+    const fromTs = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
+    const toTs = toDate ? new Date(`${toDate}T23:59:59`).getTime() : Infinity;
+    return rows.filter((row) => {
+      if (abandonedBy && String(row.abandoned_by) !== abandonedBy) return false;
+      const ts = new Date(row.abandoned_at).getTime();
+      if (ts < fromTs || ts > toTs) return false;
+      if (kw) {
+        const lead = leads[row.lead_id];
+        const blob = `${lead?.name ?? ""}`.toLowerCase();
+        if (!blob.includes(kw.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [rows, leads, keyword, abandonedBy, fromDate, toDate]);
+
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
+
   return (
     <div className="customer-lead-page">
       <AdminBreadcrumb items={getBreadcrumb("客源线索", "弃海记录")} />
       <section className="customer-notice mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b]">
         <h2 className="mb-1 font-semibold text-[#26324a]">💡 须知</h2>
-        <p>系统管理员、超级红娘可以在线索管理中将任意客源设置为“放入弃海”；红娘可以对自己名下的进行“放入弃海”操作；红娘超过指定的时间未对客源进行跟进会被系统自动放入弃海</p>
-        <p>客源一旦进入到弃海，则其红娘分派自动变更为“待分派”，所有红娘均可见弃海中的“未被捞取”的客源信息，可进行“捞取”操作，捞取成功后自动分派到自己名下进行销售跟进</p>
-        <p>平台可以设置被动弃海的时间期限，红娘每日可捞取客源的上限；同一客源可以多次被放入弃海，每放入一次就生成一次记录；管理员或超级红娘可以直接将弃海客源重新分派给任一红娘。已入库的客源可以在“会员CRM”中进行弃海、捞取操作。</p>
+        <p>系统管理员、超级红娘可以在线索管理中将任意客源设置为"放入弃海"；红娘可以对自己名下的进行"放入弃海"操作。</p>
       </section>
-
       <section className="admin-card overflow-hidden pt-4">
         <div className="lead-tabs flex items-center gap-8 border-b">
           <Link href="/love-customer-list">线索管理</Link>
-          <Link href="/love-customer-abandon">弃海客源(0)</Link>
+          <Link href="/love-customer-abandon">弃海客源</Link>
           <Link href="/love-customer-abandon-log" className="active">弃海记录</Link>
         </div>
-
-        <div className="abandon-log-filters flex flex-nowrap items-center gap-3 px-8 py-5">
-          <select className="h-10 w-[220px] shrink-0 rounded-lg border border-[#dfe2e8] bg-white px-3 text-[14px] text-[#a6abb5]">
-            <option>放弃红娘：不限</option>
+        <div className="flex flex-wrap items-center gap-3 px-8 py-5">
+          <select className="h-10 w-56 rounded border px-3 text-sm" value={abandonedBy} onChange={(event) => setAbandonedBy(event.target.value)}>
+            <option value="">放弃红娘：不限</option>
+            {Array.from(new Set(rows.map((row) => row.abandoned_by))).map((id) => <option key={id} value={id}>账号 #{id}</option>)}
           </select>
-          <label className="relative flex h-10 w-[360px] shrink-0 items-center rounded-lg border border-[#dfe2e8] bg-white text-[#a6abb5]">
-            <input type="text" placeholder="开始日期       →  结束日期" className="h-full w-full rounded-lg bg-transparent px-3 pr-10 text-[14px] outline-none placeholder:text-[#a6abb5]" />
-            <CalendarDays size={17} className="pointer-events-none absolute right-3 text-[#b7bbc2]" />
-          </label>
-          <div className="flex h-10 min-w-[330px] flex-1">
-            <input placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l-lg border border-r-0 border-[#dfe2e8] px-3 text-[14px] outline-none placeholder:text-[#a6abb5]" />
-            <button className="flex w-[78px] shrink-0 items-center justify-center gap-1 rounded-r-lg bg-[#3658f7] text-[14px] text-white"><Search size={16} />搜索</button>
+          <div className="date-range-picker w-80">
+            <span className="dr-field">
+              {!fromDate && <span className="dr-placeholder">开始日期</span>}
+              <input aria-label="开始日期" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+            </span>
+            <span aria-hidden className="dr-arrow">→</span>
+            <span className="dr-field">
+              {!toDate && <span className="dr-placeholder">结束日期</span>}
+              <input aria-label="结束日期" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            </span>
+            <CalendarDays size={16} />
           </div>
-          <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[14px] text-[#333]"><input type="checkbox" className="h-4 w-4" />待捞取/分派</label>
-          <div className="w-[300px] shrink-0 whitespace-nowrap rounded bg-[#f5f6fa] px-2 py-2.5 text-center text-[13px] text-[#333]">共有弃海记录：<b className="text-[#5876f5]">0条</b><span className="mx-2">待捞取/分派:</span><b className="text-[#5876f5]">0条</b></div>
+          <div className="flex h-10 min-w-[280px] flex-1">
+            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l border border-r-0 px-3 text-sm" />
+            <button type="button" onClick={() => undefined} className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>
+          </div>
+          <button type="button" onClick={() => { setKeyword(""); setAbandonedBy(""); setFromDate(""); setToDate(""); setPage(1); }} className="h-10 rounded border border-[#d9d9d9] bg-white px-4 text-sm text-[#666]">重置</button>
+          <span className="whitespace-nowrap text-sm">共有弃海记录：<b className="text-[#3658f7]">{filteredRows.length}条</b></span>
         </div>
-
         <div className="overflow-x-auto px-8">
-          <table className="w-full min-w-[1100px] table-fixed text-[14px]">
-            <thead className="bg-[#fafafa] text-[#222]"><tr>
-              {columns.map((column) => <th key={column} className="border-b px-3 py-3 text-left font-semibold">{column}</th>)}
-            </tr></thead>
-            <tbody><tr><td colSpan={columns.length} className="h-[210px] border-b text-center text-[#c9cdd3]"><PackageOpen size={52} strokeWidth={1.3} className="mx-auto mb-2 text-[#e0e2e5]" /><span>暂无数据</span></td></tr></tbody>
+          <table className="w-full min-w-[1100px] table-fixed text-sm">
+            <thead>
+              <tr>
+                {["记录ID", "客源ID", "资料", "放弃人", "放弃类型", "放弃原因", "弃海时间", "分派状态（捞取人）", "捞取/分派时间"].map((x) => (
+                  <th key={x} className="border-b bg-[#fafafa] px-3 py-3 text-left">{x}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={9} className="h-52 text-center">加载中...</td></tr>
+              ) : pagedRows.length === 0 ? (
+                <tr><td colSpan={9} className="h-52 text-center"><PackageOpen className="mx-auto" />暂无数据</td></tr>
+              ) : pagedRows.map((x) => (
+                <tr key={x.id} className="border-b">
+                  <td className="px-3 py-3">{x.id}</td>
+                  <td className="px-3 py-3">{x.lead_id}</td>
+                  <td className="px-3 py-3">{leads[x.lead_id]?.name || "-"}</td>
+                  <td className="px-3 py-3">账号 #{x.abandoned_by}</td>
+                  <td className="px-3 py-3">主动弃海</td>
+                  <td className="px-3 py-3">{x.reason}</td>
+                  <td className="px-3 py-3">{fmt(x.abandoned_at)}</td>
+                  <td className="px-3 py-3">{x.restored_at ? `已捞取（账号 #${x.restored_by}）` : "待捞取/分派"}</td>
+                  <td className="px-3 py-3">{fmt(x.restored_at)}</td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
+        <AdminPagination
+          page={page}
+          pageSize={pageSize}
+          total={filteredRows.length}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </section>
     </div>
   );

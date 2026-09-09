@@ -44,7 +44,7 @@ export default function SystemEmpowerPage() {
   ];
 
   return (
-    <div>
+    <div className="service-page">
       <AdminBreadcrumb
         items={[
           { label: "首页", href: "/" },
@@ -54,8 +54,8 @@ export default function SystemEmpowerPage() {
       />
       <AdminPageHeader title="软件授权" />
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="admin-card">
+      <div className="grid grid-cols-2 gap-4 mb-4 license-grid">
+        <div className="admin-card system-info-card">
           <div className="admin-card-header">
             <span className="font-medium text-base">授权信息</span>
           </div>

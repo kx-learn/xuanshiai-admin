@@ -1,7 +1,7 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Button, type ButtonVariant } from "@/components/ui/button";
+import DateRangePicker from "@/components/DateRangePicker";
 
 export interface SearchField {
   label: string;
@@ -10,7 +10,11 @@ export interface SearchField {
   placeholder?: string;
   options?: { value: string; label: string }[];
   value?: string;
+  fromValue?: string;
+  toValue?: string;
   onChange?: (value: string) => void;
+  onFromChange?: (value: string) => void;
+  onToChange?: (value: string) => void;
 }
 
 export interface SearchAction {
@@ -52,15 +56,17 @@ export default function AdminSearchBar({
               ))}
             </select>
           ) : field.type === "date-range" ? (
-            <div className="flex items-center gap-1">
-              <Input placeholder="开始日期" className="w-32" />
-              <span className="text-[#999]">-</span>
-              <Input placeholder="结束日期" className="w-32" />
-            </div>
+            <DateRangePicker
+              startValue={field.fromValue ?? ""}
+              endValue={field.toValue ?? ""}
+              onStartChange={(v) => field.onFromChange?.(v)}
+              onEndChange={(v) => field.onToChange?.(v)}
+              className="!w-[260px]"
+            />
           ) : (
-            <Input
+            <input
               placeholder={field.placeholder}
-              className="w-44"
+              className="h-8 w-44 rounded-md border border-[#d9d9d9] px-3 text-sm outline-none transition-colors hover:border-[#3658f7] focus:border-[#3658f7] focus:shadow-[0_0_0_2px_rgba(54,88,247,0.2)]"
               value={field.value ?? ""}
               onChange={(e) => field.onChange?.(e.target.value)}
             />

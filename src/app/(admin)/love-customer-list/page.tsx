@@ -6,8 +6,8 @@ import { BarChart3, FileDown, Plus, Search } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
-import { getAdminToken } from "@/lib/admin-api";
-import PageSizeSelect from "@/components/PageSizeSelect";
+import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 
 type Lead = {
   id: number;
@@ -49,12 +49,11 @@ const statuses: Record<string, string> = {
 };
 const intent = (n: number) => ["", "低", "中", "高"][n] || "-";
 const daysSince = (date: string) => Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 86400000));
-const demoLeads: Lead[] = [
-  { id: 8, name: "~", phone: "", wechat: "", source: "", intention_level: 2, status: "NEW", matchmaker_id: null, organization_id: null, next_follow_at: null, remark: null, created_by: 54, converted_user_id: null, created_at: "2026-08-20 23:14:41" },
-  { id: 7, name: "大洋", phone: "", wechat: "", source: "", intention_level: 2, status: "NEW", matchmaker_id: null, organization_id: null, next_follow_at: null, remark: null, created_by: 1, converted_user_id: null, created_at: "2026-07-23 18:25:18" },
-  { id: 6, name: "琴琴", phone: "", wechat: "", source: "", intention_level: 2, status: "NEW", matchmaker_id: null, organization_id: null, next_follow_at: null, remark: null, created_by: 1, converted_user_id: null, created_at: "2026-06-04 17:09:29" },
-  { id: 5, name: "毛毛", phone: "", wechat: "", source: "", intention_level: 2, status: "NEW", matchmaker_id: null, organization_id: null, next_follow_at: null, remark: null, created_by: 1, converted_user_id: null, created_at: "2026-05-27 20:34:05" },
-];
+const isToday = (date: string) => {
+  const d = new Date(date);
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+};
 
 export default function Page() {
   const [data, setData] = useState<Page>(empty),
@@ -63,6 +62,13 @@ export default function Page() {
     [status, setStatus] = useState(""),
     [source, setSource] = useState(""),
     [message, setMessage] = useState("");
+  const [total, setTotal] = useState(0);
+  const [abandonCount, setAbandonCount] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [assignStartDate, setAssignStartDate] = useState("");
+  const [assignEndDate, setAssignEndDate] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"professional" | "simple">("professional");
   const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
@@ -85,24 +91,36 @@ export default function Page() {
     content: "",
     next_follow_at: "",
   });
+
+  const filterByDate = (items: Lead[]) => {
+    if (!startDate && !endDate) return items;
+    const fromTs = startDate ? new Date(`${startDate}T00:00:00`).getTime() : -Infinity;
+    const toTs = endDate ? new Date(`${endDate}T23:59:59`).getTime() : Infinity;
+    return items.filter((lead) => {
+      const t = lead.created_at ? new Date(lead.created_at).getTime() : NaN;
+      return Number.isFinite(t) && t >= fromTs && t <= toTs;
+    });
+  };
+  const visibleLeads = filterByDate(data.items);
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = 20) => {
       setLoading(true);
       try {
-        if (getAdminToken() === "local-demo-token") {
-          setData({ items: demoLeads, page, page_size: 20, total: 8, has_more: false });
-          setMessage("");
-          return;
-        }
-        setData(
-          (await adminEndpoints.customerLeads({
+        const [pageData, stats, abandoned] = await Promise.all([
+          adminEndpoints.customerLeads({
             page,
-            page_size: 20,
+            page_size: size,
             search: keyword || undefined,
             status: status || undefined,
             source: source || undefined,
-          })) as Page,
-        );
+          }),
+          adminEndpoints.customerLeadStatistics(),
+          adminEndpoints.abandonedCustomerLeads().catch(() => []),
+        ]);
+        setData(pageData as Page);
+        setPageSize(size);
+        setTotal((stats as { total: number }).total);
+        setAbandonCount((abandoned as unknown[]).length);
         setMessage("");
       } catch (e) {
         setMessage(e instanceof Error ? e.message : "加载失败");
@@ -253,7 +271,7 @@ export default function Page() {
             <b className="text-[#3658f7]">
               线索管理
             </b>
-            <Link href="/love-customer-abandon">弃海客源(0)</Link>
+            <Link href="/love-customer-abandon">弃海客源({abandonCount})</Link>
             <Link href="/love-customer-abandon-log">弃海记录</Link>
           </div>
           <div className="flex gap-2 pb-3">
@@ -293,8 +311,10 @@ export default function Page() {
         {showMoreFilters && <div className="lead-extra-filters">
           {["客户性别：不限", "年龄：不限", "身高：不限", "职业：不限", "学历：不限", "家乡：不限", "现居：不限", "婚况：不限", "入库情况：不限"].map((label) => <select key={label} defaultValue="" className="lead-filter-select"><option value="">{label}</option><option>不限</option><option>已填写</option></select>)}
           <input placeholder="标签：不限（多选）" />
-          <input placeholder="开始日期       →  结束日期" />
-          <input placeholder="开始日期       →  结束日期" />
+          <div className="lead-date-ranges">
+            <DateRangePicker label="录" startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-full max-w-[300px]" />
+            <DateRangePicker label="派" startValue={assignStartDate} endValue={assignEndDate} onStartChange={setAssignStartDate} onEndChange={setAssignEndDate} className="w-full max-w-[300px]" />
+          </div>
           <label><input type="checkbox" /> 隐藏今日已跟进</label><label><input type="checkbox" /> 隐藏今日已通话</label><label><input type="checkbox" /> 有电话</label><label><input type="checkbox" /> 有微信</label>
         </div>}
         <div className="lead-search-row flex flex-wrap items-end gap-3 py-4">
@@ -323,9 +343,12 @@ export default function Page() {
         </div>
         <div className="lead-metrics-grid grid grid-cols-2 gap-3 md:grid-cols-6">
           {[
-            ["全部", data.total],
-            ["未分派", data.items.filter((x) => !x.matchmaker_id).length],
-            ["今日跟进", 0], ["从未跟进", data.items.length], ["超3天未跟进", 7], ["今日需跟进", 0],
+            ["全部", visibleLeads.length],
+            ["未分派", visibleLeads.filter((x) => !x.matchmaker_id).length],
+            ["今日跟进", visibleLeads.filter((x) => x.next_follow_at && isToday(x.next_follow_at)).length],
+            ["从未跟进", visibleLeads.filter((x) => !x.next_follow_at).length],
+            ["超3天未跟进", visibleLeads.filter((x) => !x.next_follow_at && daysSince(x.created_at) > 3).length],
+            ["今日需跟进", visibleLeads.filter((x) => x.next_follow_at && isToday(x.next_follow_at)).length],
           ].map(([n, c]) => (
             <div key={String(n)} className={`lead-metric-card ${n === "全部" ? "selected" : ""}`}>
               <div className="text-xs text-[#888]">{n}</div>
@@ -343,7 +366,7 @@ export default function Page() {
                   key={x}
                   className="border-b px-3 py-3 text-left font-normal"
                 >
-                  {index === 0 ? <input type="checkbox" aria-label="全选线索" checked={data.items.length > 0 && selectedLeadIds.length === data.items.length} onChange={(event) => setSelectedLeadIds(event.target.checked ? data.items.map((item) => item.id) : [])} /> : x}
+                  {index === 0 ? <input type="checkbox" aria-label="全选线索" checked={visibleLeads.length > 0 && selectedLeadIds.length === visibleLeads.length} onChange={(event) => setSelectedLeadIds(event.target.checked ? visibleLeads.map((item) => item.id) : [])} /> : x}
                 </th>
               ))}
             </tr>
@@ -355,28 +378,28 @@ export default function Page() {
                   加载中...
                 </td>
               </tr>
-            ) : data.items.length === 0 ? (
+            ) : visibleLeads.length === 0 ? (
               <tr>
                 <td colSpan={12} className="p-10 text-center text-[#999]">
                   暂无客源线索
                 </td>
               </tr>
             ) : (
-              data.items.map((x) => (
+              visibleLeads.map((x) => (
                 <tr
                   key={x.id}
                   className="border-b align-top hover:bg-[#fafcff]"
                 >
-                  {viewMode === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">⚑ ⚑ ⚑</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name}</td><td className="px-3 py-3">-</td><td className="px-3 py-3"><span className="simple-sex">男</span></td><td className="px-3 py-3">1995年(31岁)</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">管理员<br />{x.created_at}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="待分派"><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="未设置"><option>未设置</option><option>有效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="请选择"><option>请选择</option><option>低意向</option><option>中意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">B970357</small>}</td><td className="px-3 py-3">-</td><td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button>入库</button><button>详情</button><button onClick={() => open("follow", x)}>跟进</button><button>溯源</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
+                  {viewMode === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? "已分派" : "待分派"}><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={String(x.intention_level)}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button>入库</button><button>详情</button><button onClick={() => open("follow", x)}>跟进</button><button>溯源</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
                   <td className="px-3 py-3">
-                    <div className="lead-profile"><div className="lead-avatar">男 31岁</div><div><b>{x.name}</b><span className="lead-tag">有电话</span></div></div>
+                    <div className="lead-profile"><div className="lead-avatar">#{x.id}</div><div><b>{x.name || "-"}</b>{x.phone && <span className="lead-tag">有电话</span>}{x.wechat && <span className="lead-tag">有微信</span>}</div></div>
                     <div className="lead-actions"><button>基本资料</button><button>择偶要求</button><button onClick={() => open("follow", x)}>跟进信息</button><button className="lead-more-button">更多</button></div>
                   </td>
                   <td className="px-3 py-3"><select className="lead-cell-select" defaultValue={String(x.intention_level)}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td>
                   <td className="px-3 py-3">{x.source || "-"}</td>
                   <td className="px-3 py-3"><select className="lead-cell-select valid" defaultValue="有效"><option>有效</option><option>无效</option></select></td>
                   <td className="px-3 py-3 text-xs">
-                    管理员
+                    账号 #{x.created_by}
                     <br />
                     <span className="text-[#777]">#{x.created_by}</span>
                     <br />
@@ -410,11 +433,14 @@ export default function Page() {
         </table>
       </div>
       {selectedLeadIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedLeadIds.length}</b> 项</span><select><option>更换分派跟进</option></select><select><option>更换推广红娘</option></select><button>有效</button><button>待核</button><button>无效</button><button>打标签</button><button>批量删除</button><button>批量弃海</button><button>批量入库</button></div>}
-      <PageSizeSelect total={data.total} />
       {message && <p className="mt-3 text-sm text-red-600">{message}</p>}
-      <div className="admin-pagination">
-        <button disabled={data.page <= 1} onClick={() => void load(data.page - 1)}>‹</button><button className="active">{data.page}</button><button disabled={!data.has_more} onClick={() => void load(data.page + 1)}>›</button><span className="page-size">20 条/页</span>
-      </div>
+      <AdminPagination
+        page={data.page}
+        pageSize={data.page_size}
+        total={data.total}
+        onPageChange={(p) => void load(p, data.page_size)}
+        onPageSizeChange={(size) => void load(1, size)}
+      />
       {modal && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4">
           <form

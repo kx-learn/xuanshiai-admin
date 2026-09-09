@@ -54,7 +54,7 @@ export default function SystemFeedbackPage() {
   ];
 
   return (
-    <div>
+    <div className="service-page">
       <AdminBreadcrumb
         items={[
           { label: "首页", href: "/" },
@@ -62,6 +62,7 @@ export default function SystemFeedbackPage() {
           { label: "工单反馈" },
         ]}
       />
+      <section className="service-notice"><h2>💡 须知</h2><p>如果您发现系统中的任何使用问题、BUG、以及产品需求建议都可以在这里提交给我们，我们会在第一时间对您的工单进行有效答复</p></section>
       <AdminPageHeader
         title="工单反馈"
         extra={<Button variant="primary" size="sm">提交工单</Button>}

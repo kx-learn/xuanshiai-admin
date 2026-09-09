@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 
@@ -168,7 +169,7 @@ export default function LoveUserStatisticsPage() {
     <AdminBreadcrumb items={[{ label: "会员CRM" }, { label: "数据报表" }]} />
     <h1 className="mb-3 text-xl font-medium text-[#333]">会员数据报表</h1>
     <div className="mb-4 flex overflow-x-auto border-b border-[#eee]">{tabs.map((item) => <button type="button" key={item.key} onClick={() => setTab(item.key)} className={`shrink-0 border-b-2 px-4 py-3 text-sm ${tab === item.key ? "border-[#3658f7] text-[#3658f7]" : "border-transparent text-[#666]"}`}>{item.label}</button>)}</div>
-    <div className="mb-4 flex flex-wrap items-center gap-3 border border-[#eee] bg-white px-4 py-3 text-sm text-[#595959]"><span>统计时间</span><input type="date" aria-label="开始日期" value={from} onChange={(event) => setFrom(event.target.value)} className="h-8 border border-[#d9d9d9] px-2" /><span>至</span><input type="date" aria-label="结束日期" value={to} onChange={(event) => setTo(event.target.value)} className="h-8 border border-[#d9d9d9] px-2" /><button type="button" onClick={() => setApplied({ from, to })} className="h-8 bg-[#3658f7] px-4 text-white">查询</button></div>
+    <div className="mb-4 flex flex-wrap items-center gap-3 border border-[#eee] bg-white px-4 py-3 text-sm text-[#595959]"><span>统计时间</span><div className="date-range-picker !w-auto !h-8"><span className="dr-field">{!from && <span className="dr-placeholder">开始日期</span>}<input aria-label="开始日期" type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></span><span aria-hidden className="dr-arrow">→</span><span className="dr-field">{!to && <span className="dr-placeholder">结束日期</span>}<input aria-label="结束日期" type="date" value={to} onChange={(event) => setTo(event.target.value)} /></span><CalendarDays size={16} /></div><button type="button" onClick={() => setApplied({ from, to })} className="h-8 bg-[#3658f7] px-4 text-white">查询</button></div>
     {loading ? <div className="border border-[#eee] bg-white py-12 text-center text-sm text-[#999]">加载中...</div> : content()}
   </div>;
 }
