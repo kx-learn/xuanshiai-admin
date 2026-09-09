@@ -1,13 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Inbox, RefreshCw, Users } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-
-/**
- * 关注粉丝（纯前端演示，无后端接口）
- * 页面结构：面包屑 / 须知框 / 用户管理卡片（筛选工具栏 + 表格）
- */
+import { asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 interface FanRow {
   id: number;
@@ -18,15 +14,43 @@ interface FanRow {
   group: string;
 }
 
+const DEFAULTS = { items: [] as unknown[] } as const;
+
 export default function WechatFansPage() {
+  const domain = useConfigDomain<Dict>("wechat_mp_fans", DEFAULTS as Dict);
+  const [fans, setFans] = useState<FanRow[]>([]);
   const [group, setGroup] = useState("");
   const [searchType, setSearchType] = useState("");
   const [keyword, setKeyword] = useState("");
   const [selected, setSelected] = useState<number[]>([]);
 
-  // 后端无接口，模拟空数据
-  const fans: FanRow[] = [];
-  const allChecked = fans.length > 0 && selected.length === fans.length;
+  const apply = useCallback((config: Dict | null) => {
+    const list = Array.isArray(config?.items) ? config!.items : [];
+    setFans(list.map((r, i) => {
+      const o = asObject(r as Dict);
+      return {
+        id: Number(o.id ?? i + 1),
+        nickname: asStr(o.nickname, ""),
+        openid: asStr(o.openid, ""),
+        followed: o.followed === true,
+        followTime: asStr(o.follow_time, ""),
+        group: asStr(o.group, ""),
+      };
+    }));
+  }, []);
+
+  useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const shown = useMemo(() => fans.filter((f) => {
+    if (group && f.group !== group) return false;
+    if (!keyword) return true;
+    if (searchType === "openid") return f.openid.toLowerCase().includes(keyword.toLowerCase());
+    if (searchType === "follow") return f.followTime.includes(keyword);
+    return f.nickname.includes(keyword);
+  }), [fans, group, keyword, searchType]);
+
+  const allChecked = shown.length > 0 && selected.length === shown.length;
 
   return (
     <div className="wechat-fans-page">
@@ -84,15 +108,15 @@ export default function WechatFansPage() {
                 搜索
               </button>
 
-              <span className="text-sm text-[#6b7688]">找到粉丝：{fans.length}人</span>
+              <span className="text-sm text-[#6b7688]">找到粉丝：{shown.length}人</span>
             </div>
 
             <div className="flex items-center gap-3">
-              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white">
+              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white" onClick={() => showConfigToast("粉丝分组需接入公众号平台后可用", "error")}>
                 <Users size={15} />
                 管理粉丝分组
               </button>
-              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white">
+              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white" onClick={() => showConfigToast("同步粉丝需接入公众号平台后可用", "error")}>
                 <RefreshCw size={15} />
                 同步公众号粉丝
               </button>
@@ -110,7 +134,7 @@ export default function WechatFansPage() {
                       aria-label="全选"
                       checked={allChecked}
                       onChange={(e) =>
-                        setSelected(e.target.checked ? fans.map((f) => f.id) : [])
+                        setSelected(e.target.checked ? shown.map((f) => f.id) : [])
                       }
                     />
                   </th>
@@ -123,17 +147,17 @@ export default function WechatFansPage() {
                 </tr>
               </thead>
               <tbody>
-                {fans.length === 0 ? (
+                {shown.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-0">
                       <div className="flex flex-col items-center justify-center py-16 text-sm text-[#999]">
                         <Inbox className="mb-2 h-10 w-10 text-[#d8dde6]" strokeWidth={1.2} />
-                        暂无数据
+                        {domain.loading ? "加载中…" : "暂无数据（接入公众号平台后可同步粉丝）"}
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  fans.map((f) => (
+                  shown.map((f) => (
                     <tr key={f.id} className="border-b border-[#f0f0f0] transition-colors hover:bg-[#fafafa]">
                       <td className="px-3 py-3">
                         <input

@@ -1,8 +1,51 @@
 "use client";
+import { useCallback, useEffect, useState } from "react";
 import { Inbox } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { asNumber, asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
+
+const DEFAULTS = { items: [] as unknown[], balance: 0, provider: "腾讯云专线" } as const;
+
+interface SendRow {
+  id: number;
+  phone: string;
+  scene: string;
+  status: string;
+  sent_at: string | null;
+  reason: string;
+}
+
+const columns = ["手机号", "发送场景", "发送状态", "发送时间", "失败原因"];
 
 export default function Page() {
+  const domain = useConfigDomain<Dict>("sms_send_records", DEFAULTS as Dict);
+  const [rows, setRows] = useState<SendRow[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [provider, setProvider] = useState("腾讯云专线");
+
+  const apply = useCallback((config: Dict | null) => {
+    const list = Array.isArray(config?.items) ? config!.items : [];
+    setRows(list.map((r, i) => {
+      const o = asObject(r as Dict);
+      return {
+        id: Number(o.id ?? i + 1),
+        phone: asStr(o.phone, ""),
+        scene: asStr(o.scene, ""),
+        status: asStr(o.status, "成功"),
+        sent_at: asStr(o.sent_at, "") || null,
+        reason: asStr(o.reason, ""),
+      };
+    }));
+    setBalance(asNumber(config?.balance, 0));
+    setProvider(asStr(config?.provider, "腾讯云专线"));
+  }, []);
+
+  useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const okCount = rows.filter((r) => r.status === "成功").length;
+  const failCount = rows.length - okCount;
+
   return (
     <div className="rec-page">
       <AdminBreadcrumb
@@ -44,30 +87,57 @@ export default function Page() {
 
       <div className="srec-stats">
         <div className="srec-stat srec-stat-line">
-          <span className="srec-stat-label">当前线路：腾讯云专线</span>
+          <span className="srec-stat-label">当前线路：{provider}</span>
         </div>
         <div className="srec-stat">
-          <span className="srec-stat-label">短信余量：<span className="srec-num srec-num-blue">9410条</span></span>
-          <button type="button" className="srec-recharge">在线充值</button>
+          <span className="srec-stat-label">短信余量：<span className="srec-num srec-num-blue">{balance}条</span></span>
+          <button type="button" className="srec-recharge" onClick={() => showConfigToast("在线充值需接入短信服务商后可用", "error")}>在线充值</button>
         </div>
         <div className="srec-stat">
-          <span className="srec-stat-label">发送成功：<span className="srec-num srec-num-green">1585条</span></span>
+          <span className="srec-stat-label">发送成功：<span className="srec-num srec-num-green">{okCount}条</span></span>
         </div>
         <div className="srec-stat">
-          <span className="srec-stat-label">发送失败：<span className="srec-num srec-num-red">434条</span></span>
+          <span className="srec-stat-label">发送失败：<span className="srec-num srec-num-red">{failCount}条</span></span>
         </div>
       </div>
 
       <div className="admin-card srec-card">
         <div className="srec-head">
           <h2 className="srec-title">发送记录</h2>
-          <button type="button" className="srec-query">错误码查询</button>
+          <button type="button" className="srec-query" onClick={() => showConfigToast("错误码表可参考腾讯云短信文档", "error")}>错误码查询</button>
         </div>
 
-        <div className="srec-empty">
-          <Inbox className="srec-empty-icon" />
-          <span className="srec-empty-text">仅限超级管理员（admin）查看</span>
-        </div>
+        {rows.length === 0 ? (
+          <div className="srec-empty">
+            <Inbox className="srec-empty-icon" />
+            <span className="srec-empty-text">{domain.loading ? "加载中…" : "暂无发送记录（接入短信服务商后自动生成）"}</span>
+          </div>
+        ) : (
+          <div className="syslog-table-wrap">
+            <table className="syslog-table">
+              <thead>
+                <tr>
+                  {columns.map((c) => <th key={c}>{c}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.phone}</td>
+                    <td>{r.scene || "-"}</td>
+                    <td>
+                      <span className={r.status === "成功" ? "inline-block px-2 py-0.5 text-xs rounded bg-[#f6ffed] text-[#52c41a] border border-[#b7eb8f]" : "inline-block px-2 py-0.5 text-xs rounded bg-[#fff1f0] text-[#ff4d4f] border border-[#ffa39e]"}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td>{r.sent_at ? r.sent_at.replace("T", " ").slice(0, 19) : "-"}</td>
+                    <td>{r.reason || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,65 +1,76 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { asStr, pickAndUploadImage, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 /**
- * 公众号参数配置（纯前端演示，无后端接口）
- * 页面结构：面包屑 / 须知框 / 公众号配置卡片 / 安全验证卡片
+ * 公众号参数配置：全部字段接后端 wechat_mp 配置域（改动即保存 + 提交按钮手动落库）
  */
 
 /** 加密模式 */
 type CryptoMode = "plain" | "compat" | "safe";
 
-/** 运行时生成一个简易二维码 SVG（带三个定位符），纯视觉占位 */
-function QrCode({ size = 88 }: { size?: number }) {
-  const n = 21;
-  const cells: React.ReactNode[] = [];
-
-  const finder = (r: number, c: number) => {
-    const centers = [
-      [0, 0],
-      [0, n - 7],
-      [n - 7, 0],
-    ];
-    return centers.some(([or, oc]) => {
-      const lr = r - or;
-      const lc = c - oc;
-      if (lr < 0 || lr > 6 || lc < 0 || lc > 6) return false;
-      if (lr === 0 || lr === 6 || lc === 0 || lc === 6) return true; // 外框
-      if (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4) return true; // 中心点
-      return false;
-    });
-  };
-
-  let idx = 0;
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      const dark = finder(r, c) || ((r * 3 + c * 5 + ((r * c) % 7)) % 7) < 3;
-      if (dark) {
-        cells.push(<rect key={idx} x={c} y={r} width={1} height={1} />);
-      }
-      idx++;
-    }
-  }
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${n} ${n}`} fill="#000" shapeRendering="crispEdges">
-      {cells}
-    </svg>
-  );
-}
+const DEFAULTS = {
+  wx_no: "", app_id: "", app_secret: "", api_token: "", encoding_aes_key: "",
+  crypto_mode: "safe", qrcode_url: null, verify_file_name: "", verify_file_url: null,
+  platform_templates: [],
+} as const;
 
 export default function WechatConfigPage() {
-  const [wxNo, setWxNo] = useState("xuanshiai");
-  const [appId, setAppId] = useState("wxb0814cd05da63b2d");
-  const [appSecret, setAppSecret] = useState("9721122744dbd7ffd31a3f68d7445b8c");
-  const [apiToken, setApiToken] = useState("B0HsVwELrf3Xq8ILPRhnTtzFy0wc");
-  const [secretKey, setSecretKey] = useState("0KGLVpL2UEAw80Pf2oO28WDwMyBZ2BDsKDEW0Ysv2LQ");
-  const [mode, setMode] = useState<CryptoMode>("safe");          // 加密模式
-  const [qrFilled, setQrFilled] = useState(true);               // 二维码
-  const [fileName, setFileName] = useState("");                 // 上传文件
+  const domain = useConfigDomain<Dict>("wechat_mp", DEFAULTS as Dict);
+  const c = domain.snapshot?.config ?? (DEFAULTS as unknown as Dict);
+
+  const [wxNo, setWxNo] = useState("");
+  const [appId, setAppId] = useState("");
+  const [appSecret, setAppSecret] = useState("");
+  const [apiToken, setApiToken] = useState("");
+  const [secretKey, setSecretKey] = useState("");
+  const [mode, setMode] = useState<CryptoMode>("safe");
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+
+  const qrInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const apply = useCallback((config: Dict | null) => {
+    if (!config) return;
+    setWxNo(asStr(config.wx_no, ""));
+    setAppId(asStr(config.app_id, ""));
+    setAppSecret(asStr(config.app_secret, ""));
+    setApiToken(asStr(config.api_token, ""));
+    setSecretKey(asStr(config.encoding_aes_key, ""));
+    const m = asStr(config.crypto_mode, "safe");
+    setMode((["plain", "compat", "safe"].includes(m) ? m : "safe") as CryptoMode);
+    setQrUrl(asStr(config.qrcode_url, "") || null);
+    setFileName(asStr(config.verify_file_name, ""));
+    setFileUrl(asStr(config.verify_file_url, "") || null);
+  }, []);
+
+  useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const payload = () => ({
+    wx_no: wxNo, app_id: appId, app_secret: appSecret, api_token: apiToken,
+    encoding_aes_key: secretKey, crypto_mode: mode, qrcode_url: qrUrl,
+    verify_file_name: fileName, verify_file_url: fileUrl,
+    platform_templates: Array.isArray(c.platform_templates) ? c.platform_templates : [],
+  } as Partial<Dict>);
+
+  const submit = async () => {
+    const ok = await domain.save(payload(), "公众号参数配置更新");
+    if (ok) showConfigToast("已保存");
+    else if (domain.error) showConfigToast(domain.error, "error");
+  };
+
+  // 防抖自动保存（与其它配置页一致）
+  useEffect(() => {
+    if (!domain.ready) return;
+    const t = setTimeout(() => { domain.save(payload(), "公众号参数配置更新"); }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wxNo, appId, appSecret, apiToken, secretKey, mode, qrUrl, fileName, fileUrl, domain.ready]);
 
   const modeOptions: { value: CryptoMode; label: string }[] = [
     { value: "plain", label: "明文模式" },
@@ -138,13 +149,17 @@ export default function WechatConfigPage() {
               <span className="gzh-label">二维码</span>
               <div className="gzh-qr-group">
                 <div className="gzh-qr">
-                  {qrFilled ? <QrCode /> : <span className="gzh-qr-empty">未上传</span>}
+                  {qrUrl ? (
+                    <img src={qrUrl} alt="公众号二维码" className="pcfg-upload-img" style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 4 }} />
+                  ) : (
+                    <span className="gzh-qr-empty">未上传</span>
+                  )}
                 </div>
                 <div className="gzh-qr-actions">
-                  <button type="button" className="gzh-icon-btn" onClick={() => setQrFilled(true)}>
+                  <button type="button" className="gzh-icon-btn" onClick={() => qrInputRef.current?.click()}>
                     <span className="gzh-icon">↑</span>上传二维码
                   </button>
-                  <button type="button" className="gzh-icon-btn" onClick={() => setQrFilled(true)}>
+                  <button type="button" className="gzh-icon-btn" onClick={() => showConfigToast("生成二维码需接入公众号平台后可用", "error")}>
                     <span className="gzh-icon">↻</span>生成二维码
                   </button>
                 </div>
@@ -153,7 +168,7 @@ export default function WechatConfigPage() {
 
             <div className="gzh-field">
               <span className="gzh-label" />
-              <button type="button" className="gzh-submit">确定提交</button>
+              <button type="button" className="gzh-submit" onClick={submit}>确定提交</button>
             </div>
           </div>
         </div>
@@ -176,7 +191,16 @@ export default function WechatConfigPage() {
                   type="file"
                   accept=".txt,.html"
                   className="gzh-file-input"
-                  onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    pickAndUploadImage(
+                      file,
+                      (url) => { setFileName(file.name); setFileUrl(url); },
+                      (msg) => showConfigToast(msg, "error"),
+                    );
+                    e.target.value = "";
+                  }}
                 />
               </div>
             </div>
@@ -191,11 +215,23 @@ export default function WechatConfigPage() {
 
             <div className="gzh-field">
               <span className="gzh-label" />
-              <button type="button" className="gzh-submit">确定提交</button>
+              <button type="button" className="gzh-submit" onClick={submit}>确定提交</button>
             </div>
           </div>
         </div>
       </div>
+
+      <input
+        ref={qrInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          pickAndUploadImage(file, setQrUrl, (msg) => showConfigToast(msg, "error"));
+        }}
+      />
     </div>
   );
 }

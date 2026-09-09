@@ -1,12 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-
-/**
- * 公众号自动回复（纯前端演示，无后端接口）
- * 三个 tab：关注回复 / 关键词回复 / 消息回复
- */
+import { asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 type TabKey = "follow" | "keyword" | "message";
 
@@ -28,60 +24,22 @@ const ADD_LABEL: Record<TabKey, string> = {
   message: "添加消息回复",
 };
 
-/** 灯泡提示图标 */
-function NoticeIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" />
-      <line x1="9" y1="21" x2="15" y2="21" />
-      <line x1="10" y1="18" x2="14" y2="18" />
-    </svg>
-  );
-}
-
-function EditIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
-    </svg>
-  );
-}
-
-function DeleteIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="7" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function BoltIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M13 2 4.5 13.5h5L10 22l8.5-11.5h-5L13 2z" />
-    </svg>
-  );
-}
-
 interface ReplyRow {
   id: number;
   content: string;
 }
 
-/** radio：回复全部 / 随机回复 */
+interface ReplyState {
+  mode: "all" | "random";
+  items: ReplyRow[];
+}
+
+const DEFAULTS = {
+  follow: { mode: "all", items: [] },
+  keyword: { mode: "all", items: [] },
+  message: { mode: "all", items: [] },
+} as const;
+
 function ReplyRadio({ value, onChange }: { value: "all" | "random"; onChange: (v: "all" | "random") => void }) {
   return (
     <div className="ar-radio-group">
@@ -100,41 +58,64 @@ function ReplyRadio({ value, onChange }: { value: "all" | "random"; onChange: (v
 }
 
 export default function WechatAutoreplyPage() {
+  const domain = useConfigDomain<Dict>("wechat_mp_replies", DEFAULTS as unknown as Dict);
   const [activeTab, setActiveTab] = useState<TabKey>("follow");
-  const [replyMode, setReplyMode] = useState<"all" | "random">("all");
+  const [state, setState] = useState<Record<TabKey, ReplyState>>({
+    follow: { mode: "all", items: [] },
+    keyword: { mode: "all", items: [] },
+    message: { mode: "all", items: [] },
+  });
   const [keyword, setKeyword] = useState("");
-  const [followReplies, setFollowReplies] = useState<ReplyRow[]>([
-    { id: 1, content: "Hi，欢迎来到宣智爱❤一个真实、有趣、优质的脱单社交平台。" },
-  ]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
 
-  const addReply = () => {
-    const newReply: ReplyRow = { id: Date.now(), content: "请输入回复内容" };
-    setFollowReplies((prev) => [...prev, newReply]);
+  const apply = useCallback((config: Dict | null) => {
+    if (!config) return;
+    const readGroup = (key: TabKey): ReplyState => {
+      const g = asObject(config[key]);
+      const items = Array.isArray(g.items) ? g.items : [];
+      return {
+        mode: asStr(g.mode, "all") === "random" ? "random" : "all",
+        items: items.map((r, i) => {
+          const o = asObject(r as Dict);
+          return { id: Number(o.id ?? i + 1), content: asStr(o.content, "") };
+        }),
+      };
+    };
+    setState({ follow: readGroup("follow"), keyword: readGroup("keyword"), message: readGroup("message") });
+  }, []);
+
+  useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const persist = async (next: Record<TabKey, ReplyState>, summary: string) => {
+    setState(next);
+    await domain.save(next as unknown as Partial<Dict>, summary);
   };
 
-  const removeReply = (id: number) => {
-    setFollowReplies((prev) => prev.filter((r) => r.id !== id));
+  const current = state[activeTab];
+  const shownItems = activeTab === "keyword" && keyword
+    ? current.items.filter((r) => r.content.includes(keyword))
+    : current.items;
+
+  const addReply = async () => {
+    const newRow: ReplyRow = { id: Date.now(), content: "请输入回复内容" };
+    await persist({ ...state, [activeTab]: { ...current, items: [...current.items, newRow] } }, `${ADD_LABEL[activeTab]}`);
   };
 
-  const startEdit = (id: number, content: string) => {
-    setEditingId(id);
-    setDraft(content);
+  const removeReply = async (id: number) => {
+    await persist({ ...state, [activeTab]: { ...current, items: current.items.filter((r) => r.id !== id) } }, "删除自动回复");
   };
 
-  const saveEdit = (id: number) => {
-    setFollowReplies((prev) => prev.map((r) => (r.id === id ? { ...r, content: draft } : r)));
+  const saveEdit = async (id: number) => {
+    await persist(
+      { ...state, [activeTab]: { ...current, items: current.items.map((r) => (r.id === id ? { ...r, content: draft } : r)) } },
+      "修改自动回复",
+    );
     setEditingId(null);
     setDraft("");
+    showConfigToast("已保存");
   };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setDraft("");
-  };
-
-  const currentReplies = activeTab === "follow" ? followReplies : [];
 
   return (
     <div>
@@ -171,7 +152,7 @@ export default function WechatAutoreplyPage() {
         {/* 须知（关注/消息） */}
         {(activeTab === "follow" || activeTab === "message") && (
           <div className="ar-notice">
-            <span className="ar-notice-icon"><NoticeIcon /></span>
+            <span className="ar-notice-icon">i</span>
             <span>{NOTICE[activeTab]}</span>
           </div>
         )}
@@ -183,7 +164,7 @@ export default function WechatAutoreplyPage() {
               <span className="ar-add-plus">+</span> {ADD_LABEL.keyword}
             </button>
             <button type="button" className="ar-add-btn ar-add-stat" onClick={() => {}}>
-              <span className="ar-add-bolt"><BoltIcon /></span> 触发关键词统计
+              <span className="ar-add-bolt">⚡</span> 触发关键词统计
             </button>
           </div>
         ) : (
@@ -205,19 +186,22 @@ export default function WechatAutoreplyPage() {
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="请输入关键词"
                   />
-                  <button type="button" className="ar-search-btn" title="搜索"><SearchIcon /></button>
+                  <button type="button" className="ar-search-btn" title="搜索">🔍</button>
                 </div>
               ) : (
-                <ReplyRadio value={replyMode} onChange={setReplyMode} />
+                <ReplyRadio
+                  value={current.mode}
+                  onChange={(mode) => persist({ ...state, [activeTab]: { ...current, mode } }, "修改自动回复方式")}
+                />
               )}
             </div>
           </div>
 
           <div className="ar-card-body">
-            {currentReplies.length === 0 ? (
+            {shownItems.length === 0 ? (
               <div className="ar-empty">暂无回复内容</div>
             ) : (
-              currentReplies.map((r) => (
+              shownItems.map((r) => (
                 <div key={r.id} className="ar-row">
                   {editingId === r.id ? (
                     <div className="ar-edit-box">
@@ -226,18 +210,22 @@ export default function WechatAutoreplyPage() {
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit(r.id);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
                       />
                       <div className="ar-edit-actions">
                         <button type="button" className="ar-edit-save" onClick={() => saveEdit(r.id)}>保存</button>
-                        <button type="button" className="ar-edit-cancel" onClick={cancelEdit}>取消</button>
+                        <button type="button" className="ar-edit-cancel" onClick={() => { setEditingId(null); setDraft(""); }}>取消</button>
                       </div>
                     </div>
                   ) : (
                     <>
                       <span className="ar-row-content">{r.content}</span>
                       <div className="ar-row-actions">
-                        <button type="button" className="ar-icon-btn" title="编辑" onClick={() => startEdit(r.id, r.content)}><EditIcon /></button>
-                        <button type="button" className="ar-icon-btn ar-icon-del" title="删除" onClick={() => removeReply(r.id)}><DeleteIcon /></button>
+                        <button type="button" className="ar-icon-btn" title="编辑" onClick={() => { setEditingId(r.id); setDraft(r.content); }}>✎</button>
+                        <button type="button" className="ar-icon-btn ar-icon-del" title="删除" onClick={() => removeReply(r.id)}>🗑</button>
                       </div>
                     </>
                   )}
