@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import ListPage, { type ColumnDef } from "@/components/ListPage";
 
@@ -27,6 +28,8 @@ const columns: ColumnDef[] = [
 ];
 
 export default function SystemCashoutHistoryPage() {
+  const [statusTab, setStatusTab] = useState("");
+  const endpoint = `/api/backend/admin/finance/withdrawals${statusTab ? `?status=${statusTab}` : ""}`;
   return (
     <ListPage
       breadcrumb={getBreadcrumb("财务管理", "余额提现")}
@@ -37,18 +40,20 @@ export default function SystemCashoutHistoryPage() {
         { key: "SUCCEEDED", label: "已完成" },
         { key: "REJECTED", label: "已驳回" },
       ]}
+      activeTab={statusTab || "all"}
+      onTabChange={(key) => setStatusTab(key === "all" ? "" : key)}
       searchFields={[
-        { label: "账户 ID", type: "input", placeholder: "请输入账户 ID", width: 140 },
-        { label: "状态", type: "select", options: Object.entries(statusLabel).map(([value, label]) => ({ value, label })) },
-        { label: "时间范围", type: "dateRange" },
+        { label: "账户 ID", key: "account_id", type: "input", placeholder: "请输入账户 ID", width: 140 },
+        { label: "状态", key: "status", type: "select", options: Object.entries(statusLabel).map(([value, label]) => ({ value, label })) },
+        { label: "时间范围", type: "dateRange", dateKeys: { from: "start_time", to: "end_time" } },
       ]}
       columns={columns}
       dataSource={[]}
       rowKey="id"
-      endpoint="/api/backend/admin/finance/withdrawals?page=1&page_size=20"
+      endpoint={endpoint}
       pagination={{ current: 1, pageSize: 20, total: 0 }}
-      onSearch={() => {}}
-      onReset={() => {}}
+      onSearch={() => setStatusTab("")}
+      onReset={() => setStatusTab("")}
     />
   );
 }

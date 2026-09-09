@@ -1,6 +1,22 @@
 "use client";
+import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { User, Armchair, Clock, Phone, Inbox } from "lucide-react";
+import { User, Armchair, Clock, Phone, Inbox, X } from "lucide-react";
+import { asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
+
+const SEATS_DEFAULTS = { items: [] as unknown[] } as const;
+const OUTBOUND_DEFAULTS = { provider: null, account_name: null, call_center_url: null, record_download_url: null } as const;
+
+interface SeatRow {
+  id: number;
+  code: string;
+  status: string;
+  phone: string;
+  matchmaker: string;
+  call_count: number;
+  connected_count: number;
+  total_seconds: number;
+}
 
 const columns = [
   "坐席工号",
@@ -17,15 +33,65 @@ const columns = [
   "操作",
 ];
 
-const cards = [
-  { key: "a", label: "外呼服务商", value: "捷讯通讯", color: "#3658f7", icon: User },
-  { key: "b", label: "外呼账号", value: "未开通服务", color: "#b0b7c2", icon: null },
-  { key: "c", label: "坐席数量", value: "0", color: "#fa8c16", icon: Armchair },
-  { key: "d", label: "所有坐席通话总时长", value: "0秒", color: "#722ed1", icon: Clock },
-  { key: "e", label: "本月通话总时长", value: "0秒", color: "#f5222d", icon: Phone },
-];
+const fmtSeconds = (s: number) => (s > 0 ? `${s}秒` : "0秒");
 
 export default function Page() {
+  const seatsDomain = useConfigDomain<Dict>("outbound_seats", SEATS_DEFAULTS as Dict);
+  const outboundDomain = useConfigDomain<Dict>("sys_outbound", OUTBOUND_DEFAULTS as Dict);
+  const [seats, setSeats] = useState<SeatRow[]>([]);
+  const [adding, setAdding] = useState(false);
+
+  const apply = useCallback((config: Dict | null) => {
+    const list = Array.isArray(config?.items) ? config!.items : [];
+    setSeats(list.map((r, i) => {
+      const o = asObject(r as Dict);
+      return {
+        id: Number(o.id ?? i + 1),
+        code: asStr(o.code, ""),
+        status: asStr(o.status, "空闲"),
+        phone: asStr(o.phone, ""),
+        matchmaker: asStr(o.matchmaker, ""),
+        call_count: Number(o.call_count ?? 0),
+        connected_count: Number(o.connected_count ?? 0),
+        total_seconds: Number(o.total_seconds ?? 0),
+      };
+    }));
+  }, []);
+
+  useEffect(() => {
+    seatsDomain.reload();
+    outboundDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { apply(seatsDomain.snapshot?.config ?? null); }, [seatsDomain.snapshot, apply]);
+
+  const provider = asStr(outboundDomain.snapshot?.config.provider, "未配置");
+  const accountName = asStr(outboundDomain.snapshot?.config.account_name, "未开通服务");
+
+  const totalCalls = seats.reduce((s, r) => s + r.call_count, 0);
+  const totalSeconds = seats.reduce((s, r) => s + r.total_seconds, 0);
+  const monthSeconds = totalSeconds; // 占位数据源暂不区分月份，接入服务商后按月统计
+
+  const cards = [
+    { key: "a", label: "外呼服务商", value: provider, color: "#3658f7", icon: User },
+    { key: "b", label: "外呼账号", value: accountName, color: "#b0b7c2", icon: null },
+    { key: "c", label: "坐席数量", value: String(seats.length), color: "#fa8c16", icon: Armchair },
+    { key: "d", label: "所有坐席通话总时长", value: fmtSeconds(totalSeconds), color: "#722ed1", icon: Clock },
+    { key: "e", label: "本月通话总时长", value: fmtSeconds(monthSeconds), color: "#f5222d", icon: Phone },
+  ];
+
+  const persist = async (next: SeatRow[], summary: string) => {
+    setSeats(next);
+    const ok = await seatsDomain.save({ items: next } as Partial<Dict>, summary);
+    if (ok) showConfigToast("已保存");
+    else if (seatsDomain.error) showConfigToast(seatsDomain.error, "error");
+  };
+
+  const removeSeat = async (id: number) => {
+    if (!window.confirm("确认删除该坐席？")) return;
+    await persist(seats.filter((r) => r.id !== id), "删除外呼坐席");
+  };
+
   return (
     <div className="oc-page">
       <AdminBreadcrumb
@@ -91,7 +157,7 @@ export default function Page() {
       <div className="admin-card oc-card">
         <div className="oc-head">
           <h2 className="oc-title">外呼状态</h2>
-          <button className="oc-add">
+          <button className="oc-add" onClick={() => setAdding(true)}>
             <span className="oc-add-plus">+</span> 添加坐席
           </button>
         </div>
@@ -106,15 +172,87 @@ export default function Page() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td colSpan={columns.length} className="oc-empty">
-                    <Inbox className="oc-empty-icon" />
-                    <span>暂无数据</span>
-                  </td>
-                </tr>
+                {seats.length === 0 ? (
+                  <tr>
+                    <td colSpan={columns.length} className="oc-empty">
+                      <Inbox className="oc-empty-icon" />
+                      <span>{seatsDomain.loading ? "加载中…" : "暂无数据"}</span>
+                    </td>
+                  </tr>
+                ) : seats.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.code}</td>
+                    <td>{r.status}</td>
+                    <td>{r.phone || "-"}</td>
+                    <td>{r.matchmaker || "-"}</td>
+                    <td>{r.call_count}</td>
+                    <td>{r.connected_count}</td>
+                    <td>{fmtSeconds(r.total_seconds)}</td>
+                    <td>{r.call_count > 0 ? fmtSeconds(Math.round(r.total_seconds / r.call_count)) : "0秒"}</td>
+                    <td>{fmtSeconds(r.total_seconds)}</td>
+                    <td>0</td>
+                    <td>0秒</td>
+                    <td>
+                      <button type="button" className="text-[#ff4d4f] hover:text-[#ff7875] text-sm cursor-pointer bg-transparent border-none p-0" onClick={() => removeSeat(r.id)}>删除</button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      {adding && (
+        <SeatModal
+          onClose={() => setAdding(false)}
+          onSave={async (row) => {
+            setAdding(false);
+            await persist([...seats, row], `添加外呼坐席「${row.code}」`);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SeatModal({ onClose, onSave }: { onClose: () => void; onSave: (row: SeatRow) => void }) {
+  const [code, setCode] = useState("");
+  const [phone, setPhone] = useState("");
+  const [matchmaker, setMatchmaker] = useState("");
+  return (
+    <div className="ec-modal-mask" onClick={onClose}>
+      <div className="ec-modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div className="ec-modal-header">
+          <span className="ec-modal-title">添加坐席</span>
+          <button type="button" className="ec-modal-close" aria-label="关闭" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="ec-modal-body">
+          <div className="ec-row">
+            <span className="ec-key">坐席工号</span>
+            <input className="ec-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="请输入坐席工号" />
+          </div>
+          <div className="ec-row">
+            <span className="ec-key">外呼号码</span>
+            <input className="ec-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="请输入外呼号码" />
+          </div>
+          <div className="ec-row">
+            <span className="ec-key">绑定服务红娘</span>
+            <input className="ec-input" value={matchmaker} onChange={(e) => setMatchmaker(e.target.value)} placeholder="请输入绑定的服务红娘姓名" />
+          </div>
+        </div>
+        <div className="ec-modal-footer">
+          <button type="button" className="ec-cancel" onClick={onClose}>取消</button>
+          <button
+            type="button"
+            className="ec-ok"
+            onClick={() => {
+              if (!code.trim()) { showConfigToast("请填写坐席工号", "error"); return; }
+              onSave({ id: Date.now(), code: code.trim(), status: "空闲", phone: phone.trim(), matchmaker: matchmaker.trim(), call_count: 0, connected_count: 0, total_seconds: 0 });
+            }}
+          >
+            确定
+          </button>
         </div>
       </div>
     </div>

@@ -23,10 +23,10 @@ export default function SystemFinanceOrderPage() {
       breadcrumb={getBreadcrumb("财务管理", "收入明细")}
       pageTitle="收入明细"
       searchFields={[
-        { label: "订单号", type: "input", placeholder: "请输入订单号", width: 220 },
-        { label: "会员 ID", type: "input", placeholder: "请输入会员 ID", width: 120 },
-        { label: "状态", type: "select", options: [{ label: "待支付", value: "0" }, { label: "已支付", value: "1" }, { label: "已关闭", value: "2" }, { label: "已退款", value: "3" }] },
-        { label: "时间范围", type: "dateRange" },
+        { label: "订单号", key: "order_no", type: "input", placeholder: "请输入订单号", width: 220 },
+        { label: "会员 ID", key: "user_id", type: "input", placeholder: "请输入会员 ID", width: 120 },
+        { label: "状态", key: "status", type: "select", options: [{ label: "待支付", value: "0" }, { label: "已支付", value: "1" }, { label: "已关闭", value: "2" }, { label: "已退款", value: "3" }] },
+        { label: "时间范围", type: "dateRange", dateKeys: { from: "start_time", to: "end_time" } },
       ]}
       columns={columns}
       dataSource={[]}

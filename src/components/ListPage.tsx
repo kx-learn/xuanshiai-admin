@@ -28,6 +28,9 @@ interface ListPageProps {
   loading?: boolean;
   endpoint?: string;
   refreshKey?: string | number;
+  /** 可选：非远程本地表格的关键字过滤受控值（搜索框 key 需为 "keyword"） */
+  keywordValue?: string;
+  onKeywordChange?: (value: string) => void;
 }
 
 function resolveEndpoint(endpoint: string) {
@@ -42,7 +45,7 @@ function resolveEndpoint(endpoint: string) {
 export default function ListPage({
   breadcrumb, pageTitle, tabs, activeTab = "", onTabChange, searchFields = [], actions = [], columns, dataSource,
   rowKey = "id", pagination, onSearch, onReset, loading = false, endpoint,
-  refreshKey,
+  refreshKey, keywordValue, onKeywordChange,
 }: ListPageProps) {
   const [currentTab, setCurrentTab] = useState(activeTab);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -103,7 +106,11 @@ export default function ListPage({
     {(pageTitle || tabs) && <div className="mb-4"><h1 className="mb-3 text-xl font-medium text-[#333]">{pageTitle}</h1>{tabs && <div className="flex border-b border-[#f0f0f0]">{tabs.map((tab) => <button key={tab.key} onClick={() => changeTab(tab.key)} className={`px-4 py-3 text-sm ${((currentTab || tabs[0]?.key) === tab.key) ? "border-b-2 border-[#3658f7] text-[#3658f7]" : "text-[#666]"}`}>{tab.label}</button>)}</div>}</div>}
     {(searchFields.length || actions.length) > 0 && <div className="admin-card mb-4"><div className="admin-card-body !py-3 flex flex-wrap items-end gap-3">
       {searchFields.map((field, index) => <div key={index} className="flex items-center gap-2"><label className="whitespace-nowrap text-sm text-[#666]">{field.label}</label>
-        {field.type === "input" && <input value={searchValues[String(index)] || ""} onChange={(event) => setSearchValues((current) => ({ ...current, [String(index)]: event.target.value }))} placeholder={field.placeholder || "请输入"} className="h-8 rounded-md border border-[#d9d9d9] px-3 text-sm" style={{ width: field.width || 160 }} />}
+        {field.type === "input" && (() => {
+          const external = keywordValue !== undefined && field.key === "keyword";
+          const value = external ? keywordValue || "" : (searchValues[String(index)] || "");
+          return <input value={value} onChange={(event) => { if (external) { onKeywordChange?.(event.target.value); } else { setSearchValues((current) => ({ ...current, [String(index)]: event.target.value })); } }} placeholder={field.placeholder || "请输入"} className="h-8 rounded-md border border-[#d9d9d9] px-3 text-sm" style={{ width: field.width || 160 }} />;
+        })()}
         {field.type === "select" && <select value={searchValues[String(index)] || ""} onChange={(event) => setSearchValues((current) => ({ ...current, [String(index)]: event.target.value }))} className="h-8 rounded-md border border-[#d9d9d9] bg-white px-3 text-sm" style={{ width: field.width || 140 }}><option value="">全部</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>}
         {field.type === "dateRange" && <DateRangePicker startValue={searchValues[field.dateKeys?.from ?? `${index}_from`] || ""} endValue={searchValues[field.dateKeys?.to ?? `${index}_to`] || ""} onStartChange={(value) => setSearchValues((current) => ({ ...current, [field.dateKeys?.from ?? `${index}_from`]: value }))} onEndChange={(value) => setSearchValues((current) => ({ ...current, [field.dateKeys?.to ?? `${index}_to`]: value }))} className="!w-[260px]" />}
       </div>)}

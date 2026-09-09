@@ -1,12 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-
-/**
- * 公众号菜单配置（纯前端演示，无后端接口）
- * 页面结构：面包屑 / 左侧手机模拟微信菜单 / 右侧须知 + 表单
- */
+import { asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 type MenuType = "url" | "msg" | "miniprogram";
 
@@ -24,6 +20,8 @@ interface TopMenu {
   url: string;
   subs: SubMenu[];
 }
+
+const DEFAULTS = { top_menus: [], sub_menus: [], published_at: null } as const;
 
 const TYPE_OPTIONS: { value: MenuType; label: string }[] = [
   { value: "url", label: "跳转链接" },
@@ -53,28 +51,42 @@ function UserIcon() {
 }
 
 export default function WechatMenuPage() {
+  const domain = useConfigDomain<Dict>("wechat_mp_menu", DEFAULTS as Dict);
   // 一级菜单
-  const [topMenus, setTopMenus] = useState<TopMenu[]>([
-    {
-      id: 1,
-      name: "平台首页",
-      type: "url",
-      url: "https://www.xuanshiai.com/member/love/onetoone",
-      subs: [],
-    },
-    { id: 2, name: "社交活动", type: "url", url: "https://www.xuanshiai.com/activity", subs: [] },
-    { id: 3, name: "服务中心", type: "url", url: "https://www.xuanshiai.com/service", subs: [] },
-  ]);
+  const [topMenus, setTopMenus] = useState<TopMenu[]>([]);
   // 二级菜单：同级菜单，固定显示，不随一级菜单切换而消失
-  const [subMenus, setSubMenus] = useState<SubMenu[]>([
-    { id: 11, name: "会员中心", type: "url", url: "https://www.xuanshiai.com/member/love/onetoone" },
-    { id: 12, name: "红娘中心", type: "url", url: "https://www.xuanshiai.com/member/matchmaker/index" },
-    { id: 13, name: "联系红娘", type: "url", url: "https://www.xuanshiai.com/member/contact" },
-    { id: 14, name: "私人订制", type: "url", url: "https://www.xuanshiai.com/member/love/onetoone" },
-  ]);
-  const [activeTopId, setActiveTopId] = useState(1);
+  const [subMenus, setSubMenus] = useState<SubMenu[]>([]);
+  const [activeTopId, setActiveTopId] = useState<number>(0);
   // -1 表示当前编辑对象是一级菜单本身；否则为二级菜单 id
   const [activeSubId, setActiveSubId] = useState(-1);
+
+  const apply = useCallback((config: Dict | null) => {
+    const tops = (Array.isArray(config?.top_menus) ? config!.top_menus : []).map((m, i) => {
+      const o = asObject(m as Dict);
+      return {
+        id: Number(o.id ?? i + 1),
+        name: asStr(o.name, ""),
+        type: (["url", "msg", "miniprogram"].includes(asStr(o.type, "url")) ? asStr(o.type, "url") : "url") as MenuType,
+        url: asStr(o.url, ""),
+        subs: [],
+      };
+    });
+    const subs = (Array.isArray(config?.sub_menus) ? config!.sub_menus : []).map((m, i) => {
+      const o = asObject(m as Dict);
+      return {
+        id: Number(o.id ?? 100 + i),
+        name: asStr(o.name, ""),
+        type: (["url", "msg", "miniprogram"].includes(asStr(o.type, "url")) ? asStr(o.type, "url") : "url") as MenuType,
+        url: asStr(o.url, ""),
+      };
+    });
+    setTopMenus(tops);
+    setSubMenus(subs);
+    setActiveTopId(tops[0]?.id ?? 0);
+  }, []);
+
+  useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
 
   const activeTop = useMemo(() => topMenus.find((m) => m.id === activeTopId) ?? topMenus[0], [topMenus, activeTopId]);
   const activeSub = useMemo(
@@ -130,10 +142,18 @@ export default function WechatMenuPage() {
     }
   };
 
-  const syncMenu = () => {
-    if (topMenus.length > 3) return alert("一级菜单不能超过3个");
-    if (subMenus.length > 5) return alert("二级菜单不能超过5个");
-    alert("同步菜单成功");
+  const syncMenu = async () => {
+    if (topMenus.length > 3) return showConfigToast("一级菜单不能超过3个", "error");
+    if (subMenus.length > 5) return showConfigToast("二级菜单不能超过5个", "error");
+    const now = new Date();
+    const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+    const ok = await domain.save({
+      top_menus: topMenus.map(({ subs: _subs, ...m }) => m),
+      sub_menus: subMenus,
+      published_at: stamp,
+    } as Partial<Dict>, "同步公众号菜单");
+    if (ok) showConfigToast("菜单已保存并记录发布时间（实际下发需公众号平台对接）");
+    else if (domain.error) showConfigToast(domain.error, "error");
   };
 
   return (
@@ -255,7 +275,7 @@ export default function WechatMenuPage() {
                 <span className="menu-label menu-required">菜单名称</span>
                 <input
                   className="menu-input"
-                  value={editingMenu.name}
+                  value={editingMenu?.name ?? ""}
                   onChange={(e) => updateMenu({ name: e.target.value })}
                   placeholder="请输入菜单名称"
                 />
@@ -270,7 +290,7 @@ export default function WechatMenuPage() {
                         type="radio"
                         name="menuType"
                         value={opt.value}
-                        checked={editingMenu.type === opt.value}
+                        checked={editingMenu?.type === opt.value}
                         onChange={() => updateMenu({ type: opt.value })}
                       />
                       <span className="menu-radio-dot" />
@@ -284,9 +304,9 @@ export default function WechatMenuPage() {
                 <span className="menu-label menu-required">跳转地址</span>
                 <input
                   className="menu-input"
-                  value={editingMenu.url}
+                  value={editingMenu?.url ?? ""}
                   onChange={(e) => updateMenu({ url: e.target.value })}
-                  disabled={editingMenu.type !== "url"}
+                  disabled={editingMenu?.type !== "url"}
                   placeholder="请输入跳转地址"
                 />
               </div>

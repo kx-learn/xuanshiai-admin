@@ -1,52 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X, Inbox } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-
-/**
- * 消息群发（纯前端演示，无后端接口）
- * 页面结构：面包屑 / 须知 / 已创建的群发消息卡片（标题 + 添加新模板按钮 + 表格）
- * 点击「添加新模板」弹出右侧「新建群发消息」抽屉（须知 + 模板列表）
- */
+import { asNumber, asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 interface SendRow {
   id: number;
-  title: string; // 模板标题
-  platformTpl: string; // 对应公众号平台模板
-  updatetime: string; // 更新时间
+  title: string;
+  platformTpl: string;
+  updatetime: string;
 }
 
 interface TplItem {
   no: string;
 }
 
-const tplList: TplItem[] = [
-  { no: "订阅模板消息-g5pglJjQpmiNGVDNknS6r0G[CfmGrIkSOKFTIknaQj 1E" },
-];
+const DEFAULTS = { items: [] as unknown[] } as const;
 
-const gzhChildren = [
-  { label: "参数配置", href: "/wechat-config" },
-  { label: "关注粉丝", href: "/wechat-fans" },
-  { label: "菜单配置", href: "/wechat-menu" },
-  { label: "自动回复", href: "/wechat-autoreply" },
-  { label: "模板消息", href: "/wechat-template" },
-  { label: "消息群发", href: "/wechat-send" },
-];
-
-function SendDrawer({ onClose, onPick }: { onClose: () => void; onPick: (no: string) => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
-
+function SendDrawer({ tplList, onAddNew, onClose, onPick }: {
+  tplList: TplItem[];
+  onAddNew: (no: string) => void;
+  onClose: () => void;
+  onPick: (no: string) => void;
+}) {
+  const [newNo, setNewNo] = useState("");
   return (
     <div className="sd-modal-mask" onClick={onClose}>
       <div className="sd-modal" onClick={(e) => e.stopPropagation()}>
@@ -57,13 +35,23 @@ function SendDrawer({ onClose, onPick }: { onClose: () => void; onPick: (no: str
           </button>
         </div>
         <div className="sd-modal-body">
-          {/* 须知 */}
           <div className="sd-modal-notice">
             <span className="sd-notice-icon">i</span>
             <span>切勿滥用和违规使用本功能，微信模板消息违规说明</span>
           </div>
 
-          {/* 模板列表 */}
+          <div className="flex items-center gap-2 pb-3">
+            <input
+              className="h-8 flex-1 rounded border border-[#d9d9d9] px-2 text-sm"
+              placeholder="输入公众号平台模板编号"
+              value={newNo}
+              onChange={(e) => setNewNo(e.target.value)}
+            />
+            <button type="button" className="sd-pick-btn" onClick={() => { if (newNo.trim()) { onAddNew(newNo.trim()); setNewNo(""); } }}>
+              添加
+            </button>
+          </div>
+
           <div className="sd-tpl-box">
             <div className="sd-tpl-head">
               <div className="sd-tpl-no">模板</div>
@@ -98,17 +86,53 @@ function SendDrawer({ onClose, onPick }: { onClose: () => void; onPick: (no: str
 }
 
 export default function WechatSendPage() {
+  const domain = useConfigDomain<Dict>("wechat_mp_broadcasts", DEFAULTS as Dict);
+  const mpDomain = useConfigDomain<Dict>("wechat_mp", { platform_templates: [] } as unknown as Dict);
   const [data, setData] = useState<SendRow[]>([]);
+  const [platformTpls, setPlatformTpls] = useState<TplItem[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const apply = useCallback((config: Dict | null) => {
+    const list = Array.isArray(config?.items) ? config!.items : [];
+    setData(list.map((r, i) => {
+      const o = asObject(r as Dict);
+      return {
+        id: asNumber(o.id, i + 1),
+        title: asStr(o.title, ""),
+        platformTpl: asStr(o.platformTpl, ""),
+        updatetime: asStr(o.updatetime, ""),
+      };
+    }));
+  }, []);
+
+  useEffect(() => { domain.reload(); mpDomain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    const list = Array.isArray(mpDomain.snapshot?.config.platform_templates) ? mpDomain.snapshot!.config.platform_templates : [];
+    setPlatformTpls(list.map((x) => ({ no: asStr(asObject(x as Dict).no, asStr(x as unknown as string, "")) })));
+  }, [mpDomain.snapshot]);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const persist = async (next: SendRow[], summary: string) => {
+    setData(next);
+    await domain.save({ items: next } as Partial<Dict>, summary);
+  };
+
+  const addPlatformTpl = async (no: string) => {
+    const next = [...platformTpls, { no }];
+    setPlatformTpls(next);
+    await mpDomain.save({ platform_templates: next } as Partial<Dict>, `添加平台模板 ${no}`);
+  };
 
   const pickTpl = (no: string) => {
     const now = new Date();
     const updatetime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    setData((cur) => [
-      ...cur,
-      { id: cur.length + 1, title: "新建群发", platformTpl: no, updatetime },
-    ]);
+    persist([...data, { id: Date.now(), title: "新建群发", platformTpl: no, updatetime }], `新建群发消息（模板 ${no}）`);
     setDrawerOpen(false);
+  };
+
+  const remove = async (id: number) => {
+    if (!window.confirm("确认删除该群发消息？")) return;
+    await persist(data.filter((r) => r.id !== id), "删除群发消息");
   };
 
   return (
@@ -163,7 +187,7 @@ export default function WechatSendPage() {
                     <td colSpan={5} className="py-0">
                       <div className="flex flex-col items-center justify-center py-16 text-sm text-[#999]">
                         <Inbox className="mb-2 h-10 w-10 text-[#d8dde6]" strokeWidth={1.2} />
-                        暂无数据
+                        {domain.loading ? "加载中…" : "暂无数据"}
                       </div>
                     </td>
                   </tr>
@@ -175,7 +199,7 @@ export default function WechatSendPage() {
                       <td className="sd-td">{r.platformTpl}</td>
                       <td className="sd-td">{r.updatetime}</td>
                       <td className="sd-td sd-td-act">
-                        <button type="button" className="sd-link">配置</button>
+                        <button type="button" className="sd-link" onClick={() => remove(r.id)}>删除</button>
                       </td>
                     </tr>
                   ))
@@ -186,7 +210,23 @@ export default function WechatSendPage() {
         </div>
       </div>
 
-      {drawerOpen && <SendDrawer onClose={() => setDrawerOpen(false)} onPick={pickTpl} />}
+      {drawerOpen && (
+        <SendDrawer
+          tplList={platformTpls}
+          onAddNew={addPlatformTpl}
+          onClose={() => setDrawerOpen(false)}
+          onPick={pickTpl}
+        />
+      )}
     </div>
   );
 }
+
+const gzhChildren = [
+  { label: "参数配置", href: "/wechat-config" },
+  { label: "关注粉丝", href: "/wechat-fans" },
+  { label: "菜单配置", href: "/wechat-menu" },
+  { label: "自动回复", href: "/wechat-autoreply" },
+  { label: "模板消息", href: "/wechat-template" },
+  { label: "消息群发", href: "/wechat-send" },
+];

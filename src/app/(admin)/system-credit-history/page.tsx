@@ -21,9 +21,9 @@ export default function SystemCreditHistoryPage() {
       breadcrumb={getBreadcrumb("财务管理", "资金流水")}
       pageTitle="资金流水"
       searchFields={[
-        { label: "账户类型", type: "input", placeholder: "user / store", width: 140 },
-        { label: "账户 ID", type: "input", placeholder: "请输入账户 ID", width: 120 },
-        { label: "时间范围", type: "dateRange" },
+        { label: "账户类型", key: "account_type", type: "input", placeholder: "user / store", width: 140 },
+        { label: "账户 ID", key: "account_id", type: "input", placeholder: "请输入账户 ID", width: 120 },
+        { label: "时间范围", type: "dateRange", dateKeys: { from: "start_time", to: "end_time" } },
       ]}
       columns={columns}
       dataSource={[]}

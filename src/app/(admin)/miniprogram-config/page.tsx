@@ -1,12 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-
-/**
- * 小程序参数配置（纯前端演示，无后端接口）
- * 页面结构：面包屑 / 须知框 / 小程序配置卡片 / 小程序授权卡片
- */
+import { asStr, pickAndUploadImage, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 interface SwitchProps {
   label?: string;
@@ -32,19 +28,20 @@ function CheckSwitch({ label = "启用", enabled, onToggle }: SwitchProps) {
 
 interface UploadBoxProps {
   placeholder: string;
-  state: "empty" | "filled";
+  url: string | null;
   onUpload: () => void;
+  onClear?: () => void;
 }
 
 /** 上传图片块：预览区，底部叠一条深灰「上传图片」覆盖条（点击上传） */
-function UploadBox({ placeholder, state, onUpload }: UploadBoxProps) {
+function UploadBox({ placeholder, url, onUpload }: UploadBoxProps) {
   return (
     <div className="mp-upload">
-      <div className={`mp-upload-preview ${state === "filled" ? "filled" : ""}`}>
-        {state === "empty" ? (
-          <span className="mp-upload-placeholder">{placeholder}</span>
+      <div className={`mp-upload-preview ${url ? "filled" : ""}`}>
+        {url ? (
+          <img src={url} alt={placeholder} className="pcfg-upload-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
-          <span className="mp-upload-thumb">图片</span>
+          <span className="mp-upload-placeholder">{placeholder}</span>
         )}
         <button type="button" className="mp-upload-overlay" onClick={onUpload}>
           上传图片
@@ -54,15 +51,58 @@ function UploadBox({ placeholder, state, onUpload }: UploadBoxProps) {
   );
 }
 
+const DEFAULTS = {
+  enabled: true, app_id: "", app_secret: "", bar_color: "#6a2fbf",
+  qrcode_url: null, share_cover_url: null, realname_enabled: true, authorized: false,
+} as const;
+
 export default function MiniprogramConfigPage() {
-  const [enabled, setEnabled] = useState(true);          // 是否开启
-  const [appId, setAppId] = useState("wxebcf0a4036441fd1");
-  const [appSecret, setAppSecret] = useState("eaf81ec555ce87e96aea923ac");
-  const [barColor, setBarColor] = useState("#6a2fbf");   // 状态栏背景色
-  const [qrState, setQrState] = useState<"empty" | "filled">("filled"); // 小程序码
-  const [coverState, setCoverState] = useState<"empty" | "filled">("filled"); // 分享封面
-  const [realName, setRealName] = useState(true);        // 实名认证功能
+  const domain = useConfigDomain<Dict>("wechat_mini", DEFAULTS as unknown as Dict);
+
+  const [enabled, setEnabled] = useState(true);
+  const [appId, setAppId] = useState("");
+  const [appSecret, setAppSecret] = useState("");
+  const [barColor, setBarColor] = useState("#6a2fbf");
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [realName, setRealName] = useState(true);
+
   const barInputRef = useRef<HTMLInputElement>(null);
+  const qrInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const apply = useCallback((config: Dict | null) => {
+    if (!config) return;
+    setEnabled(config.enabled !== false);
+    setAppId(asStr(config.app_id, ""));
+    setAppSecret(asStr(config.app_secret, ""));
+    setBarColor(asStr(config.bar_color, "#6a2fbf"));
+    setQrUrl(asStr(config.qrcode_url, "") || null);
+    setCoverUrl(asStr(config.share_cover_url, "") || null);
+    setRealName(config.realname_enabled !== false);
+  }, []);
+
+  useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const payload = () => ({
+    enabled, app_id: appId, app_secret: appSecret, bar_color: barColor,
+    qrcode_url: qrUrl, share_cover_url: coverUrl, realname_enabled: realName,
+    authorized: domain.snapshot?.config.authorized === true,
+  } as Partial<Dict>);
+
+  const submit = async () => {
+    const ok = await domain.save(payload(), "小程序参数配置更新");
+    if (ok) showConfigToast("已保存");
+    else if (domain.error) showConfigToast(domain.error, "error");
+  };
+
+  useEffect(() => {
+    if (!domain.ready) return;
+    const t = setTimeout(() => { domain.save(payload(), "小程序参数配置更新"); }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, appId, appSecret, barColor, qrUrl, coverUrl, realName, domain.ready]);
 
   return (
     <div>
@@ -134,27 +174,19 @@ export default function MiniprogramConfigPage() {
 
             <div className="mp-field mp-field-top">
               <span className="mp-label">小程序码</span>
-              <UploadBox
-                placeholder="二维码图片"
-                state={qrState}
-                onUpload={() => setQrState("filled")}
-              />
+              <UploadBox placeholder="二维码图片" url={qrUrl} onUpload={() => qrInputRef.current?.click()} />
             </div>
 
             <div className="mp-field mp-field-top">
               <span className="mp-label">分享封面</span>
               <div className="mp-upload-group">
-                <UploadBox
-                  placeholder="封面占位"
-                  state={coverState}
-                  onUpload={() => setCoverState("filled")}
-                />
+                <UploadBox placeholder="封面占位" url={coverUrl} onUpload={() => coverInputRef.current?.click()} />
                 <button
                   type="button"
                   className="mp-clear-btn"
                   onClick={() => {
-                    setCoverState("empty");
-                    setQrState("empty");
+                    setCoverUrl(null);
+                    setQrUrl(null);
                   }}
                 >
                   清空图片
@@ -172,7 +204,7 @@ export default function MiniprogramConfigPage() {
             </div>
 
             <div className="mp-field">
-              <button type="button" className="mp-submit">确定提交</button>
+              <button type="button" className="mp-submit" onClick={submit}>确定提交</button>
             </div>
           </div>
         </div>
@@ -184,7 +216,7 @@ export default function MiniprogramConfigPage() {
         <div className="admin-card-body mp-card-body">
           <div className="mp-form">
             <div className="mp-field">
-              <button type="button" className="mp-authorize-btn">立即授权</button>
+              <button type="button" className="mp-authorize-btn" onClick={() => showConfigToast("授权需联系第三方微信服务商完成，当前后端未接入授权服务", "error")}>立即授权</button>
             </div>
             <div className="mp-field">
               <div className="mp-tipbox">
@@ -195,6 +227,29 @@ export default function MiniprogramConfigPage() {
           </div>
         </div>
       </div>
+
+      <input
+        ref={qrInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          pickAndUploadImage(file, setQrUrl, (msg) => showConfigToast(msg, "error"));
+        }}
+      />
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          pickAndUploadImage(file, setCoverUrl, (msg) => showConfigToast(msg, "error"));
+        }}
+      />
     </div>
   );
 }

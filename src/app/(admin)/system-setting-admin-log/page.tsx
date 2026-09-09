@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Info, Inbox, Search, Calendar, ChevronDown } from "lucide-react";
+import { adminApi } from "@/lib/admin-api";
 
 type Row = Record<string, string>;
 
@@ -18,8 +19,8 @@ interface TabDef {
   notice?: string;
   filter: "input" | "range" | "rangeInput";
   columns: ColumnDef[];
-  rows: Row[];
-  showPagination?: boolean;
+  /** 数据来源：login = 后台登录日志接口；audit = 通用审计日志（按 action 前缀） */
+  source: { kind: "login" } | { kind: "audit"; prefix: string };
 }
 
 const TABS: TabDef[] = [
@@ -34,22 +35,7 @@ const TABS: TabDef[] = [
       { title: "时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [
-      { id: "1907", account: "shushu", time: "2026-09-08 16:01:32", ip: "117.147.79.141" },
-      { id: "1905", account: "shushu", time: "2026-09-08 14:20:33", ip: "117.147.79.141" },
-      { id: "1903", account: "shushu", time: "2026-09-08 14:08:30", ip: "117.147.79.141" },
-      { id: "1895", account: "shushu", time: "2026-07-07 15:32:35", ip: "117.147.79.141" },
-      { id: "1893", account: "shushu", time: "2026-07-07 15:28:46", ip: "45.67.201.104" },
-      { id: "1892", account: "shushu", time: "2026-07-07 15:28:36", ip: "45.67.201.104" },
-      { id: "1891", account: "shushu", time: "2026-07-07 15:28:36", ip: "45.67.201.104" },
-      { id: "1888", account: "shushu", time: "2026-09-06 17:26:39", ip: "117.147.79.141" },
-      { id: "1887", account: "shushu", time: "2026-09-06 17:25:59", ip: "117.147.79.141" },
-      { id: "1886", account: "shushu", time: "2026-09-06 17:25:55", ip: "117.147.79.141" },
-      { id: "1885", account: "shushu", time: "2026-09-06 17:25:50", ip: "117.147.79.141" },
-      { id: "1879", account: "shushu", time: "2026-09-06 16:28:49", ip: "45.67.201.104" },
-      { id: "1876", account: "shushu", time: "2026-09-06 16:13:40", ip: "117.147.79.141" },
-      { id: "1873", account: "shushu", time: "2026-09-04 19:25:18", ip: "117.147.79.61" },
-    ],
+    source: { kind: "login" },
   },
   {
     key: "password",
@@ -61,13 +47,7 @@ const TABS: TabDef[] = [
       { title: "时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [
-      { id: "643", account: "三土", time: "2026-06-12 10:16:18", ip: "180.111.215.178" },
-      { id: "640", account: "三土", time: "2026-06-11 22:04:29", ip: "122.192.14.204" },
-      { id: "273", account: "刘佳", time: "2026-06-04 11:38:45", ip: "180.111.214.207" },
-      { id: "246", account: "admin", time: "2026-06-03 14:06:11", ip: "180.111.214.207" },
-    ],
-    showPagination: true,
+    source: { kind: "audit", prefix: "admin_account.password" },
   },
   {
     key: "memberDel",
@@ -81,22 +61,7 @@ const TABS: TabDef[] = [
       { title: "操作时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [
-      { id: "467", operator: "三土", target: "越可名", time: "2026-07-22 10:59:54", ip: "121.225.22.223" },
-      { id: "465", operator: "三土", target: "乌龙茶607i", time: "2026-07-22 10:59:44", ip: "121.225.22.223" },
-      { id: "463", operator: "三土", target: "别借我橘子", time: "2026-07-22 10:58:26", ip: "121.225.22.223" },
-      { id: "461", operator: "三土", target: "优米", time: "2026-07-22 10:57:19", ip: "121.225.22.223" },
-      { id: "459", operator: "三土", target: "小喵", time: "2026-07-22 10:56:39", ip: "121.225.22.223" },
-      { id: "457", operator: "三土", target: "Karo", time: "2026-07-22 10:56:01", ip: "121.225.22.223" },
-      { id: "455", operator: "三土", target: "Natash", time: "2026-07-22 10:55:53", ip: "121.225.22.223" },
-      { id: "453", operator: "三土", target: "暖风拂过", time: "2026-07-22 10:55:45", ip: "121.225.22.223" },
-      { id: "451", operator: "三土", target: "毛毛Oyg2", time: "2026-07-22 10:55:38", ip: "121.225.22.223" },
-      { id: "449", operator: "三土", target: "eRolia", time: "2026-07-22 10:55:14", ip: "121.225.22.223" },
-      { id: "447", operator: "三土", target: "muf", time: "2026-07-22 10:55:04", ip: "121.225.22.223" },
-      { id: "445", operator: "三土", target: "小猪", time: "2026-07-22 10:54:59", ip: "121.225.22.223" },
-      { id: "443", operator: "三土", target: "石头", time: "2026-07-22 10:54:52", ip: "121.225.22.223" },
-      { id: "441", operator: "李会强", target: "秋刀鱼", time: "2026-07-19 14:11:12", ip: "121.225.22.223" },
-    ],
+    source: { kind: "audit", prefix: "member.delete" },
   },
   {
     key: "leadDel",
@@ -110,7 +75,7 @@ const TABS: TabDef[] = [
       { title: "操作时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [],
+    source: { kind: "audit", prefix: "lead.delete" },
   },
   {
     key: "accountDel",
@@ -124,22 +89,7 @@ const TABS: TabDef[] = [
       { title: "操作时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [
-      { id: "469", operator: "shushu", target: "O。o彡\n(ID: 760)", time: "2026-08-20 22:22:20", ip: "121.225.22.223" },
-      { id: "468", operator: "三土", target: "越可名\n(ID: 707)", time: "2026-07-22 10:59:55", ip: "121.225.22.223" },
-      { id: "466", operator: "三土", target: "乌龙茶607i\n(ID: 709)", time: "2026-07-22 10:59:45", ip: "121.225.22.223" },
-      { id: "464", operator: "三土", target: "别借我橘子\n(ID: 26)", time: "2026-07-22 10:58:26", ip: "121.225.22.223" },
-      { id: "462", operator: "三土", target: "优米\n(ID: 745)", time: "2026-07-22 10:57:20", ip: "121.225.22.223" },
-      { id: "460", operator: "三土", target: "小喵\n(ID: 744)", time: "2026-07-22 10:56:41", ip: "121.225.22.223" },
-      { id: "458", operator: "三土", target: "Karo\n(ID: 682)", time: "2026-07-22 10:56:02", ip: "121.225.22.223" },
-      { id: "456", operator: "三土", target: "Natash\n(ID: 692)", time: "2026-07-22 10:55:55", ip: "121.225.22.223" },
-      { id: "454", operator: "三土", target: "暖风拂过\n(ID: 673)", time: "2026-07-22 10:55:46", ip: "121.225.22.223" },
-      { id: "452", operator: "三土", target: "毛毛Oyg2\n(ID: 675)", time: "2026-07-22 10:55:39", ip: "121.225.22.223" },
-      { id: "450", operator: "三土", target: "eRolia\n(ID: 657)", time: "2026-07-22 10:55:15", ip: "121.225.22.223" },
-      { id: "448", operator: "三土", target: "muf\n(ID: 667)", time: "2026-07-22 10:55:05", ip: "121.225.22.223" },
-      { id: "446", operator: "三土", target: "小猪\n(ID: 668)", time: "2026-07-22 10:55:00", ip: "121.225.22.223" },
-      { id: "444", operator: "三土", target: "石头\n(ID: 670)", time: "2026-07-22 10:54:54", ip: "121.225.22.223" },
-    ],
+    source: { kind: "audit", prefix: "admin_account.status" },
   },
   {
     key: "memberMobile",
@@ -153,18 +103,7 @@ const TABS: TabDef[] = [
       { title: "操作时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [
-      { id: "415", operator: "admin", target: "O。o彡\n将手机号：18856767690 修改为：18956767690", time: "2026-06-28 16:46:38", ip: "49.77.196.32" },
-      { id: "414", operator: "admin", target: "O。o彡\n将手机号：18856767690 修改为：19856767690", time: "2026-06-28 16:36:53", ip: "49.77.196.32" },
-      { id: "413", operator: "admin", target: "出现1\n将手机号：13285268800 修改为：13285288888", time: "2026-06-28 16:27:56", ip: "49.77.196.32" },
-      { id: "412", operator: "admin", target: "出现1\n将手机号：13285268888 修改为：13285288800", time: "2026-06-28 16:16:36", ip: "49.77.196.32" },
-      { id: "409", operator: "芸希老师", target: "不吃猪肉\n将手机号：17551158019 修改为：17551157098", time: "2026-06-27 16:39:21", ip: "114.222.57.246" },
-      { id: "408", operator: "芸希老师", target: "MMARLO\n将手机号：17756898209 修改为：17756897650", time: "2026-06-27 16:39:10", ip: "114.222.57.246" },
-      { id: "407", operator: "芸希老师", target: "Z\n将手机号：13951913934 修改为：13951917850", time: "2026-06-27 16:39:00", ip: "114.222.57.246" },
-      { id: "406", operator: "芸希老师", target: "杭月\n将手机号：15236510661 修改为：15236515539", time: "2026-06-27 16:38:51", ip: "114.222.57.246" },
-      { id: "405", operator: "芸希老师", target: "虫雨虫虫\n将手机号：17860889761 修改为：17860889970", time: "2026-06-27 16:38:31", ip: "114.222.57.246" },
-      { id: "404", operator: "芸希老师", target: "在郑州\n将手机号：15706036991 修改为：15706033999", time: "2026-06-27 16:38:24", ip: "114.222.57.246" },
-    ],
+    source: { kind: "audit", prefix: "member.mobile" },
   },
   {
     key: "leadMobile",
@@ -178,7 +117,7 @@ const TABS: TabDef[] = [
       { title: "操作时间", key: "time" },
       { title: "IP地址", key: "ip" },
     ],
-    rows: [],
+    source: { kind: "audit", prefix: "lead.mobile" },
   },
 ];
 
@@ -203,9 +142,6 @@ function AdminSelect({ label, value, onChange }: { label?: string; value: string
       <span className="syslog-select-holder">
         <select className="syslog-select" value={value} onChange={(e) => onChange(e.target.value)}>
           <option value="all">不限</option>
-          <option value="santu">三土</option>
-          <option value="shushu">shushu</option>
-          <option value="admin">admin</option>
         </select>
         <ChevronDown className="syslog-select-chevron" />
       </span>
@@ -229,12 +165,12 @@ function DateRange() {
   );
 }
 
-function FilterBar({ tab, admin, setAdmin, keyword, setKeyword }: { tab: TabDef; admin: string; setAdmin: (v: string) => void; keyword: string; setKeyword: (v: string) => void }) {
+function FilterBar({ tab, admin, setAdmin, keyword, setKeyword, onSearch }: { tab: TabDef; admin: string; setAdmin: (v: string) => void; keyword: string; setKeyword: (v: string) => void; onSearch: () => void }) {
   if (tab.filter === "input") {
     return (
       <div className="syslog-filter">
-        <input className="syslog-input syslog-input-w" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="账号关键词搜索" />
-        <button className="syslog-search-btn">
+        <input className="syslog-input syslog-input-w" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="账号关键词搜索" onKeyDown={(e) => e.key === "Enter" && onSearch()} />
+        <button className="syslog-search-btn" onClick={onSearch}>
           <Search className="syslog-search-ico" />
           搜索
         </button>
@@ -247,8 +183,8 @@ function FilterBar({ tab, admin, setAdmin, keyword, setKeyword }: { tab: TabDef;
       <DateRange />
       {tab.filter === "rangeInput" && (
         <>
-          <input className="syslog-input" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="被删除的账号/手机" />
-          <button className="syslog-search-btn">
+          <input className="syslog-input" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="被删除的账号/手机" onKeyDown={(e) => e.key === "Enter" && onSearch()} />
+          <button className="syslog-search-btn" onClick={onSearch}>
             <Search className="syslog-search-ico" />
             搜索
           </button>
@@ -258,12 +194,12 @@ function FilterBar({ tab, admin, setAdmin, keyword, setKeyword }: { tab: TabDef;
   );
 }
 
-function Table({ tab }: { tab: TabDef }) {
-  if (tab.rows.length === 0) {
+function Table({ tab, rows, loading }: { tab: TabDef; rows: Row[]; loading: boolean }) {
+  if (rows.length === 0) {
     return (
       <div className="syslog-empty">
         <Inbox className="syslog-empty-icon" />
-        <span className="syslog-empty-text">暂无数据</span>
+        <span className="syslog-empty-text">{loading ? "加载中…" : "暂无数据"}</span>
       </div>
     );
   }
@@ -278,7 +214,7 @@ function Table({ tab }: { tab: TabDef }) {
           </tr>
         </thead>
         <tbody>
-          {tab.rows.map((row, idx) => (
+          {rows.map((row, idx) => (
             <tr key={row.id || idx}>
               {tab.columns.map((col) => (
                 <td key={col.key} className={col.key === "target" ? "syslog-td-target" : ""}>{row[col.key] ?? ""}</td>
@@ -291,12 +227,50 @@ function Table({ tab }: { tab: TabDef }) {
   );
 }
 
+const fmt = (v: unknown) => String(v ?? "").replace("T", " ").slice(0, 19);
+
 export default function Page() {
   const breadcrumb = getBreadcrumb("系统管理", "系统日志");
   const [active, setActive] = useState("login");
   const [admin, setAdmin] = useState("all");
   const [keyword, setKeyword] = useState("");
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(false);
   const tab = TABS.find((t) => t.key === active) ?? TABS[0];
+
+  const load = useCallback(async (kw: string) => {
+    setLoading(true);
+    try {
+      if (tab.source.kind === "login") {
+        const qs = new URLSearchParams({ page: "1", page_size: "50" });
+        if (kw) qs.set("username", kw);
+        const data = await adminApi<{ items: Record<string, unknown>[] }>(`/admin/matchmaker/accounts/login-logs?${qs.toString()}`);
+        setRows((data.items ?? []).map((it) => ({
+          id: String(it.id ?? ""),
+          account: String(it.username ?? ""),
+          time: fmt(it.created_at),
+          ip: String(it.ip ?? "-"),
+        })));
+      } else {
+        const qs = new URLSearchParams({ page: "1", page_size: "50", action_prefix: tab.source.kind === "audit" ? tab.source.prefix : "" });
+        if (kw) qs.set("keyword", kw);
+        const data = await adminApi<{ items: Record<string, unknown>[] }>(`/admin/matchmaker/audit-logs?${qs.toString()}`);
+        setRows((data.items ?? []).map((it) => ({
+          id: String(it.id ?? ""),
+          operator: String(it.actor_name ?? it.actor_account_id ?? "-"),
+          target: `${it.action ?? ""}${it.resource_type ? ` (${it.resource_type}${it.resource_id ? `:${it.resource_id}` : ""})` : ""}${it.reason ? `\n${it.reason}` : ""}`,
+          time: fmt(it.created_at),
+          ip: "-",
+        })));
+      }
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [tab]);
+
+  useEffect(() => { load(keyword); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active, load]);
 
   return (
     <div>
@@ -305,7 +279,7 @@ export default function Page() {
       <div className="admin-card syslog-card">
         <div className="syslog-tabs">
           {TABS.map((t) => (
-            <button key={t.key} className={`syslog-tab ${active === t.key ? "active" : ""}`} onClick={() => setActive(t.key)}>
+            <button key={t.key} className={`syslog-tab ${active === t.key ? "active" : ""}`} onClick={() => { setActive(t.key); setKeyword(""); }}>
               {t.label}
             </button>
           ))}
@@ -313,17 +287,9 @@ export default function Page() {
 
         {tab.notice && <Notice text={tab.notice} />}
 
-        <FilterBar tab={tab} admin={admin} setAdmin={setAdmin} keyword={keyword} setKeyword={setKeyword} />
+        <FilterBar tab={tab} admin={admin} setAdmin={setAdmin} keyword={keyword} setKeyword={setKeyword} onSearch={() => load(keyword)} />
 
-        <Table tab={tab} />
-
-        {tab.showPagination && (
-          <div className="syslog-pagination">
-            <button className="syslog-page-btn">‹</button>
-            <span className="syslog-page-num">1</span>
-            <button className="syslog-page-btn">›</button>
-          </div>
-        )}
+        <Table tab={tab} rows={rows} loading={loading} />
       </div>
     </div>
   );
