@@ -6,6 +6,244 @@ export type AdminListQuery = PageQuery & Record<string, string | number | undefi
 export type JsonBody = Record<string, unknown>;
 export type DashboardQuery = { from?: string; to?: string };
 
+// ─── 服务红娘分成级别类型 ──────────────────────────────────────
+export type CommissionLevelMode = "rate" | "fixed";
+
+export interface CommissionLevel {
+  id: number;
+  code: string;
+  name: string;
+  mode: CommissionLevelMode;
+  rate_percent: string;
+  fixed_amount: string | null;
+  platform_extra_amount: string;
+  promotion_condition: string | null;
+  sort: number;
+  status: 1 | 2;
+  applicable_matchmaker_count: number;
+  updated_by: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+export type CommissionLevelUpdatePayload = Partial<{
+  "name": string;
+  "mode": CommissionLevelMode;
+  "rate_percent": string;
+  "fixed_amount": string | null;
+  "platform_extra_amount": string;
+  "promotion_condition": string | null;
+  "sort": number;
+  "status": 1 | 2;
+}>;
+
+// ─── 红娘线上分成明细类型 ─────────────────────────────────────────
+export interface CommissionEntryDetailItem {
+  id: number;
+  created_at: string;
+  store_name: string;
+  matchmaker_id: number;
+  matchmaker_name: string;
+  matchmaker_avatar: string | null;
+  consumer_id: number;
+  consumer_name: string;
+  consumer_phone: string | null;
+  consumer_avatar: string | null;
+  event_name: string;
+  beneficiary_type: string;
+  order_id: number;
+  order_no: string | null;
+  consumer_amount: string;
+  commission_amount: string;
+  status: string;
+}
+
+export interface CommissionEntryDetailPage {
+  items: CommissionEntryDetailItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface CommissionEntryMatchmakerOption {
+  id: number;
+  name: string;
+  avatar: string | null;
+}
+
+export interface CommissionEntryEventOption {
+  id: number;
+  name: string;
+  beneficiary_type: string;
+}
+
+export interface CommissionEntryDetailOptions {
+  matchmakers: CommissionEntryMatchmakerOption[];
+  events: CommissionEntryEventOption[];
+}
+
+export type CommissionEntryListQuery = {
+  page?: number;
+  page_size?: number;
+  matchmaker_id?: number;
+  rule_id?: number;
+  start_date?: string;
+  end_date?: string;
+};
+
+// ─── 推广红娘管理类型 ─────────────────────────────────────────
+export type PromoterMatchmakerType = "part_time" | "full_time";
+export const PROMOTER_LEVELS: { id: 1 | 2 | 3 | 4; name: string }[] = [
+  { id: 1, name: "初级" },
+  { id: 2, name: "推广大师" },
+  { id: 3, name: "推广大使" },
+  { id: 4, name: "推广天使" },
+];
+
+export interface PromoterUserCandidate {
+  id: number;
+  nickname: string | null;
+  phone: string | null;
+  avatar: string | null;
+}
+
+export interface PromoterStaffItem {
+  id: number;
+  user_id: number;
+  avatar: string | null;
+  display_name: string;
+  phone: string | null;
+  channel: string | null;
+  member_count: number;
+  touch_count: number;
+  status: 1 | 2;
+  status_label: "在职" | "离职";
+  reviewed_at: string | null;
+  intro: string | null;
+  created_at: string | null;
+}
+
+export interface PromoterStaffPage {
+  items: PromoterStaffItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface PromoterStaffDetail extends PromoterStaffItem {
+  real_name: string | null;
+  suspension_reason: string | null;
+  matchmaker_type: PromoterMatchmakerType | null;
+  slogan: string | null;
+  commission_level_id: 1 | 2 | 3 | 4 | null;
+  can_view_lead_follow: boolean;
+  can_write_lead_follow: boolean;
+  can_view_member_crm_follow: boolean;
+}
+
+export type PromoterListQuery = {
+  page?: number;
+  page_size?: number;
+  keyword?: string;
+  status?: 1 | 2;
+};
+
+export type PromoterCreatePayload = {
+  user_id?: number;
+  lookup?: string;
+  lookup_by?: "nickname" | "phone";
+  channel?: string | null;
+  intro?: string | null;
+  matchmaker_type?: PromoterMatchmakerType | null;
+  slogan?: string | null;
+  commission_level_id?: 1 | 2 | 3 | 4 | null;
+  can_view_lead_follow?: boolean;
+  can_write_lead_follow?: boolean;
+  can_view_member_crm_follow?: boolean;
+};
+
+export type PromoterUpdatePayload = Partial<{
+  channel: string | null;
+  intro: string | null;
+  display_name: string;
+  phone: string;
+  status: 1 | 2;
+  reason: string | null;
+  matchmaker_type: PromoterMatchmakerType | null;
+  slogan: string | null;
+  commission_level_id: 1 | 2 | 3 | 4 | null;
+  can_view_lead_follow: boolean;
+  can_write_lead_follow: boolean;
+  can_view_member_crm_follow: boolean;
+}>;
+
+// ─── 推广红娘分成配置（4 固定级别）类型 ────────────────────────────
+export type PromoterAutoSplitMode = "fixed_amount" | "auto_rate";
+export type PromoterConsumeCommissionMode = "none" | "auto_rate";
+
+export interface PromoterLevelItem {
+  id: number;
+  level_id: 1 | 2 | 3 | 4;
+  level_name: string;
+  auto_split_mode: PromoterAutoSplitMode;
+  auto_split_mode_label: string;
+  auto_split_rate: string | null;
+  promote_threshold: number | null;
+  promote_threshold_text: string;
+  matchmaker_count: number;
+  register_reward_male: string;
+  register_reward_female: string;
+  consume_commission_mode: PromoterConsumeCommissionMode;
+  consume_commission_rate: string | null;
+  updated_at: string | null;
+}
+
+export interface PromoterLevelPage {
+  items: PromoterLevelItem[];
+}
+
+export type PromoterLevelUpdatePayload = {
+  promote_threshold?: number | null;
+  register_reward_male?: string | null;
+  register_reward_female?: string | null;
+  consume_commission_mode?: PromoterConsumeCommissionMode | null;
+  consume_commission_rate?: string | null;
+};
+
+// ─── 分派配置类型 ────────────────────────────────────────────
+export type ApportionScope = "member_crm" | "customer_lead";
+export type ApportionConfigType = "assign" | "abandon";
+export type ApportionStrategy = "designated" | "round_robin_random" | "by_region" | "by_promoter" | "none";
+
+export interface ApportionAssignFields {
+  strategy: ApportionStrategy;
+  target_matchmaker_id: number | null;
+  target_matchmaker_name: string | null;
+  round_robin_pool_size: number | null;
+  region_strategy: string | null;
+  promoter_follow_enabled: boolean;
+  remark: string | null;
+  updated_at: string;
+}
+export interface ApportionAbandonFields {
+  auto_abandon_days: number;
+  daily_pickup_limit: number;
+  show_admin_abandoned_in_pool: boolean;
+  show_store_abandoned_in_pool: boolean;
+  remark: string | null;
+  updated_at: string;
+}
+export interface ApportionConfigPayload {
+  scope: ApportionScope;
+  config_type: ApportionConfigType;
+  enabled: boolean;
+  updated_at: string;
+  remark: string | null;
+  assign?: ApportionAssignFields;
+  abandon?: ApportionAbandonFields;
+}
+
 const list = (path: string, query: AdminListQuery = {}) => adminApi(path, { method: "GET", query });
 const create = (path: string, body: JsonBody) => adminApi(path, { method: "POST", body });
 const update = (path: string, body: JsonBody) => adminApi(path, { method: "PATCH", body });
@@ -158,4 +396,51 @@ export const adminEndpoints = {
   refundFinanceOrder: (orderId: number | string, body: Record<string, unknown>) => adminApi(`admin/finance/orders/${orderId}/refund`, { method: "POST", body }),
   releaseCommissionEntry: (entryId: number | string, body: Record<string, unknown> = {}) => adminApi(`admin/finance/commission-entries/${entryId}/release`, { method: "POST", body }),
   reviewWithdrawal: (withdrawalId: number | string, body: Record<string, unknown>) => adminApi(`admin/finance/withdrawals/${withdrawalId}`, { method: "PATCH", body }),
+  // ─── 分派配置（总店红娘后台） ─────────────────────────────────────
+  apportionConfigs: () => adminApi<ApportionConfigPayload[]>("admin/matchmaker/apportion-config"),
+  apportionConfig: (scope: ApportionScope, configType: ApportionConfigType) =>
+    adminApi<ApportionConfigPayload>(`admin/matchmaker/apportion-config/${scope}/${configType}`),
+  upsertApportionAssign: (scope: ApportionScope, body: Record<string, unknown>) =>
+    adminApi(`admin/matchmaker/apportion-config/${scope}/assign`, { method: "PUT", body }),
+  upsertApportionAbandon: (scope: ApportionScope, body: Record<string, unknown>) =>
+    adminApi(`admin/matchmaker/apportion-config/${scope}/abandon`, { method: "PUT", body }),
+  toggleApportionConfig: (scope: ApportionScope, configType: ApportionConfigType, body: { enabled: boolean }) =>
+    adminApi(`admin/matchmaker/apportion-config/${scope}/${configType}/toggle`, { method: "PATCH", body }),
+  apportionAuditLogs: (query: PageQuery & { scope?: ApportionScope; config_type?: ApportionConfigType } = {}) =>
+    adminApi("admin/matchmaker/apportion-config/audit-log", { method: "GET", query }),
+
+  // ─── 服务红娘分成级别 ────────────────────────────────────────
+  commissionLevels: () => adminApi<CommissionLevel[]>("admin/commission-levels"),
+  commissionLevel: (levelId: number) =>
+    adminApi<CommissionLevel>(`admin/commission-levels/${levelId}`),
+  updateCommissionLevel: (levelId: number, body: CommissionLevelUpdatePayload) =>
+    adminApi<CommissionLevel>(`admin/commission-levels/${levelId}`, { method: "PUT", body }),
+
+  // ─── 红娘线上分成明细 ──────────────────────────────────
+  commissionEntryList: (query: CommissionEntryListQuery = {}) =>
+    adminApi<CommissionEntryDetailPage>("admin/finance/commission-entries", { method: "GET", query }),
+  commissionEntryOptions: () =>
+    adminApi<CommissionEntryDetailOptions>("admin/finance/commission-entries/options"),
+
+  // ─── 推广红娘管理（推广体系独立于总店服务红娘） ─────────────
+  promoterStaffList: (query: PromoterListQuery = {}) =>
+    adminApi<PromoterStaffPage>("admin/promoters", { method: "GET", query }),
+  promoterUserCandidates: (keyword: string) =>
+    adminApi<PromoterUserCandidate[]>("admin/promoters/user-candidates", { method: "GET", query: { keyword } }),
+  createPromoterStaff: (body: PromoterCreatePayload) =>
+    adminApi<PromoterStaffDetail>("admin/promoters", { method: "POST", body }),
+  promoterStaff: (userId: number) =>
+    adminApi<PromoterStaffDetail>(`admin/promoters/${userId}`),
+  updatePromoterStaff: (userId: number, body: PromoterUpdatePayload) =>
+    adminApi<PromoterStaffDetail>(`admin/promoters/${userId}`, { method: "PUT", body }),
+  updatePromoterStatus: (userId: number, body: { status: 1 | 2; reason?: string | null }) =>
+    adminApi<PromoterStaffDetail>(`admin/promoters/${userId}/status`, { method: "PATCH", body }),
+
+  // ─── 推广红娘分成配置（4 固定级别） ──────────────────────
+  promoterLevelList: () =>
+    adminApi<PromoterLevelPage>("admin/promoter-levels"),
+  promoterLevel: (levelId: 1 | 2 | 3 | 4) =>
+    adminApi<PromoterLevelItem>(`admin/promoter-levels/${levelId}`),
+  updatePromoterLevel: (levelId: 1 | 2 | 3 | 4, body: PromoterLevelUpdatePayload) =>
+    adminApi<PromoterLevelItem>(`admin/promoter-levels/${levelId}`, { method: "PUT", body }),
 };
