@@ -1,99 +1,73 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { ChevronDown, X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import {
-  adminEndpoints,
-  type PromoterLevelItem,
-  type PromoterConsumeCommissionMode,
-} from "@/lib/admin-endpoints";
-import { clearAdminToken } from "@/lib/admin-api";
+import { getBreadcrumb } from "@/lib/breadcrumb-config";
 
-const breadcrumb = [
-  { label: "首页", href: "/" },
-  { label: "推广红娘", href: "/poplove-matchmaker-list" },
-  { label: "分成配置" },
+const breadcrumb = getBreadcrumb("推广红娘", "分成配置");
+
+type LevelRow = {
+  id: number;
+  level: string;
+  name: string;
+  mode: string;
+  count: number;
+  condition: string;
+};
+
+const levels: LevelRow[] = [
+  { id: 5, level: "级别1", name: "初级", mode: "自定义固定金额", count: 7, condition: "默认" },
+  { id: 6, level: "级别2", name: "推广大师", mode: "按照比例自动计算：10%", count: 0, condition: "累计发展有效相亲会员数量>=51人" },
+  { id: 7, level: "级别3", name: "推广大使", mode: "自定义固定金额", count: 0, condition: "累计发展有效相亲会员数量>=100人" },
+  { id: 8, level: "级别4", name: "推广天使", mode: "自定义固定金额", count: 0, condition: "累计发展有效相亲会员数量>=500人" },
 ];
 
-const input =
-  "h-10 w-full rounded border border-[#d9d9d9] px-3 text-sm outline-none focus:border-[#3658f7]";
-
 export default function PoploveMatchmakerDistributionPage() {
-  const [rows, setRows] = useState<PromoterLevelItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState("");
-  const [editing, setEditing] = useState<PromoterLevelItem | null>(null);
-
-  const flash = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 2200);
-  };
-
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const page = await adminEndpoints.promoterLevelList();
-      setRows(page.items);
-    } catch (err: unknown) {
-      if (err instanceof Error && /登录/.test(err.message)) {
-        clearAdminToken();
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") window.location.replace("/login");
-        return;
-      }
-      setError(err instanceof Error ? err.message : "加载失败");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchList();
-  }, [fetchList]);
+  const [editing, setEditing] = useState<LevelRow | null>(null);
 
   return (
-    <div>
+    <div className="min-w-0">
       <AdminBreadcrumb items={breadcrumb} />
-      <h1 className="mb-4 text-xl font-medium text-[#333]">推广红娘分成配置</h1>
 
-      <div className="overflow-x-auto rounded-md border border-[#f0f0f0]">
-        {loading ? (
-          <div className="p-8 text-center text-[#999]">加载中...</div>
-        ) : error ? (
-          <div className="p-8 text-center text-[#ff4d4f]">{error}</div>
-        ) : rows.length === 0 ? (
-          <div className="p-8 text-center text-[#999]">暂无数据</div>
-        ) : (
-          <table className="w-full">
+      <div className="pd-card">
+        <div className="pd-head">
+          <h2 className="pd-title">推广红娘分成配置</h2>
+        </div>
+
+        <div className="pd-table-wrap">
+          <table className="pd-table">
+            <colgroup>
+              <col style={{ width: 90 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 150 }} />
+              <col style={{ width: 240 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: "auto" }} />
+              <col style={{ width: 120 }} />
+            </colgroup>
             <thead>
               <tr>
-                {["ID", "分成级别", "级别名称", "分成模式", "红娘数量", "自动升级条件", "操作"].map((title) => (
-                  <th
-                    key={title}
-                    className="whitespace-nowrap border-b border-[#f0f0f0] bg-[#fafafa] p-3 text-left text-sm font-medium"
-                  >
-                    {title}
-                  </th>
-                ))}
+                <th>ID</th>
+                <th>分成级别</th>
+                <th>级别名称</th>
+                <th>分成模式</th>
+                <th>红娘数量</th>
+                <th>自动升级条件</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} className="hover:bg-[#fafafa]">
-                  <td className="border-b border-[#f0f0f0] p-3 text-center text-sm">{row.id}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">级别{row.level_id}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">{row.level_name}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">{row.auto_split_mode_label}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-center text-sm">{row.matchmaker_count}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">{row.promote_threshold_text}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">
-                    <button
-                      type="button"
-                      className="text-[#3658f7] hover:underline"
-                      onClick={() => setEditing(row)}
-                    >
+              {levels.map((row) => (
+                <tr key={row.id}>
+                  <td className="pd-td-id">{row.id}</td>
+                  <td className="pd-td-text">{row.level}</td>
+                  <td className="pd-td-strong">{row.name}</td>
+                  <td className="pd-td-text">{row.mode}</td>
+                  <td className="pd-td-text">{row.count}</td>
+                  <td className="pd-td-text">{row.condition}</td>
+                  <td>
+                    <button type="button" className="pd-link" onClick={() => setEditing(row)}>
                       编辑配置
                     </button>
                   </td>
@@ -101,162 +75,151 @@ export default function PoploveMatchmakerDistributionPage() {
               ))}
             </tbody>
           </table>
-        )}
+        </div>
       </div>
 
-      {notice && (
-        <div role="status" className="fixed right-6 top-5 z-[60] border border-[#b7eb8f] bg-[#f6ffed] px-4 py-2 text-sm text-[#52a26b] shadow">
-          {notice}
-        </div>
-      )}
-
-      {editing && (
-        <EditPanel
-          row={editing}
-          close={() => setEditing(null)}
-          done={(message) => { setEditing(null); flash(message); void fetchList(); }}
-          error={flash}
-        />
-      )}
+      {editing && <EditDrawer row={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }
 
-function EditPanel({
-  row,
-  close,
-  done,
-  error,
-}: {
-  row: PromoterLevelItem;
-  close: () => void;
-  done: (message: string) => void;
-  error: (message: string) => void;
-}) {
-  const [promoteThreshold, setPromoteThreshold] = useState<string>(row.promote_threshold != null ? String(row.promote_threshold) : "");
-  const [registerRewardMale, setRegisterRewardMale] = useState<string>(row.register_reward_male);
-  const [registerRewardFemale, setRegisterRewardFemale] = useState<string>(row.register_reward_female);
-  const [consumeMode, setConsumeMode] = useState<PromoterConsumeCommissionMode>(row.consume_commission_mode);
-  const [consumeRate, setConsumeRate] = useState<string>(row.consume_commission_rate ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const submit = async () => {
-    if (consumeMode === "auto_rate" && !consumeRate.trim()) {
-      error("会员消费分成为按比例时必须填写比例");
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload: Parameters<typeof adminEndpoints.updatePromoterLevel>[1] = {
-        promote_threshold: promoteThreshold.trim() === "" ? null : Number(promoteThreshold),
-        register_reward_male: registerRewardMale.trim() || "0",
-        register_reward_female: registerRewardFemale.trim() || "0",
-        consume_commission_mode: consumeMode,
-        consume_commission_rate: consumeMode === "auto_rate" ? consumeRate.trim() : null,
-      };
-      await adminEndpoints.updatePromoterLevel(row.level_id, payload);
-      done("配置已更新");
-    } catch (err: unknown) {
-      error(err instanceof Error ? err.message : "保存失败");
-    } finally {
-      setSaving(false);
-    }
-  };
+function EditDrawer({ row, onClose }: { row: LevelRow; onClose: () => void }) {
+  const [levelName, setLevelName] = useState(row.name);
+  const [operator, setOperator] = useState("累积>");
+  const [threshold, setThreshold] = useState("100");
+  const [rewardMale, setRewardMale] = useState("0.00");
+  const [rewardFemale, setRewardFemale] = useState("0.00");
+  const [consumeMode, setConsumeMode] = useState("none");
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" onMouseDown={close}>
-      <div className="w-full max-w-xl rounded bg-white shadow-lg" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-medium">编辑配置</h2>
-          <button type="button" aria-label="关闭" className="text-xl text-[#999]" onClick={close}>×</button>
-        </div>
-        <div className="space-y-5 p-6">
-          <div>
-            <div className="mb-1 text-sm text-[#666]">
-              分成级别名称 <b className="text-[#ff4d4f]">*</b>
-            </div>
-            <input value={row.level_name} disabled className={`${input} bg-[#fafafa] text-[#999]`} />
-          </div>
-          <div>
-            <div className="mb-1 text-sm text-[#666]">自动升级条件</div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-[#444]">累计发展有效相亲会员数&gt;=</span>
-              <input
-                value={promoteThreshold}
-                onChange={(e) => setPromoteThreshold(e.target.value.replace(/[^\d]/g, ""))}
-                placeholder="如 51"
-                className={`${input} w-32 text-center`}
-                inputMode="numeric"
-              />
-              <span className="text-sm text-[#444]">人</span>
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 text-sm text-[#666]">会员注册奖励</div>
-            <div className="grid grid-cols-[auto_1fr_auto_auto_1fr_auto] items-center gap-3">
-              <span className="text-sm text-[#444]">男会员</span>
-              <input
-                value={registerRewardMale}
-                onChange={(e) => setRegisterRewardMale(e.target.value)}
-                placeholder="0.00"
-                className={`${input} text-center`}
-              />
-              <span className="text-sm text-[#666]">元/人</span>
-              <span className="text-sm text-[#444]">女会员</span>
-              <input
-                value={registerRewardFemale}
-                onChange={(e) => setRegisterRewardFemale(e.target.value)}
-                placeholder="0.00"
-                className={`${input} text-center`}
-              />
-              <span className="text-sm text-[#666]">元/人</span>
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 text-sm text-[#666]">会员消费分成</div>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  checked={consumeMode === "none"}
-                  onChange={() => setConsumeMode("none")}
-                />
-                不分成
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  checked={consumeMode === "auto_rate"}
-                  onChange={() => setConsumeMode("auto_rate")}
-                />
-                给予分成
-              </label>
-              {consumeMode === "auto_rate" && (
-                <div className="flex items-center gap-2">
-                  <input
-                    value={consumeRate}
-                    onChange={(e) => setConsumeRate(e.target.value)}
-                    placeholder="比例(%)"
-                    className={`${input} w-32 text-center`}
-                  />
-                  <span className="text-sm text-[#666]">%</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 border-t px-6 py-4">
-          <button type="button" className="rounded border px-5 py-1.5 text-sm" onClick={close}>关闭</button>
-          <button
-            type="button"
-            disabled={saving}
-            className="rounded bg-[#3658f7] px-5 py-1.5 text-sm text-white disabled:opacity-60"
-            onClick={() => void submit()}
-          >
-            {saving ? "保存中..." : "确定提交"}
+    <>
+      <div className="pd-mask" onClick={onClose} />
+      <div className="pd-panel">
+        <div className="pd-panel-head">
+          <button className="pd-panel-close-icon" onClick={onClose} aria-label="关闭">
+            <X size={18} />
           </button>
+          <h2 className="pd-panel-title">编辑配置</h2>
+          <div className="pd-panel-actions">
+            <button className="pd-btn" onClick={onClose}>
+              关闭
+            </button>
+            <button className="pd-btn primary">确定提交</button>
+          </div>
+        </div>
+
+        <div className="pd-panel-body">
+          {/* 分成级别名称 */}
+          <div className="pd-field">
+            <span className="pd-field-label">
+              <b className="req">*</b>分成级别名称
+            </span>
+            <div className="pd-field-body">
+              <input
+                className="pd-input"
+                value={levelName}
+                onChange={(e) => setLevelName(e.target.value)}
+                placeholder="请输入"
+              />
+              <div className="pd-hint">
+                <i className="pd-hint-icon">i</i>
+                不要超过4个汉字
+              </div>
+            </div>
+          </div>
+
+          {/* 自动升级条件 */}
+          <div className="pd-field">
+            <span className="pd-field-label">
+              <b className="req">*</b>自动升级条件
+            </span>
+            <div className="pd-field-body">
+              <div className="pd-inline">
+                <span className="pd-text">累计发展相亲会员数量&gt;=</span>
+                <div className="pd-select">
+                  <select value={operator} onChange={(e) => setOperator(e.target.value)}>
+                    <option value="累积>">累积&gt;</option>
+                  </select>
+                  <ChevronDown className="pd-caret" size={14} />
+                </div>
+                <input
+                  className="pd-input short"
+                  value={threshold}
+                  onChange={(e) => setThreshold(e.target.value.replace(/[^\d]/g, ""))}
+                  inputMode="numeric"
+                />
+                <span className="pd-unit">人</span>
+              </div>
+              <div className="pd-hint">
+                <i className="pd-hint-icon">i</i>
+                以通过审核的相亲会员数量为依据
+              </div>
+            </div>
+          </div>
+
+          {/* 会员注册奖励 */}
+          <div className="pd-field">
+            <span className="pd-field-label">
+              <b className="req">*</b>会员注册奖励
+            </span>
+            <div className="pd-field-body">
+              <div className="pd-inline">
+                <span className="pd-text">男会员</span>
+                <input
+                  className="pd-input short"
+                  value={rewardMale}
+                  onChange={(e) => setRewardMale(e.target.value)}
+                />
+                <span className="pd-unit">元/人</span>
+                <span className="pd-text">女会员</span>
+                <input
+                  className="pd-input short"
+                  value={rewardFemale}
+                  onChange={(e) => setRewardFemale(e.target.value)}
+                />
+                <span className="pd-unit">元/人</span>
+              </div>
+              <div className="pd-hint">
+                <i className="pd-hint-icon">i</i>
+                会员在初次被平台审核通过后推广红娘即可获得该金额的奖励
+              </div>
+            </div>
+          </div>
+
+          {/* 会员消费分成 */}
+          <div className="pd-field">
+            <span className="pd-field-label">
+              <b className="req">*</b>会员消费分成
+            </span>
+            <div className="pd-field-body">
+              <div className="pd-inline">
+                <label className="pd-radio">
+                  <input
+                    type="radio"
+                    name="pd-consume"
+                    checked={consumeMode === "none"}
+                    onChange={() => setConsumeMode("none")}
+                  />
+                  <span>不分成</span>
+                </label>
+                <label className="pd-radio">
+                  <input
+                    type="radio"
+                    name="pd-consume"
+                    checked={consumeMode === "give"}
+                    onChange={() => setConsumeMode("give")}
+                  />
+                  <span>给予分成</span>
+                </label>
+              </div>
+              <div className="pd-hint">
+                <i className="pd-hint-icon">i</i>
+                推广红娘可享其发展来的会员在相亲平台中产生的线上消费分成佣金
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

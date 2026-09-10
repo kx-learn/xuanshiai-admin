@@ -35,6 +35,7 @@ import UpdateReportModal from "@/components/UpdateReportModal";
 import UseSystemModal from "@/components/UseSystemModal";
 import RechargeModal from "@/components/RechargeModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import { getAdminToken } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -52,7 +53,7 @@ const groups: Group[] = [
   { label: "平台账号", icon: Users, items: [{ label: "账号管理", href: "/reg-user-all" }, { label: "登录日志", href: "/reg-user-log" }] },
   { label: "客源线索", icon: ClipboardList, items: [{ label: "线索管理", href: "/love-customer-list" }, { label: "数据报表", href: "/love-customer-statistics" }, { label: "跟进全览", href: "/customer-follow-up" }, { label: "功能配置", href: "/love-customer-config" }] },
   { label: "会员CRM", icon: HeartHandshake, items: [{ label: "资料管理", href: "/love-user-list" }, { label: "线上VIP", href: "/love-user-vip" }, { label: "线下VIP", href: "/love-user-vip-underline" }, { label: "会员认证", href: "/love-user-auth" }, { label: "内容核查", href: "/content-verify" }, { label: "线上行为", href: "/love-user-behavior" }, { label: "数据报表", href: "/love-user-statistics" }, { label: "跟进全览", href: "/love-user-follow-up" }] },
-  { label: "会员服务", icon: HeartHandshake, items: [{ label: "红娘牵线", href: "/vip-line-record" }, { label: "约见申请", href: "/love-interview" }, { label: "约会管理", href: "/love-appointment" }] },
+  { label: "会员服务", icon: HeartHandshake, items: [{ label: "红娘牵线", href: "/vip-line-record" }, { label: "约见申请", href: "/love-interview" }, { label: "约会管理", href: "/love-appointment" }, { label: "推广管理", href: "/love-promotion" }] },
   { label: "总店红娘", icon: Users, items: [{ label: "红娘管理", href: "/love-matchmaker-list" }, { label: "分派配置", href: "/love-matchmaker-apportion2" }, { label: "分成配置", href: "/love-matchmaker-distribution" }, { label: "分成明细", href: "/love-matchmaker-distribution-details" }] },
   { label: "分店管理", icon: Store, items: [{ label: "分站配置", href: "/branch-config" }, { label: "门店管理", href: "/mendian-list" }, { label: "分店红娘", href: "/branch-matchmaker-list" }, { label: "分店报表", href: "/branch-report-list" }, { label: "分成明细", href: "/branch-distribution-list" }] },
   { label: "推广红娘", icon: Coins, items: [{ label: "红娘管理", href: "/poplove-matchmaker-list" }, { label: "分成配置", href: "/poplove-matchmaker-distribution" }, { label: "分成明细", href: "/poplove-matchmaker-distribution-details" }] },
@@ -148,6 +149,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [navOpen, setNavOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [changePwdOpen, setChangePwdOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const activeGroup = useMemo(() => {
     const inGroups = groups.find((group) => findInItems(group.items, pathname) || (group.label === "平台账号" && pathname === "/reg-user-cancel"));
@@ -162,11 +164,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!getAdminToken()) {
       router.replace("/login");
-      return;
-    }
-    if (getAdminToken() === "local-demo-token") {
-      setAccountName("管理员");
-      setAuthReady(true);
       return;
     }
     adminEndpoints.me()
@@ -199,7 +196,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-full items-center gap-1 px-2 lg:px-4">
           <Link href="/home" aria-label="首页" className="flex w-[78px] shrink-0 items-center"><span className="font-serif text-[22px] font-bold italic leading-none text-[#6e92f6]">163R</span></Link>
           <div className="translate-x-2 hidden items-center gap-1 whitespace-nowrap text-[11px] font-medium text-[#d9dceb] xl:flex"><span>⌘ 当前版本：V9.0</span><button type="button" onClick={() => setReportOpen(true)} className="rounded bg-[#3d455f] px-2 py-1.5">更新报告</button><Link href="/system-feedback" className="rounded bg-[#3d455f] px-2 py-1.5">工单反馈</Link><button type="button" onClick={() => setUseSystemOpen(true)} className="rounded bg-[#3d455f] px-2 py-1.5">用好系统</button><button type="button" onClick={() => setRechargeOpen(true)} className="rounded bg-[#3d455f] px-2 py-1.5">充值</button></div>
-          <div className="ml-auto flex min-w-0 items-center gap-1 whitespace-nowrap"><button type="button" onClick={() => setClassOpen(true)} className="hidden items-center gap-1 rounded bg-[#3d5cf1] px-2 py-1.5 text-[11px] font-semibold sm:inline-flex"><Bell className="h-3 w-3" />红娘课堂</button><Link href="/operate-center" className="hidden items-center gap-1 rounded bg-[#4a62ed] px-2 py-1.5 text-[11px] font-semibold md:inline-flex"><Gift className="h-3 w-3" />婚创学苑</Link><button type="button" onClick={() => setCloudOpen(true)} className="hidden items-center gap-1 rounded bg-[#eb3d7d] px-2 py-1.5 text-[11px] font-semibold lg:inline-flex"><Cloud className="h-3 w-3" />云端图库</button><div className="relative hidden xl:block" onMouseEnter={() => setNavOpen(true)} onMouseLeave={() => setNavOpen(false)}><label className="flex h-7 w-[250px] shrink-0 items-center gap-1.5 rounded-full bg-[#3c435c] px-2.5 text-[#aeb4c8]"><input className="min-w-0 flex-1 whitespace-nowrap bg-transparent text-[11px] outline-none placeholder:text-[#aeb4c8]" placeholder="输入会员昵称/手机号/编号/姓名" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { router.push(`/love-user-list?keyword=${encodeURIComponent(searchKeyword)}`); setNavOpen(false); } }} /><button type="button" onClick={() => { router.push(`/love-user-list?keyword=${encodeURIComponent(searchKeyword)}`); setNavOpen(false); }} className="shrink-0" aria-label="搜索"><Search className="h-3 w-3 shrink-0" /></button></label><div className={`quicknav-panel ${navOpen ? "quicknav-visible" : ""}`}><div className="quicknav-title">快捷导航</div><div className="quicknav-grid">{quickNav.map((q) => <Link key={q.label} href={q.href} className="quicknav-item">{q.label}</Link>)}</div></div></div><div className="hidden items-center gap-1.5 text-[11px] text-[#e0e2eb] lg:flex"><span className="inline-flex items-center gap-1"><Smartphone className="h-3 w-3" />手机版</span><span className="inline-flex items-center gap-1"><Monitor className="h-3 w-3" />电脑版</span><a href="https://www.xuanshiai.com/crm/user/login?redirect=/home" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1"><HeartHandshake className="h-3 w-3" />红娘工作台</a></div><div className="relative flex shrink-0 items-center" onMouseEnter={() => setProfileOpen(true)} onMouseLeave={() => setProfileOpen(false)}><button className="flex shrink-0 items-center gap-1 text-[11px]"><CircleUserRound className="h-5 w-5 text-[#d8d9df]" /><span>{accountName}</span><ChevronDown className="h-3 w-3" /></button><div className={`profile-panel ${profileOpen ? "profile-visible" : ""}`}><Link href="/system-setting-admin-user-edit" className="profile-item">绑定手机</Link><Link href="/system-feedback" className="profile-item">绑定微信</Link><button type="button" className="profile-item" onClick={() => setChangePwdOpen(true)}>修改密码</button><button type="button" className="profile-item" onClick={() => logoutAdmin().then(() => router.replace("/login"))}>退出登录</button></div></div></div>
+          <div className="ml-auto flex min-w-0 items-center gap-1 whitespace-nowrap"><button type="button" onClick={() => setClassOpen(true)} className="hidden items-center gap-1 rounded bg-[#3d5cf1] px-2 py-1.5 text-[11px] font-semibold sm:inline-flex"><Bell className="h-3 w-3" />红娘课堂</button><Link href="/operate-center" className="hidden items-center gap-1 rounded bg-[#4a62ed] px-2 py-1.5 text-[11px] font-semibold md:inline-flex"><Gift className="h-3 w-3" />婚创学苑</Link><button type="button" onClick={() => setCloudOpen(true)} className="hidden items-center gap-1 rounded bg-[#eb3d7d] px-2 py-1.5 text-[11px] font-semibold lg:inline-flex"><Cloud className="h-3 w-3" />云端图库</button><div className="relative hidden xl:block" onMouseEnter={() => setNavOpen(true)} onMouseLeave={() => setNavOpen(false)}><label className="flex h-7 w-[250px] shrink-0 items-center gap-1.5 rounded-full bg-[#3c435c] px-2.5 text-[#aeb4c8]"><input className="min-w-0 flex-1 whitespace-nowrap bg-transparent text-[11px] outline-none placeholder:text-[#aeb4c8]" placeholder="输入会员昵称/手机号/编号/姓名" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { router.push(`/love-user-list?keyword=${encodeURIComponent(searchKeyword)}`); setNavOpen(false); } }} /><button type="button" onClick={() => { router.push(`/love-user-list?keyword=${encodeURIComponent(searchKeyword)}`); setNavOpen(false); }} className="shrink-0" aria-label="搜索"><Search className="h-3 w-3 shrink-0" /></button></label><div className={`quicknav-panel ${navOpen ? "quicknav-visible" : ""}`}><div className="quicknav-title">快捷导航</div><div className="quicknav-grid">{quickNav.map((q) => <Link key={q.label} href={q.href} className="quicknav-item">{q.label}</Link>)}</div></div></div><div className="hidden items-center gap-1.5 text-[11px] text-[#e0e2eb] lg:flex"><span className="inline-flex items-center gap-1"><Smartphone className="h-3 w-3" />手机版</span><span className="inline-flex items-center gap-1"><Monitor className="h-3 w-3" />电脑版</span><a href="https://www.xuanshiai.com/crm/user/login?redirect=/home" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1"><HeartHandshake className="h-3 w-3" />红娘工作台</a></div><div className="relative flex shrink-0 items-center" onMouseEnter={() => setProfileOpen(true)} onMouseLeave={() => setProfileOpen(false)}><button className="flex shrink-0 items-center gap-1 text-[11px]"><CircleUserRound className="h-5 w-5 text-[#d8d9df]" /><span>{accountName}</span><ChevronDown className="h-3 w-3" /></button><div className={`profile-panel ${profileOpen ? "profile-visible" : ""}`}><Link href="/system-setting-admin-user-edit" className="profile-item">绑定手机</Link><Link href="/system-feedback" className="profile-item">绑定微信</Link><button type="button" className="profile-item" onClick={() => setChangePwdOpen(true)}>修改密码</button><button type="button" className="profile-item" onClick={() => { setProfileOpen(false); setLogoutConfirmOpen(true); }}>退出登录</button></div></div></div>
         </div>
       </header>
 
@@ -263,6 +260,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <UseSystemModal open={useSystemOpen} onClose={() => setUseSystemOpen(false)} />
       <RechargeModal open={rechargeOpen} onClose={() => setRechargeOpen(false)} />
       <ChangePasswordModal open={changePwdOpen} onClose={() => setChangePwdOpen(false)} />
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        message="您确定要退出登录吗？"
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          setLogoutConfirmOpen(false);
+          void logoutAdmin().then(() => router.replace("/login"));
+        }}
+      />
     </div>
   );
 }

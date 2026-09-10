@@ -1,207 +1,122 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+
+import { useState } from "react";
+import { ChevronDown, X } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import { adminEndpoints, type CommissionLevel, type CommissionLevelMode, type CommissionLevelUpdatePayload } from "@/lib/admin-endpoints";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
-interface LevelDraft {
+const breadcrumb = getBreadcrumb("总店红娘", "分成配置");
+
+interface LevelRow {
+  id: number;
+  code: string;
   name: string;
-  mode: CommissionLevelMode;
-  rate_percent: string;
-  fixed_amount: string;
-  platform_extra_amount: string;
-  promotion_condition: string;
-  sort: string;
-  status: 1 | 2;
+  mode: string;
+  condition: string;
+  extra: string;
+  matchmaker: string;
 }
 
-function emptyDraft(): LevelDraft {
-  return {
-    name: "",
-    mode: "rate",
-    rate_percent: "0",
-    fixed_amount: "",
-    platform_extra_amount: "0",
-    promotion_condition: "",
-    sort: "0",
-    status: 1,
+const LEVELS: LevelRow[] = [
+  { id: 1, code: "级别1", name: "初级分成", mode: "自定义固定金额", condition: "默认", extra: "5元", matchmaker: "" },
+  { id: 2, code: "级别2", name: "中级分成", mode: "自定义固定金额", condition: "牵线成功累积>=10次", extra: "1000元", matchmaker: "芸希老师" },
+  { id: 3, code: "级别3", name: "高级分成", mode: "自定义固定金额", condition: "牵线成功累积>=100次", extra: "1000元", matchmaker: "" },
+  { id: 4, code: "级别4", name: "合伙分成", mode: "自定义固定金额", condition: "牵线成功累积>=300次", extra: "5000元", matchmaker: "" },
+];
+
+const CONDITION_TYPES = ["累积>", "累积>=", "等于"];
+
+const AMOUNT_ITEMS = [
+  "资料审核费",
+  "推广展示",
+  "资料置顶套餐1",
+  "资料置顶套餐2",
+  "资料置顶套餐3",
+  "资料置顶套餐4",
+  "资料置顶套餐5",
+  "资料置顶套餐6",
+  "牵线套餐1",
+  "牵线套餐2",
+  "牵线套餐3",
+  "牵线套餐4",
+  "单次牵线服务",
+  "爆灯",
+  "新人专享",
+  "心动专享",
+  "臻爱专享",
+  "牵线套餐6",
+  "牵线套餐7",
+  "牵线套餐9",
+  "牵线套餐10",
+];
+
+export default function Page() {
+  const [editing, setEditing] = useState<LevelRow | null>(null);
+  const [levelName, setLevelName] = useState("");
+  const [conditionType, setConditionType] = useState("累积>");
+  const [conditionValue, setConditionValue] = useState("100");
+  const [extraAmount, setExtraAmount] = useState("1000.00");
+  const [payMethod, setPayMethod] = useState("manual");
+  const [mode, setMode] = useState("fixed");
+  const [amounts, setAmounts] = useState<Record<string, string>>(() =>
+    AMOUNT_ITEMS.reduce<Record<string, string>>((acc, item) => ({ ...acc, [item]: "0.00" }), {})
+  );
+
+  const openEditor = (row: LevelRow) => {
+    setEditing(row);
+    setLevelName(row.name);
+    setExtraAmount(row.extra.replace("元", ""));
+    setPayMethod("manual");
+    setMode("fixed");
   };
-}
 
-function fromLevel(level: CommissionLevel): LevelDraft {
-  return {
-    name: level.name,
-    mode: level.mode,
-    rate_percent: level.rate_percent,
-    fixed_amount: level.fixed_amount ?? "",
-    platform_extra_amount: level.platform_extra_amount,
-    promotion_condition: level.promotion_condition ?? "",
-    sort: String(level.sort),
-    status: level.status,
-  };
-}
-
-function formatReward(extra: string): string {
-  const value = Number(extra);
-  if (!Number.isFinite(value) || value <= 0) return "—";
-  return `${value.toFixed(2)}元`;
-}
-
-export default function LoveMatchmakerDistributionPage() {
-  const [levels, setLevels] = useState<CommissionLevel[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [globalError, setGlobalError] = useState<string | null>(null);
-
-  const [editing, setEditing] = useState<CommissionLevel | null>(null);
-  const [draft, setDraft] = useState<LevelDraft>(emptyDraft());
-  const [saving, setSaving] = useState(false);
-  const [editorError, setEditorError] = useState<string | null>(null);
-
-  const loadLevels = useCallback(async () => {
-    setLoading(true);
-    setGlobalError(null);
-    try {
-      const list = await adminEndpoints.commissionLevels();
-      setLevels(list);
-    } catch (error) {
-      setGlobalError(error instanceof Error ? error.message : "加载分成配置失败");
-      setLevels([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadLevels();
-  }, [loadLevels]);
-
-  const openEditor = useCallback((level: CommissionLevel) => {
-    setEditing(level);
-    setDraft(fromLevel(level));
-    setEditorError(null);
-  }, []);
-
-  const closeEditor = useCallback(() => {
-    if (saving) return;
-    setEditing(null);
-    setEditorError(null);
-  }, [saving]);
-
-  const handleSave = useCallback(async () => {
-    if (!editing) return;
-    setSaving(true);
-    setEditorError(null);
-    try {
-      const payload: CommissionLevelUpdatePayload = {
-        name: draft.name.trim(),
-        mode: draft.mode,
-        promotion_condition: draft.promotion_condition.trim() || null,
-        sort: Number(draft.sort) || 0,
-        status: draft.status,
-      };
-      if (draft.mode === "rate") {
-        payload.rate_percent = draft.rate_percent || "0";
-        payload.fixed_amount = null;
-      } else {
-        const fixed = Number(draft.fixed_amount);
-        if (!Number.isFinite(fixed) || fixed < 0) {
-          throw new Error("mode=fixed 时必须填写正确的 fixed_amount");
-        }
-        payload.fixed_amount = fixed.toFixed(2);
-        payload.rate_percent = "0";
-      }
-      const extra = Number(draft.platform_extra_amount);
-      if (!Number.isFinite(extra) || extra < 0) {
-        throw new Error("平台额外奖励必须为非负数");
-      }
-      payload.platform_extra_amount = extra.toFixed(2);
-
-      const updated = await adminEndpoints.updateCommissionLevel(editing.id, payload);
-      setLevels((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
-      setEditing(null);
-    } catch (error) {
-      setEditorError(error instanceof Error ? error.message : "保存失败");
-    } finally {
-      setSaving(false);
-    }
-  }, [draft, editing]);
+  const closeEditor = () => setEditing(null);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md bg-white px-4 py-3 shadow-sm">
-        <div className="text-sm font-medium text-[#333]">{getBreadcrumb("总店红娘", "分成配置").join(" / ")}</div>
-      </div>
+    <div className="min-w-0">
+      <AdminBreadcrumb items={breadcrumb} />
 
-      <div className="rounded-md bg-white shadow-sm">
-        <div className="border-b border-[#f0f2f5] px-4 py-3">
-          <h2 className="text-sm font-medium text-[#333]">服务红娘分成配置</h2>
-          <p className="mt-1 text-xs text-[#999]">
-            红娘按所在分成级别获得订单分成，并按达成条件获取额外奖励。当前适用红娘统计自
-            <code className="mx-1 rounded bg-[#f3f6ff] px-1">matchmaker_profile</code>
-            档案。
-          </p>
+      <section className="cd-card">
+        <div className="cd-head">
+          <h2 className="cd-title">服务红娘分成配置</h2>
         </div>
 
-        {globalError && (
-          <div className="m-4 rounded border border-[#ffccc7] bg-[#fff2f0] px-3 py-2 text-xs text-[#cf1322]">{globalError}</div>
-        )}
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#f7f9ff] text-xs text-[#555]">
+        <div className="cd-table-wrap">
+          <table className="cd-table">
+            <colgroup>
+              <col style={{ width: 60 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 140 }} />
+              <col style={{ width: 180 }} />
+              <col style={{ width: 200 }} />
+              <col style={{ width: 150 }} />
+              <col style={{ width: "auto" }} />
+              <col style={{ width: 120 }} />
+            </colgroup>
+            <thead>
               <tr>
-                <th className="px-4 py-3 font-normal">ID</th>
-                <th className="px-4 py-3 font-normal">分成级别</th>
-                <th className="px-4 py-3 font-normal">级别名称</th>
-                <th className="px-4 py-3 font-normal">分成模式</th>
-                <th className="px-4 py-3 font-normal">自动升级条件</th>
-                <th className="px-4 py-3 font-normal">平台额外奖励</th>
-                <th className="px-4 py-3 font-normal">当前适用红娘</th>
-                <th className="px-4 py-3 font-normal">状态</th>
-                <th className="px-4 py-3 font-normal text-right">操作</th>
+                <th>ID</th>
+                <th>分成级别</th>
+                <th>级别名称</th>
+                <th>分成模式</th>
+                <th>自动升级条件</th>
+                <th>平台额外奖励</th>
+                <th>当前适用红娘</th>
+                <th>操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f0f2f5]">
-              {loading && (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-[#999]">加载中...</td>
-                </tr>
-              )}
-              {!loading && levels.length === 0 && !globalError && (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-[#999]">暂无分成级别，请确认后端已建表</td>
-                </tr>
-              )}
-              {levels.map((level) => (
-                <tr key={level.id} className="hover:bg-[#fafbff]">
-                  <td className="px-4 py-3 text-[#555]">{level.id}</td>
-                  <td className="px-4 py-3 text-[#333]">{level.code}</td>
-                  <td className="px-4 py-3 text-[#333]">{level.name}</td>
-                  <td className="px-4 py-3 text-[#555]">
-                    {level.mode === "rate" ? "自定义固定金额" : "按订单固定金额"}
-                  </td>
-                  <td className="px-4 py-3 text-[#555]">{level.promotion_condition ?? "—"}</td>
-                  <td className={`px-4 py-3 ${Number(level.platform_extra_amount) > 0 ? "text-[#cf1322]" : "text-[#555]"}`}>
-                    {formatReward(level.platform_extra_amount)}
-                  </td>
-                  <td className="px-4 py-3 text-[#555]">
-                    {level.applicable_matchmaker_count > 0 ? `${level.applicable_matchmaker_count} 人` : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {level.status === 1 ? (
-                      <span className="rounded bg-[#f6ffed] px-2 py-0.5 text-xs text-[#389e0d]">启用</span>
-                    ) : (
-                      <span className="rounded bg-[#f5f5f5] px-2 py-0.5 text-xs text-[#999]">停用</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => openEditor(level)}
-                      className="text-xs text-[#3658f7] hover:underline"
-                    >
+            <tbody>
+              {LEVELS.map((row) => (
+                <tr key={row.id}>
+                  <td className="cd-td-id">{row.id}</td>
+                  <td className="cd-td-strong">{row.code}</td>
+                  <td className="cd-td-strong">{row.name}</td>
+                  <td className="cd-td-text">{row.mode}</td>
+                  <td className="cd-td-text">{row.condition}</td>
+                  <td className="cd-td-reward">{row.extra}</td>
+                  <td className="cd-td-text">{row.matchmaker || ""}</td>
+                  <td>
+                    <button type="button" className="cd-link" onClick={() => openEditor(row)}>
                       编辑配置
                     </button>
                   </td>
@@ -210,128 +125,185 @@ export default function LoveMatchmakerDistributionPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4" onClick={closeEditor}>
-          <div
-            className="w-full max-w-[560px] rounded-lg bg-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="border-b border-[#f0f2f5] px-5 py-3">
-              <h3 className="text-base font-medium text-[#333]">编辑分成级别 — {editing.name}</h3>
-              <p className="mt-1 text-xs text-[#999]">级别编码 {editing.code} 为种子数据锁定，不可修改。</p>
-            </div>
-            <div className="space-y-4 px-5 py-4">
-              {editorError && (
-                <div className="rounded border border-[#ffccc7] bg-[#fff2f0] px-3 py-2 text-xs text-[#cf1322]">{editorError}</div>
-              )}
+        <div className="cd-mask" onClick={closeEditor}>
+          <div className="cd-panel" onClick={(e) => e.stopPropagation()}>
+            <header className="cd-panel-head">
+              <button type="button" className="cd-panel-close-icon" onClick={closeEditor} aria-label="关闭">
+                <X size={18} />
+              </button>
+              <h2 className="cd-panel-title">编辑配置</h2>
+              <div className="cd-panel-actions">
+                <button type="button" className="cd-btn" onClick={closeEditor}>
+                  关闭
+                </button>
+                <button type="button" className="cd-btn primary" onClick={closeEditor}>
+                  确定提交
+                </button>
+              </div>
+            </header>
 
-              <Field label="级别名称" required>
-                <Input
-                  value={draft.name}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-                  placeholder="如：中级分成"
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="分成模式" required>
-                  <Select
-                    value={draft.mode}
-                    onChange={(value) => setDraft((prev) => ({
-                      ...prev,
-                      mode: value === "fixed" ? "fixed" : "rate",
-                      fixed_amount: value === "fixed" ? prev.fixed_amount : "",
-                    }))}
-                    options={[
-                      { value: "rate", label: "按订单比例 (%)" },
-                      { value: "fixed", label: "按订单固定金额 (元)" },
-                    ]}
+            <div className="cd-panel-body">
+              {/* 自定义级别名称 */}
+              <div className="cd-field">
+                <label className="cd-field-label">
+                  <span className="req">*</span>自定义级别名称
+                </label>
+                <div className="cd-field-body">
+                  <input
+                    type="text"
+                    className="cd-input"
+                    value={levelName}
+                    onChange={(e) => setLevelName(e.target.value)}
                   />
-                </Field>
-                <Field label="启用状态">
-                  <Select
-                    value={String(draft.status)}
-                    onChange={(value) => setDraft((prev) => ({ ...prev, status: value === "2" ? 2 : 1 }))}
-                    options={[
-                      { value: "1", label: "启用" },
-                      { value: "2", label: "停用" },
-                    ]}
-                  />
-                </Field>
+                  <div className="cd-hint">
+                    <span className="cd-hint-icon">i</span>
+                    <span>不要超过4个汉字</span>
+                  </div>
+                </div>
               </div>
 
-              {draft.mode === "rate" ? (
-                <Field label="分成比例 (%)" required>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
-                    value={draft.rate_percent}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, rate_percent: event.target.value }))}
-                  />
-                </Field>
-              ) : (
-                <Field label="固定分成金额 (元)" required>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={draft.fixed_amount}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, fixed_amount: event.target.value }))}
-                  />
-                </Field>
-              )}
+              {/* 自动升级条件 */}
+              <div className="cd-field">
+                <label className="cd-field-label">
+                  <span className="req">*</span>自动升级到本级别条件
+                </label>
+                <div className="cd-field-body">
+                  <div className="cd-inline">
+                    <div className="cd-select">
+                      <select value={conditionType} onChange={(e) => setConditionType(e.target.value)}>
+                        {CONDITION_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="cd-caret" size={14} />
+                    </div>
+                    <input
+                      type="text"
+                      className="cd-input short"
+                      value={conditionValue}
+                      onChange={(e) => setConditionValue(e.target.value)}
+                    />
+                    <span className="cd-unit">次牵线成功</span>
+                  </div>
+                </div>
+              </div>
 
-              <Field label="平台额外奖励 (元)">
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={draft.platform_extra_amount}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, platform_extra_amount: event.target.value }))}
-                />
-                <p className="mt-1 text-xs text-[#999]">每达成一次分成订单，平台额外发放给红娘的奖励</p>
-              </Field>
+              {/* 平台额外奖励金额 */}
+              <div className="cd-field">
+                <label className="cd-field-label">
+                  <span className="req">*</span>自动升级到本级别平台额外奖励金额
+                </label>
+                <div className="cd-field-body">
+                  <div className="cd-inline">
+                    <input
+                      type="text"
+                      className="cd-input short"
+                      value={extraAmount}
+                      onChange={(e) => setExtraAmount(e.target.value)}
+                    />
+                    <span className="cd-unit">元</span>
+                  </div>
+                  <div className="cd-hint">
+                    <span className="cd-hint-icon">i</span>
+                    <span>管理员后台手动修改红娘分成级别系统中将不会自动增加该奖励金额</span>
+                  </div>
+                </div>
+              </div>
 
-              <Field label="自动升级条件">
-                <Input
-                  value={draft.promotion_condition}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, promotion_condition: event.target.value }))}
-                  placeholder="如：牵线成功累计>=10次"
-                />
-              </Field>
+              {/* 平台额外奖励支付方式 */}
+              <div className="cd-field">
+                <label className="cd-field-label">
+                  <span className="req">*</span>平台额外奖励支付方式
+                </label>
+                <div className="cd-field-body">
+                  <div className="cd-inline">
+                    <label className="cd-radio">
+                      <input
+                        type="radio"
+                        name="pay-method"
+                        checked={payMethod === "manual"}
+                        onChange={() => setPayMethod("manual")}
+                      />
+                      <span>平台工作人员人工转账支付</span>
+                    </label>
+                    <label className="cd-radio">
+                      <input
+                        type="radio"
+                        name="pay-method"
+                        checked={payMethod === "balance"}
+                        onChange={() => setPayMethod("balance")}
+                      />
+                      <span>直接转入余额</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
 
-              <Field label="排序">
-                <Input
-                  type="number"
-                  value={draft.sort}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, sort: event.target.value }))}
-                />
-                <p className="mt-1 text-xs text-[#999]">数值越小排序越靠前，默认 0</p>
-              </Field>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-[#f0f2f5] bg-[#fafbff] px-5 py-3">
-              <Button variant="default" onClick={closeEditor} disabled={saving}>取消</Button>
-              <Button variant="primary" onClick={handleSave} loading={saving}>保存配置</Button>
+              {/* 分成模式 */}
+              <div className="cd-field">
+                <label className="cd-field-label">分成模式</label>
+                <div className="cd-field-body">
+                  <div className="cd-inline">
+                    <label className="cd-radio">
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={mode === "fixed"}
+                        onChange={() => setMode("fixed")}
+                      />
+                      <span>自定义固定金额</span>
+                    </label>
+                    <label className="cd-radio">
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={mode === "rate"}
+                        onChange={() => setMode("rate")}
+                      />
+                      <span>按照比例自动计算</span>
+                    </label>
+                    <button type="button" className="cd-update-btn">
+                      更新数据
+                    </button>
+                  </div>
+                  <div className="cd-hint">
+                    <span className="cd-hint-icon">i</span>
+                    <span>
+                      按照百分比模式下系统自动根据平台收费配置中的数值乘以百分比，四舍五入到元，最小单位为1元，不满1元则为0
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 分成金额 */}
+              <div className="cd-field">
+                <label className="cd-field-label">分成金额</label>
+                <div className="cd-field-body">
+                  <div className="cd-amount-grid">
+                    {AMOUNT_ITEMS.map((item) => (
+                      <div key={item} className="cd-amount-item">
+                        <span className="cd-amount-name">{item}</span>
+                        <input
+                          type="text"
+                          className="cd-amount-input"
+                          value={amounts[item]}
+                          onChange={(e) => setAmounts((prev) => ({ ...prev, [item]: e.target.value }))}
+                        />
+                        <span className="cd-amount-unit">元</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs text-[#555]">
-        {label}
-        {required && <span className="ml-0.5 text-[#ff4d4f]">*</span>}
-      </span>
-      {children}
-    </label>
   );
 }

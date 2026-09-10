@@ -1,130 +1,395 @@
 "use client";
+
 import { useState } from "react";
+import {
+  Camera,
+  ChevronDown,
+  Image as ImageIcon,
+  Play,
+  RefreshCw,
+  Search,
+  Video,
+} from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef, type TabConfig } from "@/components/ListPage";
-import { adminEndpoints } from "@/lib/admin-endpoints";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 
-function ModerationActions({ row }: { row: Record<string, unknown> }) {
-  const [busy, setBusy] = useState(false);
-  const taskId = row.id;
-  if (taskId === undefined || taskId === null) return <span className="text-[#999] text-xs">-</span>;
-  const review = async (action: "approve" | "reject") => {
-    setBusy(true);
-    try {
-      await adminEndpoints.reviewModerationItem(String(taskId), { action, reason: action === "reject" ? "管理员审核未通过" : "管理员审核通过" });
-      window.location.reload();
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : "审核失败");
-      setBusy(false);
-    }
-  };
-  return <span className="flex items-center gap-2 text-xs">
-    <button disabled={busy} onClick={() => review("approve")} className="text-[#3658f7] disabled:opacity-50">通过</button>
-    <button disabled={busy} onClick={() => review("reject")} className="text-[#ff4d4f] disabled:opacity-50">拒绝</button>
-  </span>;
-}
+type Tab = "intro" | "avatar" | "photo" | "video";
 
-function ReportActions({ row }: { row: Record<string, unknown> }) {
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [result, setResult] = useState("");
-  const [action, setAction] = useState("hide_content");
-  const status = Number(row.status);
-  if (!row.id || status !== 0) return <span className="text-xs text-[#999]">已处理</span>;
-  const submit = async (nextStatus: 1 | 2) => {
-    if (!result.trim()) return;
-    setBusy(true);
-    try {
-      await adminEndpoints.reviewReport(String(row.id), { status: nextStatus, result: result.trim(), action: nextStatus === 2 ? "dismiss" : action });
-      window.location.reload();
-    } catch (error) { window.alert(error instanceof Error ? error.message : "审核失败"); setBusy(false); }
-  };
-  const isUserReport = row.target_type === "user";
-  return <><span className="flex items-center gap-2 whitespace-nowrap text-xs"><button disabled={busy} className="text-[#3658f7]" onClick={() => { setAction(isUserReport ? "none" : "hide_content"); setOpen(true); }}>成立</button><button disabled={busy} className="text-[#ff4d4f]" onClick={() => { setAction("dismiss"); setOpen(true); }}>驳回</button></span>{open && <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4"><section role="dialog" aria-modal="true" className="w-full max-w-md rounded-md bg-white p-5 shadow-xl"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-medium">审核举报 #{String(row.id)}</h2><button type="button" onClick={() => setOpen(false)}>关闭</button></div><label className="block text-sm">处理结果<textarea value={result} onChange={(event) => setResult(event.target.value)} maxLength={255} className="mt-1 w-full rounded border p-2" placeholder="请输入处理结果" /></label>{action !== "dismiss" && !isUserReport && <label className="mt-3 block text-sm">内容处置<select value={action} onChange={(event) => setAction(event.target.value)} className="mt-1 h-9 w-full rounded border bg-white px-2"><option value="hide_content">下架被举报内容</option><option value="none">仅记录，不处置</option></select></label>}<div className="mt-5 flex justify-end gap-2"><button type="button" className="rounded border px-3 py-1.5" onClick={() => setOpen(false)}>取消</button><button type="button" disabled={!result.trim() || busy} className="rounded bg-[#3658f7] px-3 py-1.5 text-white disabled:opacity-50" onClick={() => void submit(action === "dismiss" ? 2 : 1)}>确认</button></div></section></div>}</>;
-}
-
-const tabs: TabConfig[] = [
+const tabs: { key: Tab; label: string }[] = [
   { key: "intro", label: "个人介绍" },
   { key: "avatar", label: "头像" },
   { key: "photo", label: "照片" },
   { key: "video", label: "视频" },
-  { key: "all", label: "全部" },
-  { key: "reports", label: "举报审核" },
 ];
 
-const columns: ColumnDef[] = [
-  {
-    title: "会员",
-    key: "member",
-    width: 200,
-    render: (row: Record<string, unknown>) => {
-      const r = row as { memberName?: string; memberCode?: string; user_id?: number; target_type?: string; target_id?: number };
-      return (
-        <div className="text-xs leading-relaxed">
-          <div>{r.memberName || `用户 ${r.user_id ?? "-"}`}</div>
-          <div className="text-[#999]">编号：{r.memberCode}</div>
-        </div>
-      );
-    },
-  },
-  { title: "自白内容(个人介绍)", key: "content", render: (row: Record<string, unknown>) => {
-    const r = row as { content?: string; display_content?: string; raw_content?: string };
-    const content = r.display_content || r.content || r.raw_content || "-";
-    return <span className={content === "-" ? "text-xs text-[#999]" : "text-xs"}>{content}</span>;
-  }},
-  { title: "修改时间", key: "updateTime", width: 180 },
-  {
-    title: "操作",
-    key: "action",
-    width: 90,
-    render: (row) => <ModerationActions row={row} />,
-    /* render: () => (
-      <span className="text-[#3658f7] cursor-pointer hover:underline text-xs">查看资料</span>
-    ), */
-  },
+/* ---------- 个人介绍 ---------- */
+type IntroRow = { nick: string; code: string; content: string; time: string; g: string };
+
+const introRows: IntroRow[] = [
+  { nick: "Lemon", code: "B696945", content: "", time: "2026-09-01 14:46:13", g: "a" },
+  { nick: "尔尔", code: "G522362", content: "111", time: "2026-08-27 09:35:27", g: "b" },
+  { nick: "llll", code: "G396140", content: "", time: "2026-08-21 10:48:23", g: "c" },
+  { nick: "O_o0P9", code: "G239989", content: "", time: "2026-07-20 23:10:58", g: "d" },
+  { nick: "小可爱", code: "G424118", content: "", time: "2026-07-20 14:42:24", g: "e" },
+  { nick: "aaa", code: "G437253", content: "", time: "2026-07-20 14:34:46", g: "f" },
+  { nick: "梧桐", code: "G535776", content: "在211大学当老师，喜欢运动（网球、健身、游泳等），热爱生活", time: "2026-07-19 18:37:28", g: "g" },
+  { nick: "禾禾禾", code: "G944467", content: "", time: "2026-07-19 08:54:35", g: "h" },
 ];
 
-interface ContentRow {
-  memberName: string;
-  memberCode: string;
-  content: string;
-  updateTime: string;
-}
+/* ---------- 头像 ---------- */
+type AvatarCard = { nick: string; code: string; age: string; meta: string; g: string };
 
-const data: ContentRow[] = [];
+const avatarCards: AvatarCard[] = [
+  { nick: "Lemon", code: "B965945", age: "23↑", meta: "1990年 175cm 大专", g: "a" },
+  { nick: "lll", code: "G396140", age: "19岁", meta: "19岁 170cm 大专", g: "b" },
+  { nick: "尔尔", code: "G522362", age: "", meta: "2002年 165cm 博士", g: "c" },
+  { nick: "小可爱", code: "G424118", age: "", meta: "10岁 230cm 博士", g: "d" },
+  { nick: "aaa", code: "G437253", age: "", meta: "1990年 175cm 博士", g: "e" },
+  { nick: "", code: "", age: "", meta: "1993年 170cm 博士", g: "f" },
+  { nick: "", code: "", age: "", meta: "1997年 165cm 硕士", g: "g" },
+  { nick: "", code: "", age: "", meta: "2004年 165cm 本科", g: "h" },
+  { nick: "", code: "", age: "", meta: "1990年 175cm 本科", g: "i" },
+];
 
-const dataSource = data as unknown as Record<string, unknown>[];
+/* ---------- 照片 ---------- */
+type MediaCard = { nick: string; code: string; g: string };
 
-const reportColumns: ColumnDef[] = [
-  { title: "举报ID", key: "id", width: 90 },
-  { title: "举报人", key: "reporter_user_id", width: 100, render: (row) => <span>用户 {String(row.reporter_user_id ?? "-")}</span> },
-  { title: "被举报对象", key: "target", width: 150, render: (row) => <span>用户 {String(row.target_user_id ?? "-")}<br /><span className="text-[#999]">{String(row.target_type ?? "-")} #{String(row.target_id ?? "-")}</span></span> },
-  { title: "举报类型", key: "type", width: 130 },
-  { title: "举报说明", key: "description", width: 260, render: (row) => <div className="max-w-[240px] truncate" title={String(row.description ?? "")}>{String(row.description ?? "-")}</div> },
-  { title: "证据", key: "images", width: 120, render: (row) => { const images = Array.isArray(row.images) ? row.images as string[] : []; return images.length ? <div className="flex gap-1">{images.slice(0, 3).map((src, i) => <a key={i} href={src} target="_blank" rel="noreferrer"><img src={src} alt="举报证据" className="size-9 rounded border object-cover" /></a>)}</div> : <span className="text-[#999]">-</span>; } },
-  { title: "状态", key: "status", width: 90, render: (row) => <span className={Number(row.status) === 0 ? "text-[#fa8c16]" : Number(row.status) === 1 ? "text-[#52c41a]" : "text-[#999]"}>{Number(row.status) === 0 ? "待审核" : Number(row.status) === 1 ? "举报成立" : "已驳回"}</span> },
-  { title: "提交时间", key: "created_at", width: 170 },
-  { title: "操作", key: "action", width: 100, render: (row) => <ReportActions row={row} /> },
+const photoCards: MediaCard[] = [
+  { nick: "rasin", code: "G847150", g: "a" },
+  { nick: "rasin", code: "G847150", g: "b" },
+  { nick: "rasin", code: "G847150", g: "c" },
+  { nick: "Thera", code: "G824771", g: "d" },
+  { nick: "Thera", code: "G824771", g: "e" },
+  { nick: "rasin", code: "G847150", g: "f" },
+  { nick: "rasin", code: "G847150", g: "g" },
+  { nick: "rasin", code: "G847150", g: "h" },
+  { nick: "", code: "", g: "i" },
+  { nick: "", code: "", g: "j" },
+];
+
+/* ---------- 视频 ---------- */
+const videoCards: MediaCard[] = [
+  { nick: "Thera", code: "G824771", g: "a" },
+  { nick: "yq", code: "G646651", g: "b" },
+  { nick: "yq", code: "G646651", g: "c" },
+  { nick: "", code: "", g: "d" },
 ];
 
 export default function ContentVerifyPage() {
-  const [tab, setTab] = useState("intro");
-  const isReports = tab === "reports";
+  const [tab, setTab] = useState<Tab>("intro");
+  const label = tabs.find((item) => item.key === tab)?.label ?? "个人介绍";
+
   return (
-    <ListPage
-      breadcrumb={[...getBreadcrumb("会员CRM", "内容核查"), { label: isReports ? "举报审核" : "个人介绍" }]}
-      pageTitle={isReports ? "举报审核" : "个人介绍"}
-      tabs={tabs}
-      activeTab={tab}
-      onTabChange={setTab}
-      columns={isReports ? reportColumns : columns}
-      dataSource={dataSource}
-      searchFields={isReports ? [{ label: "状态", key: "status", type: "select", options: [{ label: "待审核", value: "0" }, { label: "举报成立", value: "1" }, { label: "已驳回", value: "2" }] }, { label: "对象类型", key: "target_type", type: "select", options: [{ label: "用户", value: "user" }, { label: "文字/帖子", value: "post" }, { label: "评论", value: "comment" }, { label: "图片/媒体", value: "user_media" }, { label: "社区图片", value: "community_media" }, { label: "聊天消息", value: "message" }] }] : []}
-      endpoint={isReports ? "/api/backend/admin/reports" : "/api/backend/admin/community/moderation-items?page=1&page_size=20&status=pending"}
-      rowKey="id"
-      pagination={{ current: 1, pageSize: 10, total: 0 }}
-      onSearch={() => {}}
-      onReset={() => {}}
-    />
+    <div className="min-w-0">
+      <AdminBreadcrumb items={[...getBreadcrumb("会员CRM", "内容核查"), { label }]} />
+
+      <section className="cvr-card">
+        <div className="cvr-tabs">
+          {tabs.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`cvr-tab ${tab === item.key ? "active" : ""}`}
+              onClick={() => setTab(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ============ 个人介绍 ============ */}
+        {tab === "intro" && (
+          <>
+            <div className="cvr-notice">
+              <div className="cvr-notice-title">
+                <span className="cvr-notice-icon">!</span>
+                须知
+              </div>
+              <p>
+                您可以在这里快速浏览到平台所有会员的个人自白（介绍），并能够进行编辑修改。能够帮助您更加准确、高效的了解会员的信息和择偶需求，以及对平台中会员个人介绍的快捷管理。
+              </p>
+            </div>
+
+            <div className="cvr-filter">
+              <div className="cvr-selects">
+                <label className="cvr-select">
+                  <select defaultValue="">
+                    <option value="">不限</option>
+                    <option value="1">含有英文字母</option>
+                    <option value="2">不含有英文字母</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+                <label className="cvr-select">
+                  <select defaultValue="1">
+                    <option value="1">含有英文字母(a-z)</option>
+                    <option value="0">不限</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+                <label className="cvr-select">
+                  <select defaultValue="1">
+                    <option value="1">含有数字(0-9)</option>
+                    <option value="0">不限</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+                <label className="cvr-select">
+                  <select defaultValue="1">
+                    <option value="1">含有中文数字(零到九)</option>
+                    <option value="0">不限</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+              </div>
+              <div className="cvr-filter-right">
+                <label className="cvr-searchbox">
+                  <span className="cvr-search-prefix">按昵称搜</span>
+                  <input type="text" placeholder="请输入" />
+                </label>
+                <button type="button" className="cvr-btn primary">
+                  搜索
+                </button>
+              </div>
+            </div>
+
+            <div className="cvr-table-wrap">
+              <table className="cvr-table">
+                <colgroup>
+                  <col style={{ width: 240 }} />
+                  <col />
+                  <col style={{ width: 190 }} />
+                  <col style={{ width: 100 }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>会员</th>
+                    <th>自白内容(个人介绍)</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {introRows.map((row, index) => (
+                    <tr key={`${row.nick}-${index}`}>
+                      <td>
+                        <div className="cvr-member">
+                          <span className={`cvr-avatar cvr-g-${row.g}`} />
+                          <div className="cvr-member-info">
+                            <div className="cvr-member-nick">{row.nick}</div>
+                            <div className="cvr-member-code">编号：{row.code}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="cvr-content-input"
+                          defaultValue={row.content}
+                          placeholder="仅限500字"
+                        />
+                      </td>
+                      <td className="cvr-time">{row.time}</td>
+                      <td>
+                        <button type="button" className="cvr-link">
+                          查看资料
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ============ 头像 ============ */}
+        {tab === "avatar" && (
+          <>
+            <div className="cvr-notice">
+              <div className="cvr-notice-title">
+                <span className="cvr-notice-icon">!</span>
+                须知
+              </div>
+              <p>
+                会员的头像的真实性、美观度对平台极为重要，管理和优化好会员头像将大大提升您平台的形象和吸引力。
+              </p>
+              <p>
+                本页中列出平台中所有会员上传的照片头像，方便平台红娘或管理人员全面浏览会员头像，有助于高效筛选或优化对方会员头像进行集中化管理。
+              </p>
+              <p>
+                设为不准：将会员的头像删除并自动设为系统头像，系统会自动发送提醒旧会员头像审核未通过并要求重新上传头像，重新上传新上传的头像将覆盖原头像。
+              </p>
+              <p>
+                历史头像：是指会员上传过的所有头像的记录，该功能一定程度上帮助平台了解到会员的变动真实性。
+              </p>
+            </div>
+
+            <div className="cvr-filter">
+              <div className="cvr-selects">
+                <label className="cvr-select">
+                  <select defaultValue="">
+                    <option value="">不限</option>
+                    <option value="1">待审核</option>
+                    <option value="2">已通过</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+                <label className="cvr-select">
+                  <select defaultValue="">
+                    <option value="">未通过</option>
+                    <option value="1">已通过</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+                <label className="cvr-select">
+                  <span className="cvr-select-prefix">性别:</span>
+                  <select defaultValue="">
+                    <option value="">不限</option>
+                    <option value="1">男</option>
+                    <option value="2">女</option>
+                  </select>
+                  <ChevronDown className="cvr-caret" />
+                </label>
+              </div>
+              <div className="cvr-filter-right">
+                <label className="cvr-searchbox">
+                  <span className="cvr-search-prefix">按昵称搜</span>
+                  <input type="text" placeholder="请输入昵称" />
+                </label>
+                <button type="button" className="cvr-btn primary">
+                  搜索
+                </button>
+              </div>
+            </div>
+
+            <div className="cvr-avatar-grid">
+              {avatarCards.map((card, index) => (
+                <div key={index} className="cvr-avatar-card">
+                  <div className={`cvr-avatar-media cvr-g-${card.g}`}>
+                    {card.age && <span className="cvr-avatar-age">{card.age}</span>}
+                    <button type="button" className="cvr-media-icon">
+                      <RefreshCw className="size-3.5" />
+                    </button>
+                    <span className="cvr-avatar-meta">{card.meta}</span>
+                  </div>
+                  <div className="cvr-avatar-foot">
+                    <span className="cvr-avatar-name">
+                      {card.nick}
+                      {card.code && <span className="cvr-avatar-code"> ({card.code})</span>}
+                    </span>
+                    <button type="button" className="cvr-link">
+                      详情
+                    </button>
+                  </div>
+                  <div className="cvr-avatar-actions">
+                    <button type="button" className="cvr-chip">
+                      不通过
+                    </button>
+                    <button type="button" className="cvr-chip">
+                      重新上传
+                    </button>
+                    <button type="button" className="cvr-chip">
+                      历史头像
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ============ 照片 ============ */}
+        {tab === "photo" && (
+          <>
+            <div className="cvr-notice">
+              <div className="cvr-notice-title">
+                <span className="cvr-notice-icon">!</span>
+                须知
+              </div>
+              <p>
+                本页中列出平台中所有会员上传的照片，方便平台红娘或管理人员快速全面浏览会员照片，有助于更加高效直观的了解会员，并可以对不合规的照片及时删除
+              </p>
+            </div>
+
+            <div className="cvr-filter">
+              <div className="cvr-filter-right">
+                <label className="cvr-searchbox">
+                  <input type="text" placeholder="请输入昵称/编号" />
+                </label>
+                <button type="button" className="cvr-btn primary">
+                  搜索
+                </button>
+              </div>
+            </div>
+
+            <div className="cvr-media-grid">
+              {photoCards.map((card, index) => (
+                <div key={index} className={`cvr-media-card cvr-g-${card.g}`}>
+                  <span className="cvr-media-tag">
+                    <Camera className="size-3.5" />
+                  </span>
+                  <button type="button" className="cvr-media-icon">
+                    <ImageIcon className="size-3.5" />
+                  </button>
+                  {card.nick && (
+                    <span className="cvr-media-name">
+                      {card.nick}(编号{card.code})
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ============ 视频 ============ */}
+        {tab === "video" && (
+          <>
+            <div className="cvr-notice">
+              <div className="cvr-notice-title">
+                <span className="cvr-notice-icon">!</span>
+                须知
+              </div>
+              <p>
+                本页中列出平台中所有会员上传的照片和视频，方便平台红娘或管理人员快速全面浏览会员照片，有助于更加高效直观的了解会员，并可以对不合规的照片及时删除
+              </p>
+            </div>
+
+            <div className="cvr-filter">
+              <div className="cvr-filter-right">
+                <label className="cvr-searchbox">
+                  <input type="text" placeholder="请输入昵称/编号" />
+                </label>
+                <button type="button" className="cvr-btn primary">
+                  搜索
+                </button>
+              </div>
+            </div>
+
+            <div className="cvr-video-grid">
+              {videoCards.map((card, index) => (
+                <div key={index} className={`cvr-media-card video cvr-g-${card.g}`}>
+                  <span className="cvr-media-tag">
+                    <Video className="size-3.5" />
+                  </span>
+                  <button type="button" className="cvr-media-icon">
+                    <Video className="size-3.5" />
+                  </button>
+                  <span className="cvr-play">
+                    <Play className="size-4" />
+                  </span>
+                  {card.nick && (
+                    <span className="cvr-media-name">
+                      {card.nick}(编号{card.code})
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+    </div>
   );
 }

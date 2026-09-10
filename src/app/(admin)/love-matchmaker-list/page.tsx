@@ -1,68 +1,521 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import {
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  ChevronDown,
+  MessageSquare,
+  Phone,
+  Plus,
+  X,
+} from "lucide-react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import { adminApi } from "@/lib/admin-api";
-import ListPage, { type ActionButton, type ColumnDef, type SearchField } from "@/components/ListPage";
 
-type Row = Record<string, unknown>;
-type Dict = { id: number; name?: string; display_name?: string | null };
-const api = (path: string) => `admin/${path}`;
-const text = (row: Row, key: string) => row[key] == null || row[key] === "" ? "-" : String(row[key]);
-const SLOGANS = ["牵线搭桥，成就美好姻缘！", "红娘在手，幸福我有！", "真爱无界，红娘相连！", "缘分天空，红娘相牵！", "情牵一线，缘定三生！", "红娘巧手，织就爱情网！", "寻觅真爱，红娘相伴！", "真爱无需等待，红娘为你安排！"];
+const breadcrumb = getBreadcrumb("总店红娘", "红娘管理");
 
-function Switch({ checked, disabled, onChange }: { checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
-  return <button type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={() => onChange(!checked)} className={`relative h-5 w-10 rounded-full ${checked ? "bg-[#3658f7]" : "bg-[#bfbfbf]"} disabled:opacity-50`}><span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition ${checked ? "left-5" : "left-0.5"}`} /></button>;
-}
+type Row = {
+  id: number;
+  name: string;
+  account: string;
+  store: string;
+  desc: string;
+  roleTag: string;
+  phone: string;
+  wechat: string;
+  level: string;
+  success: number;
+  amount: string;
+  locked: boolean;
+  visible: boolean;
+  palette: string;
+};
+
+const rows: Row[] = [
+  {
+    id: 1,
+    name: "芸希老师",
+    account: "芸希老师",
+    store: "总店",
+    desc: "-",
+    roleTag: "超级红娘",
+    phone: "17384472282",
+    wechat: "17384472282",
+    level: "中级分成",
+    success: 21,
+    amount: "509元",
+    locked: false,
+    visible: true,
+    palette: "a",
+  },
+];
+
+const reportCols = [
+  "红娘",
+  "线索新增客源",
+  "会员CRM新增资料",
+  "线索跟进",
+  "会员CRM跟进",
+  "新增线上牵线",
+  "牵线成功",
+  "预约申请",
+  "约会安排",
+  "线上分成",
+  "线下业绩",
+];
+
+const reportValues = ["1", "1", "0", "1", "0", "0", "0", "0", "0元", "0元"];
 
 export default function LoveMatchmakerListPage() {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState<number | null>(null);
-  const [detail, setDetail] = useState<Row | null>(null);
-  const [create, setCreate] = useState(false);
-  const [stores, setStores] = useState<Dict[]>([]);
-  const [levels, setLevels] = useState<Dict[]>([]);
-  const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2200); };
-  useEffect(() => { void Promise.all([adminApi<Dict[]>(api("dict/stores")), adminApi<Dict[]>(api("dict/commission-levels"))]).then(([s, l]) => { setStores(s || []); setLevels(l || []); }).catch(() => undefined); }, []);
-  const patch = async (id: number, path: string, body: Row, message: string) => { setBusy(id); try { await adminApi(api(`matchmakers/${id}/${path}`), { method: "PATCH", body }); setRefreshKey((v) => v + 1); flash(message); } catch (e) { flash(e instanceof Error ? e.message : "操作失败"); } finally { setBusy(null); } };
-  const columns: ColumnDef[] = [
-    { title: "红娘", key: "display_name", width: 180, render: (r) => <div className="flex items-center gap-2"><div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#edf2ff] text-[#3658f7]">{text(r, "display_name").slice(0, 1)}</div><div><div className="font-medium">{text(r, "display_name")}</div><div className="text-xs text-[#999]">ID: {text(r, "id")}</div></div></div> },
-    { title: "联系方式", key: "phone", width: 160, render: (r) => <><div>{text(r, "phone")}</div><div className="text-xs text-[#999]">微信：{text(r, "wechat")}</div></> },
-    { title: "所属门店", key: "store_name", width: 130 }, { title: "角色", key: "role_label", width: 90 }, { title: "分成级别", key: "commission_level_name", width: 110 },
-    { title: "累计分成", key: "commission_amount", width: 105, align: "center", render: (r) => `¥${Number(r.commission_amount || 0).toFixed(2)}` }, { title: "牵线成功数", key: "success_count", width: 100, align: "center" },
-    { title: "锁定", key: "locked", width: 75, align: "center", render: (r) => <Switch checked={Boolean(r.locked)} disabled={busy === Number(r.id)} onChange={(locked) => void patch(Number(r.id), "lock", { locked }, locked ? "已锁定" : "已解锁")} /> },
-    { title: "前台展示", key: "visible", width: 85, align: "center", render: (r) => <Switch checked={r.visible !== false} disabled={busy === Number(r.id)} onChange={(visible) => void patch(Number(r.id), "visibility", { visible }, visible ? "已设为展示" : "已设为隐藏")} /> },
-    { title: "操作", key: "action", width: 130, render: (r) => { const id = Number(r.id); return <div className="flex items-center gap-3 whitespace-nowrap"><button type="button" className="text-[#3658f7]" onClick={() => void adminApi<Row>(api(`matchmakers/${id}`)).then(setDetail).catch((e) => flash(e.message))}>查看</button><button type="button" className="text-[#3658f7]" onClick={() => setDetail(r)}>编辑</button><button type="button" className="text-[#ff4d4f]" onClick={() => { if (window.confirm("确定删除该红娘吗？")) void adminApi(api(`matchmakers/${id}`), { method: "DELETE" }).then(() => { setRefreshKey((v) => v + 1); flash("已删除"); }).catch((e) => flash(e.message)); }}>删除</button></div>; } },
-  ];
-  const searchFields: SearchField[] = [
-    { label: "红娘昵称/账号", key: "keyword", type: "input", placeholder: "请输入昵称、账号或手机号", width: 190 },
-    { label: "所属门店", key: "store_id", type: "select", options: [{ label: "全部", value: "" }, ...stores.map((s) => ({ label: s.display_name || s.name || "-", value: String(s.id) }))], width: 150 },
-    { label: "分成级别", key: "commission_level_id", type: "select", options: [{ label: "全部", value: "" }, ...levels.map((s) => ({ label: s.name || "-", value: String(s.id) }))], width: 140 },
-    { label: "锁定状态", key: "locked", type: "select", options: [{ label: "全部", value: "" }, { label: "正常", value: "false" }, { label: "已锁定", value: "true" }], width: 120 },
-  ];
-  const actions: ActionButton[] = [{ label: "新增红娘", variant: "primary", onClick: () => setCreate(true) }];
-  return <><ListPage breadcrumb={getBreadcrumb("总店红娘", "红娘管理")} pageTitle="红娘管理" searchFields={searchFields} actions={actions} columns={columns} dataSource={[]} rowKey="id" endpoint="/api/backend/admin/matchmakers" refreshKey={refreshKey} pagination={{ current: 1, pageSize: 20, total: 0 }} onSearch={() => {}} onReset={() => {}} />{notice && <div role="status" className="fixed right-6 top-5 z-[60] border border-[#b7eb8f] bg-[#f6ffed] px-4 py-2 text-sm text-[#52a26b] shadow">{notice}</div>}{detail && <Detail row={detail} close={() => setDetail(null)} />}{create && <Create stores={stores} levels={levels} close={() => setCreate(false)} done={() => { setCreate(false); setRefreshKey((v) => v + 1); flash("红娘已创建"); }} error={flash} />}</>;
+  const [reportOpen, setReportOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
+  return (
+    <div className="min-w-0">
+      <AdminBreadcrumb items={breadcrumb} />
+
+      {/* 须知 */}
+      <div className="ecl-notice">
+        <div className="ecl-notice-body">
+          <span className="ecl-notice-ic">i</span>
+          <div className="ecl-notice-text">
+            <div className="ecl-notice-title">须知</div>
+            <p>
+              <b>平台运营老板：</b>
+              即系统后台管理员,能查看、管理平台中的所有门店的客源信息、会员资料、联系方式、牵线记录、跟进档案等、红娘,并可以创建分店
+            </p>
+            <p>
+              <b>总店-超级红娘：</b>
+              在红娘平台中可以查看、操作、编辑平台的全部客源信息、会员资料、联系方式、牵线记录、跟进档案等
+            </p>
+            <p>
+              <b>总店-普通红娘：</b>
+              在红娘平台中可以查看、操作、编辑在总店中归属自己名下的全部客源信息、联系方式、会员资料、牵线记录、跟进档案等
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="finord-card hm-card">
+        <div className="hm-head">
+          <div className="hm-head-left">
+            <h2 className="hm-title">红娘管理</h2>
+            <button type="button" className="hm-tutorial">
+              <BookOpen size={13} />
+              红娘使用教程
+            </button>
+          </div>
+          <div className="hm-head-actions">
+            <button
+              type="button"
+              className="finord-btn finord-btn-outline hm-report-btn"
+              onClick={() => setReportOpen(true)}
+            >
+              <BarChart3 size={14} />
+              红娘工作汇报
+            </button>
+            <button
+              type="button"
+              className="finord-btn finord-btn-primary hm-add-btn"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus size={14} />
+              添加红娘
+            </button>
+          </div>
+        </div>
+
+        <div className="hm-filters">
+          <input className="hm-input" placeholder="请输入红娘昵称/账号/手机" />
+          <button type="button" className="finord-btn finord-btn-primary hm-search-btn">
+            搜索
+          </button>
+        </div>
+
+        <div className="finord-table-wrap">
+          <table className="finord-table hm-table">
+            <colgroup>
+              <col style={{ width: 250 }} />
+              <col style={{ width: 160 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 104 }} />
+              <col style={{ width: 104 }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: "auto" }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>红娘</th>
+                <th>手机/微信</th>
+                <th>分成级别</th>
+                <th>牵线成功数</th>
+                <th>累计分成</th>
+                <th>锁定</th>
+                <th>前台展示</th>
+                <th>菜单权限</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <div className="hm-member">
+                      <div className="hm-avatar-wrap">
+                        <span className={`hm-avatar hm-g-${row.palette}`} />
+                        <span className="hm-role-badge">{row.roleTag}</span>
+                      </div>
+                      <div className="hm-member-info">
+                        <div className="hm-line">
+                          <span className="hm-line-k">称呼：</span>
+                          {row.name}
+                        </div>
+                        <div className="hm-line">
+                          <span className="hm-line-k">账号：</span>
+                          {row.account}
+                        </div>
+                        <div className="hm-line">
+                          <span className="hm-line-k">归属：</span>
+                          {row.store}
+                        </div>
+                        <div className="hm-line">
+                          <span className="hm-line-k">描述：</span>
+                          {row.desc}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="hm-contact">
+                      <Phone size={12} />
+                      <span>{row.phone}</span>
+                    </div>
+                    <div className="hm-contact">
+                      <MessageSquare size={12} />
+                      <span>{row.wechat}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="hm-level">{row.level}</span>
+                  </td>
+                  <td>{row.success}人</td>
+                  <td>{row.amount}</td>
+                  <td>
+                    <span className={`hm-pill ${row.locked ? "lock" : "normal"}`}>
+                      {row.locked ? "已锁定" : "正常"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`hm-pill ${row.visible ? "show" : "hide"}`}>
+                      {row.visible ? "展示" : "隐藏"}
+                    </span>
+                  </td>
+                  <td>
+                    <button type="button" className="hm-link">
+                      菜单管理
+                    </button>
+                  </td>
+                  <td>
+                    <div className="hm-actions">
+                      <button type="button" className="hm-link">
+                        红娘平台
+                      </button>
+                      <button type="button" className="hm-link">
+                        数据报表
+                      </button>
+                      <button type="button" className="hm-link">
+                        海报
+                      </button>
+                      <button type="button" className="hm-link">
+                        编辑
+                      </button>
+                      <button type="button" className="hm-link danger">
+                        删除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {reportOpen && <ReportDrawer row={rows[0]} onClose={() => setReportOpen(false)} />}
+      {addOpen && <AddMatchmakerDrawer onClose={() => setAddOpen(false)} />}
+    </div>
+  );
 }
 
-function Detail({ row, close }: { row: Row; close: () => void }) {
-  const fields = [["红娘称呼", "display_name"], ["普通用户 ID", "id"], ["手机号", "phone"], ["微信", "wechat"], ["门店", "store_name"], ["角色", "role_label"], ["分成级别", "commission_level_name"], ["牵线成功数", "success_count"], ["累计分成", "commission_amount"], ["创建时间", "created_at"]];
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" onMouseDown={close}><div className="w-full max-w-lg rounded bg-white shadow-lg" onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center justify-between border-b px-5 py-4"><h2 className="font-medium">红娘详情</h2><button type="button" aria-label="关闭" className="text-xl text-[#999]" onClick={close}>×</button></div><div className="grid grid-cols-2 gap-4 p-5 text-sm">{fields.map(([label, key]) => <div key={key}><div className="mb-1 text-xs text-[#999]">{label}</div><div>{text(row, key)}</div></div>)}</div><div className="border-t px-5 py-3 text-right"><button type="button" className="rounded border px-4 py-1.5 text-sm" onClick={close}>关闭</button></div></div></div>;
+function ReportDrawer({ row, onClose }: { row: Row; onClose: () => void }) {
+  return (
+    <>
+      <div className="tlc-mask" onClick={onClose} />
+      <div className="tlc-panel hm-report-panel">
+        <div className="tlc-panel-head">
+          <div className="tlc-panel-head-left">
+            <button className="tlc-x" onClick={onClose} aria-label="关闭">
+              <X size={18} />
+            </button>
+            <span className="tlc-panel-title">红娘工作汇报</span>
+          </div>
+        </div>
+        <div className="tlc-panel-body">
+          <div className="hm-report-notice">
+            <p>
+              <b>线上分成：</b>红娘名下的会员在平台中线上消费的分成
+            </p>
+            <p>
+              <b>线下业绩：</b>在线下VIP中作为“销售红娘”的合同金额
+            </p>
+          </div>
+
+          <div className="hm-report-filters">
+            <div className="hm-report-date">
+              <input defaultValue="2026-08-11" />
+              <span className="hm-report-arrow">→</span>
+              <input defaultValue="2026-09-10" />
+              <CalendarDays size={14} />
+            </div>
+            <div className="hm-select">
+              <select defaultValue="">
+                <option value="">默认排序</option>
+              </select>
+              <ChevronDown className="hm-caret" size={14} />
+            </div>
+          </div>
+
+          <div className="hm-report-table-wrap">
+            <table className="hm-report-table">
+              <thead>
+                <tr>
+                  {reportCols.map((c) => (
+                    <th key={c}>{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div className="hm-report-member">
+                      <span className={`hm-avatar hm-avatar-sm hm-g-${row.palette}`} />
+                      <span>{row.name}</span>
+                    </div>
+                  </td>
+                  {reportValues.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
 
-function Create({ stores, levels, close, done, error }: { stores: Dict[]; levels: Dict[]; close: () => void; done: () => void; error: (message: string) => void }) {
-  const [form, setForm] = useState({ user_id: "", lookup: "", lookupBy: "nickname", display_name: "", phone: "", wechat: "", avatar: "", qr: "", slogan: "", description: "", store_id: "", commission_level_id: "", role_tag: "normal", allow_assign: true, allow_contact_edit: true, timed_lock: false, sort: "", visible: true });
-  const [candidates, setCandidates] = useState<Row[]>([]);
-  const [saving, setSaving] = useState(false);
-  const set = (key: string, value: string | boolean) => setForm((current) => ({ ...current, [key]: value }));
-  useEffect(() => { const keyword = form.lookup.trim(); if (keyword.length < 2 || form.user_id) { setCandidates([]); return; } const timer = window.setTimeout(() => { void adminApi<Row[]>(api(`matchmakers/user-candidates?keyword=${encodeURIComponent(keyword)}`)).then(setCandidates).catch(() => setCandidates([])); }, 300); return () => window.clearTimeout(timer); }, [form.lookup, form.user_id]);
-  const upload = (key: "avatar" | "qr", file?: File) => { if (!file) return; set(key, file.name); };
-  const submit = async () => { if (!form.display_name || !form.slogan || !form.phone || !form.wechat) { error("请填写红娘称呼、红娘口号、手机号和微信号"); return; } setSaving(true); try { await adminApi(api("matchmakers"), { method: "POST", body: { user_id: form.user_id ? Number(form.user_id) : null, lookup: form.lookup || null, lookup_by: form.lookupBy, display_name: form.display_name, phone: form.phone, wechat: form.wechat, avatar: form.avatar || null, qr_code: form.qr || null, slogan: form.slogan || null, description: form.description || null, store_id: form.store_id ? Number(form.store_id) : null, commission_level_id: form.commission_level_id ? Number(form.commission_level_id) : null, role_tag: form.role_tag, allow_assign: form.allow_assign, allow_contact_edit: form.allow_contact_edit, timed_lock: form.timed_lock, sort: form.sort ? Number(form.sort) : 0, visible: form.visible } }); done(); } catch (e) { error(e instanceof Error ? e.message : "创建失败"); } finally { setSaving(false); } };
-  const Field = ({ label, required, children, full }: { label: string; required?: boolean; children: React.ReactNode; full?: boolean }) => <div className={`grid grid-cols-[104px_minmax(0,1fr)] items-center gap-3 ${full ? "col-span-2" : ""}`}><span className="text-right text-sm text-[#666]">{required && <b className="mr-1 text-[#ff4d4f]">*</b>}{label}</span>{children}</div>;
-  const input = "h-10 w-full rounded border border-[#d9d9d9] px-3 text-sm outline-none focus:border-[#3658f7]";
-  return <div className="fixed inset-0 z-50 bg-black/30" onMouseDown={close}><aside className="ml-auto flex h-full w-full max-w-[58vw] min-w-[760px] flex-col overflow-hidden bg-white shadow-2xl" onMouseDown={(event) => event.stopPropagation()}><div className="flex h-20 shrink-0 items-center justify-between border-b px-8"><div className="flex items-center gap-6"><button type="button" aria-label="关闭" className="text-3xl leading-none text-[#888]" onClick={close}>×</button><h2 className="text-xl font-medium">添加/编辑服务红娘</h2></div><div className="flex gap-3"><button type="button" className="rounded border px-6 py-2 text-sm" onClick={close}>关闭</button><button type="button" disabled={saving} className="rounded bg-[#3658f7] px-6 py-2 text-sm text-white" onClick={() => void submit()}>{saving ? "提交中..." : "确定提交"}</button></div></div><div className="flex-1 overflow-y-auto px-10 py-9"><div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-12 gap-y-9"><Field label="账号绑定" full><div className="relative space-y-3"><div className="flex items-center gap-5"><input value={form.lookup} onChange={(e) => { set("lookup", e.target.value); set("user_id", ""); }} placeholder="请输入昵称或手机号搜索普通用户" className={`${input} w-[300px]`} /><label className="flex items-center gap-2"><input type="radio" checked={form.lookupBy === "nickname"} onChange={() => set("lookupBy", "nickname")} />按昵称</label><label className="flex items-center gap-2"><input type="radio" checked={form.lookupBy === "phone"} onChange={() => set("lookupBy", "phone")} />按手机</label></div>{candidates.length > 0 && <div className="absolute left-0 top-11 z-20 w-[300px] overflow-hidden rounded border bg-white shadow-lg">{candidates.map((candidate) => <button type="button" key={String(candidate.id)} className="block w-full border-b px-3 py-2 text-left text-sm hover:bg-[#f5f7ff]" onClick={() => { set("user_id", String(candidate.id)); set("lookup", String(candidate.nickname || candidate.phone || "")); set("display_name", String(candidate.nickname || "")); set("phone", String(candidate.phone || "")); setCandidates([]); }}><div>{text(candidate, "nickname")}</div><div className="text-xs text-[#999]">ID: {text(candidate, "id")} · {text(candidate, "phone")}</div></button>)}</div>}</div></Field><Field label="红娘头像"><input type="file" accept="image/*" className="text-sm" onChange={(e) => upload("avatar", e.target.files?.[0])} /></Field><Field label="微信二维码"><input type="file" accept="image/*" className="text-sm" onChange={(e) => upload("qr", e.target.files?.[0])} /></Field><Field label="红娘称呼" required><input value={form.display_name} onChange={(e) => set("display_name", e.target.value)} placeholder="请输入红娘称呼" className={input} /></Field><Field label="岗位描述"><input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="如：电话邀约、匹配牵线" className={input} /></Field><Field label="红娘口号" required full><div className="flex items-start gap-4"><select value={SLOGANS.includes(form.slogan) ? form.slogan : ""} onChange={(e) => set("slogan", e.target.value)} className={`${input} max-w-[520px]`}><option value="">请选择红娘口号</option>{SLOGANS.map((slogan) => <option key={slogan} value={slogan}>{slogan}</option>)}</select><label className="flex items-center gap-2 whitespace-nowrap pt-2 text-sm text-[#444]"><input type="checkbox" checked={!SLOGANS.includes(form.slogan) && form.slogan !== ""} onChange={(e) => { if (e.target.checked) set("slogan", ""); else set("slogan", SLOGANS[0]); }} />自定义输入</label>{!SLOGANS.includes(form.slogan) && <input value={form.slogan} onChange={(e) => set("slogan", e.target.value)} placeholder="请输入红娘口号" className={`${input} max-w-[360px]`} />}</div></Field><Field label="微信账号" required><input value={form.wechat} onChange={(e) => set("wechat", e.target.value)} placeholder="请输入微信号" className={input} /></Field><Field label="手机号码" required><input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="请输入手机号" className={input} /></Field><Field label="所属门店"><select value={form.store_id} onChange={(e) => set("store_id", e.target.value)} className={input}><option value="">请选择</option>{stores.map((s) => <option key={s.id} value={s.id}>{s.display_name || s.name}</option>)}</select></Field><Field label="红娘角色" required><select value={form.role_tag} onChange={(e) => set("role_tag", e.target.value)} className={input}><option value="normal">普通红娘</option><option value="super">超级红娘</option></select></Field><Field label="分成级别" full><div className="text-sm text-[#666]">分店的红娘分成由分店自行在分店平台中设置与结算</div></Field><Field label="分派权限" full><div className="flex gap-8 text-sm"><label><input type="radio" checked={!form.allow_assign} onChange={() => set("allow_assign", false)} /> 不允许分派会员、客源给其他红娘</label><label><input type="radio" checked={form.allow_assign} onChange={() => set("allow_assign", true)} /> 允许分派会员、客源给其他红娘</label></div></Field><Field label="修改联系方式" full><div className="flex gap-8 text-sm"><label><input type="radio" checked={!form.allow_contact_edit} onChange={() => set("allow_contact_edit", false)} /> 不允许</label><label><input type="radio" checked={form.allow_contact_edit} onChange={() => set("allow_contact_edit", true)} /> 允许</label></div></Field><Field label="定时锁定" full><div className="space-y-3"><Switch checked={form.timed_lock} onChange={(timed_lock) => set("timed_lock", timed_lock)} /></div></Field><Field label="显示排序"><input value={form.sort} onChange={(e) => set("sort", e.target.value)} placeholder="数字越大显示越靠前" className={input} /></Field></div></div></aside></div>;
+function AddMatchmakerDrawer({ onClose }: { onClose: () => void }) {
+  const [lookupBy, setLookupBy] = useState("按昵称");
+  const [customSlogan, setCustomSlogan] = useState(false);
+  const [editContact, setEditContact] = useState("允许");
+  const [timedLock, setTimedLock] = useState(false);
+
+  return (
+    <>
+      <div className="tlc-mask" onClick={onClose} />
+      <div className="tlc-panel bm-drawer-panel">
+        <div className="tlc-panel-head">
+          <div className="tlc-panel-head-left">
+            <button className="tlc-x" onClick={onClose} aria-label="关闭">
+              <X size={18} />
+            </button>
+            <span className="tlc-panel-title">添加/编辑服务红娘</span>
+          </div>
+          <div className="bm-head-actions">
+            <button className="finord-btn bm-cancel" onClick={onClose}>
+              关闭
+            </button>
+            <button className="finord-btn finord-btn-primary">确定提交</button>
+          </div>
+        </div>
+        <div className="tlc-panel-body">
+          {/* 账号绑定 */}
+          <div className="bm-row">
+            <span className="bm-label">
+              <b className="hm-req">*</b>账号绑定
+            </span>
+            <div className="bm-content">
+              <div className="bm-acct-row">
+                <input className="bm-input-wide" placeholder="请输入已注册账号的昵称" />
+                {["按昵称", "按手机"].map((o) => (
+                  <label key={o} className={`bm-radio ${lookupBy === o ? "active" : ""}`}>
+                    <input
+                      type="radio"
+                      name="lookupBy"
+                      value={o}
+                      checked={lookupBy === o}
+                      onChange={() => setLookupBy(o)}
+                    />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="bm-info">
+                ① 如果查询不到账号，请先让红娘使用微信在平台中登录注册；一个账号只能绑定一个红娘。
+              </div>
+            </div>
+          </div>
+
+          {/* 红娘头像 + 微信二维码 */}
+          <div className="bm-row bm-row-top">
+            <span className="bm-label">红娘头像</span>
+            <div className="bm-content">
+              <div className="hm-pick-row">
+                <button type="button" className="hm-upload-btn">
+                  <Plus size={14} /> 上传图片
+                </button>
+                <div className="hm-pick-item">
+                  <span className="hm-pick-label">微信二维码</span>
+                  <button type="button" className="hm-upload-btn">
+                    <Plus size={14} /> 上传图片
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 红娘称呼 + 岗位描述 */}
+          <div className="bm-row">
+            <span className="bm-label">
+              <b className="hm-req">*</b>红娘称呼
+            </span>
+            <div className="bm-content">
+              <div className="bm-two-col">
+                <input className="bm-input-wide" placeholder="请输入红娘称呼" />
+                <div className="hm-inline-field">
+                  <span className="hm-inline-label">岗位描述</span>
+                  <input className="bm-input-wide" placeholder="如：电话邀约、匹配牵线" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 红娘口号 */}
+          <div className="bm-row">
+            <span className="bm-label">
+              <b className="hm-req">*</b>红娘口号
+            </span>
+            <div className="bm-content">
+              <div className="hm-slogan-row">
+                <select className="bm-select bm-select-wide" defaultValue="">
+                  <option value="">请选择</option>
+                </select>
+                <label className="hm-check">
+                  <input
+                    type="checkbox"
+                    checked={customSlogan}
+                    onChange={() => setCustomSlogan(!customSlogan)}
+                  />
+                  <span>自定义输入</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 微信号 + 手机号码 */}
+          <div className="bm-row">
+            <span className="bm-label">
+              <b className="hm-req">*</b>微信号
+            </span>
+            <div className="bm-content">
+              <div className="bm-two-col">
+                <input className="bm-input-wide" placeholder="请输入微信号" />
+                <div className="hm-inline-field">
+                  <span className="hm-inline-label">
+                    <b className="hm-req">*</b>手机号码
+                  </span>
+                  <input className="bm-input-wide" placeholder="请输入手机号码" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 红娘角色 */}
+          <div className="bm-row">
+            <span className="bm-label">
+              <b className="hm-req">*</b>红娘角色
+            </span>
+            <div className="bm-content">
+              <select className="bm-select bm-select-wide" defaultValue="">
+                <option value="">请选择红娘角色</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 分成级别 */}
+          <div className="bm-row">
+            <span className="bm-label">分成级别</span>
+            <div className="bm-content">
+              <div className="hm-desc-text">分店的红娘分成由分店自行在分店平台中设置与结算</div>
+            </div>
+          </div>
+
+          {/* 修改联系方式 */}
+          <div className="bm-row">
+            <span className="bm-label">修改联系方式</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["不允许", "允许"].map((o) => (
+                  <label key={o} className={`bm-radio ${editContact === o ? "active" : ""}`}>
+                    <input
+                      type="radio"
+                      name="editContact"
+                      value={o}
+                      checked={editContact === o}
+                      onChange={() => setEditContact(o)}
+                    />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="bm-info">
+                ① 若设置为“不允许”则红娘在其红娘平台中无法修改客户的手机号码和微信（包括客源线索、会员CRM）
+              </div>
+            </div>
+          </div>
+
+          {/* 定时锁定 */}
+          <div className="bm-row">
+            <span className="bm-label">定时锁定</span>
+            <div className="bm-content">
+              <div className="bm-switch-row">
+                <span className="hm-switch-label">{timedLock ? "开启" : "关闭"}</span>
+                <button
+                  type="button"
+                  className={`mp-switch ${timedLock ? "on" : ""}`}
+                  onClick={() => setTimedLock(!timedLock)}
+                >
+                  <span className="mp-switch-knob" />
+                </button>
+              </div>
+              <div className="bm-info">① 开启定时锁定后，到了时间后该账号自动锁定</div>
+            </div>
+          </div>
+
+          {/* 显示排序 */}
+          <div className="bm-row">
+            <span className="bm-label">显示排序</span>
+            <div className="bm-content">
+              <input className="hm-sort-input" placeholder="数字越大显示越靠前" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
-
-
-
-

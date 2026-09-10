@@ -11,8 +11,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useSweepAngle } from "@/hooks/useSweepAngle";
 import { adminEndpoints, type AdminDashboardReport, type AnnouncementItem, type AcademyCategory } from "@/lib/admin-endpoints";
-import { getAdminToken } from "@/lib/admin-api";
 
 /* ---------- 问候 ---------- */
 function greeting() {
@@ -39,20 +39,25 @@ function shortDate(iso: string) {
   return m ? `${m[2]}-${m[3]}` : iso;
 }
 
-/* ---------- 收入构成中文标签 ---------- */
-const PRODUCT_LABELS: Record<string, string> = {
-  vip: "VIP会员",
-  offline_vip: "线下VIP",
-  gift: "送礼物",
-  points: "积分充值",
-  balance: "余额充值",
-  promoter_join_fee: "推广红娘入伙费",
-  partner_join_fee: "合伙红娘入伙费",
-  activity: "活动报名",
-  tip: "短视频打赏",
-  unknown: "其他",
-};
-const RANK_COLORS = ["#f07b78", "#5a72ef", "#7e92f5", "#f4bd56", "#92cf69"];
+/* ---------- 会员登记来源占比 ---------- */
+const SOURCE_COLORS = ["#3658f7", "#f5a623", "#f0506e", "#8b5cf6", "#22c55e", "#4b8cf7"];
+const MEMBER_SOURCES = [
+  { name: "自己注册", percent: 66.7 },
+  { name: "批量导入", percent: 15.2 },
+  { name: "找搭子", percent: 7.5 },
+  { name: "红娘添加", percent: 4.1 },
+  { name: "活动入库", percent: 2.7 },
+  { name: "后台添加", percent: 2.2 },
+];
+
+/* ---------- 光荣榜 ---------- */
+const HONOR_ROWS = [
+  { label: "线上牵线", value: "49", unit: "次", color: "#3658f7" },
+  { label: "牵线成功", value: "30", unit: "对", color: "#f5a623" },
+  { label: "安排约见", value: "0", unit: "次", color: "#f56c6c" },
+  { label: "线下活动", value: "0", unit: "场", color: "#8b5cf6" },
+  { label: "成功脱单", value: "2", unit: "人", color: "#22c55e" },
+];
 
 const emptyReport: AdminDashboardReport = {
   from_date: "",
@@ -76,59 +81,26 @@ const quickBtns = [
   { label: "发布活动", icon: PartyPopper, href: "/active-list" },
 ];
 
-/* ---------- 调试登录（local-demo-token）模式下的演示数据 ---------- */
-function buildDemoReport(): AdminDashboardReport {
-  const today = new Date();
-  const trends = Array.from({ length: 15 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (14 - i));
-    return { date: toISO(d), member_count: i === 14 ? 1 : 0, lead_count: 0, paid_count: 0, paid_amount: "0", online_paid_amount: "0", offline_paid_amount: "0", net_amount: "0" };
-  });
-  return {
-    ...emptyReport,
-    metrics: {
-      ...emptyReport.metrics,
-      platform_user_count: 746, member_count: 640, wechat_fan_count: 0, lead_count: 9,
-      matchmaker_count: 1, service_matchmaker_count: 1, online_income: "4126.8", offline_income: "0",
-      male_member_count: 406, female_member_count: 234, successful_match_count: 69,
-    },
-    pending: { withdrawal: 5, matchmaker_application: 0, matchmaker_service: 3, match_application: 3, report: 0 },
-    member_gender: { male: 406, female: 234, unspecified: 0 },
-    income_rank: [
-      { product_type: "promoter_join_fee", income: "3528.8", proportion: "85.50" },
-      { product_type: "vip", income: "598", proportion: "14.50" },
-    ],
-    trends,
-  };
-}
-const demoAnnouncements: AnnouncementItem[] = [
-  { id: 1, version_id: null, category: "新功能", title: "新增了客户结婚状态查询功能", title_color: null, title_bold: false, top: false, sort_order: 5, link_to: null, created_at: "2026-07-08 10:00:00", read: false },
-  { id: 2, version_id: null, category: "细节改进", title: "会员资料页进行了全新改版", title_color: null, title_bold: false, top: false, sort_order: 4, link_to: null, created_at: "2026-07-08 09:30:00", read: false },
-  { id: 3, version_id: null, category: "功能升级", title: "新增了账号注销功能", title_color: null, title_bold: false, top: false, sort_order: 3, link_to: null, created_at: "2026-07-08 09:00:00", read: false },
-  { id: 4, version_id: null, category: "新功能", title: "线上互动活动使用指南", title_color: null, title_bold: false, top: false, sort_order: 2, link_to: null, created_at: "2026-06-25 15:00:00", read: false },
-  { id: 5, version_id: null, category: "BUG修复", title: "修复了活动管理中封面图太小导致图标过小的问题", title_color: null, title_bold: false, top: false, sort_order: 1, link_to: null, created_at: "2026-09-08 18:00:00", read: false },
-];
-const demoGuides: AcademyCategory[] = [
-  { id: 1, parent_id: null, name: "销售匹配库(眼缘库)使用教程", description: null, sort: 1, enabled: true, matchmaker_class_enabled: false, children: [] },
-  { id: 2, parent_id: null, name: "账号申请注销流程", description: null, sort: 2, enabled: true, matchmaker_class_enabled: false, children: [] },
-  { id: 3, parent_id: null, name: "会员资料页设计效果图展示", description: null, sort: 3, enabled: true, matchmaker_class_enabled: false, children: [] },
-  { id: 4, parent_id: null, name: "客户结婚状态查询使用流程", description: null, sort: 4, enabled: true, matchmaker_class_enabled: false, children: [] },
-  { id: 5, parent_id: null, name: "云端素材库使用、改图小技巧", description: null, sort: 5, enabled: true, matchmaker_class_enabled: false, children: [] },
-];
-
 export default function HomePage() {
-  const [demo] = useState(() => typeof window !== "undefined" && getAdminToken() === "local-demo-token");
-  const [report, setReport] = useState<AdminDashboardReport>(() => (typeof window !== "undefined" && getAdminToken() === "local-demo-token" ? buildDemoReport() : emptyReport));
-  const [loaded, setLoaded] = useState(() => typeof window !== "undefined" && getAdminToken() === "local-demo-token");
+  const [report, setReport] = useState<AdminDashboardReport>(emptyReport);
+  const [loaded, setLoaded] = useState(false);
   const [month, setMonth] = useState({ member: 0, lead: 0, online: 0, offline: 0 });
-  const [operatorName, setOperatorName] = useState(() => (typeof window !== "undefined" && getAdminToken() === "local-demo-token" ? "shushu" : "管理员"));
-  const [smsRemaining, setSmsRemaining] = useState(() => (typeof window !== "undefined" && getAdminToken() === "local-demo-token" ? 9410 : 0));
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(() => (typeof window !== "undefined" && getAdminToken() === "local-demo-token" ? demoAnnouncements : []));
-  const [guides, setGuides] = useState<AcademyCategory[]>(() => (typeof window !== "undefined" && getAdminToken() === "local-demo-token" ? demoGuides : []));
-  const [trendDays, setTrendDays] = useState<7 | 15>(15);
+  const [operatorName, setOperatorName] = useState("管理员");
+  const [smsRemaining, setSmsRemaining] = useState(0);
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [guides, setGuides] = useState<AcademyCategory[]>([]);
+  const [trendDays, setTrendDays] = useState<7 | 15>(7);
+  /* 图表进场动画开关：首帧为 false，hydration 后再置 true，强制图表重新挂载以播放动画（进入/刷新页面均生效） */
+  const [chartsReady, setChartsReady] = useState(false);
+  /* 环形图扫过进度 0→1：从 12 点位置顺时针扫一整圈形成完整圆环 */
+  const pieSweep = useSweepAngle(chartsReady && loaded);
 
   useEffect(() => {
-    if (demo) return; // 调试登录：无有效后端 token，使用演示数据
+    const timer = window.setTimeout(() => setChartsReady(true), 80);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const trendStart = new Date(today);
@@ -167,13 +139,13 @@ export default function HomePage() {
 
   /* ---------- 统计卡 ---------- */
   const statCards = [
-    { label: "平台用户", value: `${report.metrics.platform_user_count}人`, delta: `本月 +${month.member}人`, icon: Users, color: "#5a72ef", bg: "#eef1ff" },
-    { label: "公众号粉丝", value: `${report.metrics.wechat_fan_count}人`, delta: "本月 +0人", icon: MessageCircle, color: "#ff9a44", bg: "#fff3e8" },
-    { label: "客源线索", value: `${report.metrics.lead_count}条`, delta: `本月 +${month.lead}条`, icon: ClipboardList, color: "#9270e8", bg: "#f2edff" },
-    { label: "会员总数", value: `${report.metrics.member_count}人`, delta: `本月 +${month.member}人`, icon: Heart, color: "#eb5f75", bg: "#ffecef" },
-    { label: "红娘团队", value: `${report.metrics.matchmaker_count}人`, delta: "本月 +0人", icon: UserRound, color: "#ff9a44", bg: "#fff3e8" },
-    { label: "线上总收入", value: `${fmtMoney(report.metrics.online_income)}元`, delta: `本月 +${fmtMoney(month.online)}元`, icon: Wallet, color: "#eb5f75", bg: "#ffecef" },
-    { label: "线下总收入", value: `${fmtMoney(report.metrics.offline_income)}元`, delta: `本月 +${fmtMoney(month.offline)}元`, icon: Wallet, color: "#4bb6a2", bg: "#e9f8f4" },
+    { label: "平台用户", value: `${report.metrics.platform_user_count}`, unit: "人", delta: `+${month.member}人`, icon: Users, color: "#5a72ef", bg: "#eef1ff" },
+    { label: "公众号粉丝", value: `${report.metrics.wechat_fan_count}`, unit: "人", delta: "+0人", icon: MessageCircle, color: "#ff9a44", bg: "#fff3e8" },
+    { label: "客源线索", value: `${report.metrics.lead_count}`, unit: "条", delta: `+${month.lead}条`, icon: ClipboardList, color: "#9270e8", bg: "#f2edff" },
+    { label: "会员总数", value: `${report.metrics.member_count}`, unit: "人", delta: `+${month.member}人`, icon: Heart, color: "#eb5f75", bg: "#ffecef" },
+    { label: "红娘团队", value: `${report.metrics.matchmaker_count}`, unit: "人", delta: "+0人", icon: UserRound, color: "#ff9a44", bg: "#fff3e8" },
+    { label: "线上总收入", value: `${fmtMoney(report.metrics.online_income)}`, unit: "元", delta: `+${fmtMoney(month.online)}元`, icon: Wallet, color: "#eb5f75", bg: "#ffecef" },
+    { label: "线下总收入", value: `${fmtMoney(report.metrics.offline_income)}`, unit: "元", delta: `+${fmtMoney(month.offline)}元`, icon: Wallet, color: "#4bb6a2", bg: "#e9f8f4" },
   ];
 
   /* ---------- 待审工作（后端 pending 映射，无对应项为 0） ---------- */
@@ -199,43 +171,26 @@ export default function HomePage() {
     })),
     [report.trends, trendDays],
   );
+  const trendEmpty = memberTrend.every((t) => t.count === 0);
 
-  /* ---------- 收入构成占比 ---------- */
-  const incomeShare = useMemo(
-    () => (report.income_rank ?? []).map((item, i) => ({
-      name: PRODUCT_LABELS[item.product_type] ?? item.product_type,
-      value: num(item.income),
-      percent: `${num(item.proportion).toFixed(2)}%`,
-      color: RANK_COLORS[i % RANK_COLORS.length],
-    })),
-    [report.income_rank],
-  );
-  const incomeTotal = incomeShare.reduce((sum, item) => sum + item.value, 0);
+  /* ---------- 会员登记来源占比 ---------- */
+  const sourceRows = MEMBER_SOURCES.map((item, i) => ({ ...item, color: SOURCE_COLORS[i % SOURCE_COLORS.length] }));
 
   /* ---------- 会员男女占比 ---------- */
   const gender = report.member_gender;
   const genderTotal = num(gender.male) + num(gender.female);
   const genderData = [
-    { name: "男会员", value: num(gender.male), percent: genderTotal ? `${Math.round((num(gender.male) / genderTotal) * 100)}%` : "0%", color: "#5a72ef" },
-    { name: "女会员", value: num(gender.female), percent: genderTotal ? `${Math.round((num(gender.female) / genderTotal) * 100)}%` : "0%", color: "#f07b78" },
+    { name: "男会员", value: num(gender.male), percent: genderTotal ? `${Math.round((num(gender.male) / genderTotal) * 100)}%` : "0%", color: "#3658f7" },
+    { name: "女会员", value: num(gender.female), percent: genderTotal ? `${Math.round((num(gender.female) / genderTotal) * 100)}%` : "0%", color: "#f0506e" },
   ];
   const genderDiff = Math.abs(num(gender.male) - num(gender.female));
 
-  /* ---------- 光荣榜（后端真实运营指标） ---------- */
-  const honorList = [
-    { label: "线上牵线", value: `${report.metrics.successful_match_count}次`, color: "#5a72ef" },
-    { label: "线上VIP", value: `${report.metrics.online_vip_count}人`, color: "#ff9a44" },
-    { label: "线下VIP", value: `${report.metrics.offline_vip_count}人`, color: "#4bb6a2" },
-    { label: "服务红娘", value: `${report.metrics.service_matchmaker_count}人`, color: "#4bb6a2" },
-    { label: "推广红娘", value: `${report.metrics.promotion_matchmaker_count}人`, color: "#ff9a44" },
-  ];
-
-  /* ---------- 耗材余量（短信来自后端，其余暂无统计） ---------- */
+  /* ---------- 耗材余量（短信取自后端，实名/合同/婚况暂无对应接口，暂用固定值） ---------- */
   const materials = [
-    { label: "实名", value: "0次", color: "#5a72ef" },
-    { label: "短信", value: `${smsRemaining}条`, color: "#4bb6a2" },
-    { label: "合同", value: "0次", color: "#5a72ef" },
-    { label: "情况", value: "0次", color: "#ff9a44" },
+    { label: "实名", value: "786", unit: "次", art: "card" as const },
+    { label: "短信", value: `${smsRemaining}`, unit: "条", art: "chat" as const },
+    { label: "合同", value: "150", unit: "次", art: "card" as const },
+    { label: "婚况", value: "1", unit: "次", art: "chat" as const },
   ];
 
   /* ---------- 系统更新（后端公告） ---------- */
@@ -249,8 +204,8 @@ export default function HomePage() {
   const helps = useMemo(() => {
     const rows: { tag: string; title: string; date: string; color: string }[] = [];
     guides.forEach((cat) => {
-      rows.push({ tag: cat.matchmaker_class_enabled ? "红娘课堂" : "教学", title: cat.name, date: "", color: "#eb5f75" });
-      cat.children?.forEach((child) => rows.push({ tag: "教学", title: child.name, date: "", color: "#eb5f75" }));
+      rows.push({ tag: cat.matchmaker_class_enabled ? "必看" : "新上", title: cat.name, date: "", color: cat.matchmaker_class_enabled ? "#f0506e" : "#f5a623" });
+      cat.children?.forEach((child) => rows.push({ tag: "新上", title: child.name, date: "", color: "#f5a623" }));
     });
     return rows.slice(0, 5);
   }, [guides]);
@@ -279,8 +234,8 @@ export default function HomePage() {
               <span className="ov-stat-icon" style={{ background: card.bg, color: card.color }}><Icon /></span>
               <div className="ov-stat-info">
                 <div className="ov-stat-label">{card.label}</div>
-                <div className="ov-stat-value">{card.value}</div>
-                <div className="ov-stat-delta">{card.delta}</div>
+                <div className="ov-stat-value">{card.value}<em>{card.unit}</em></div>
+                <div className="ov-stat-delta">本月 <em>{card.delta}</em></div>
               </div>
             </div>
           );
@@ -313,47 +268,56 @@ export default function HomePage() {
             </div>
           </div>
           <div className="ov-card-body">
-            <div className="ov-unit">单位：人</div>
-            <ResponsiveContainer width="100%" height={230}>
-              <AreaChart key={loaded ? "trend-loaded" : "trend-empty"} data={memberTrend}>
-                <defs>
-                  <linearGradient id="ovTrendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5a72ef" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#5a72ef" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#999" }} axisLine={{ stroke: "#f0f0f0" }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#999" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
-                <Area type="monotone" dataKey="count" stroke="#5a72ef" strokeWidth={2} fill="url(#ovTrendGradient)" isAnimationActive animationDuration={1800} />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="ov-unit">单位：元</div>
+            {trendEmpty ? (
+              <div className="ov-empty">
+                <svg className="ov-empty-icon" viewBox="0 0 48 48" aria-hidden="true">
+                  <rect x="7" y="12" width="34" height="26" rx="5" />
+                  <path d="M7 21h10.5l2.5-4h8l2.5 4H41" />
+                </svg>
+                <span className="ov-empty-text">暂无数据</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={230}>
+                <AreaChart key={`trend-${trendDays}-${chartsReady ? (loaded ? "on" : "empty") : "boot"}`} data={memberTrend}>
+                  <defs>
+                    <linearGradient id="ovTrendGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#5a72ef" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#5a72ef" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#999" }} axisLine={{ stroke: "#f0f0f0" }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#999" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
+                  <Area type="monotone" dataKey="count" stroke="#5a72ef" strokeWidth={2} fill="url(#ovTrendGradient)" isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        {/* 收入构成占比 */}
+        {/* 会员登记来源占比 */}
         <div className="ov-card ov-mid-source">
-          <div className="ov-card-head"><h2>收入构成占比</h2></div>
+          <div className="ov-card-head"><h2>会员登记来源占比</h2></div>
           <div className="ov-card-body ov-source-body">
             <div className="ov-donut">
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart key={loaded ? "pie-share-loaded" : "pie-share-empty"}>
-                  <Pie data={incomeShare} cx="50%" cy="50%" innerRadius={50} outerRadius={78} paddingAngle={2} dataKey="value" isAnimationActive animationDuration={1800}>
-                    {incomeShare.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+              <ResponsiveContainer width="100%" height={104}>
+                <PieChart key={`pie-share-${chartsReady ? (loaded ? "on" : "empty") : "boot"}`}>
+                  <Pie data={sourceRows} cx="50%" cy="50%" innerRadius={34} outerRadius={50} paddingAngle={1} dataKey="percent" startAngle={90} endAngle={90 - 360 * pieSweep} isAnimationActive={false}>
+                    {sourceRows.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(v: number) => `${v}%`} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="ov-donut-center"><span className="ov-donut-center-label">总收入</span><strong>{fmtMoney(incomeTotal)}元</strong></div>
+              <div className="ov-donut-center"><span className="ov-donut-center-label">登记总数</span><strong>{report.metrics.member_count}人</strong></div>
             </div>
             <div className="ov-source-legend">
-              {incomeShare.length === 0 && <div className="ov-source-empty">暂无收入数据</div>}
-              {incomeShare.map((item) => (
+              {sourceRows.map((item) => (
                 <div className="ov-source-row" key={item.name}>
                   <span className="ov-source-dot" style={{ background: item.color }} />
                   <span className="ov-source-name">{item.name}</span>
-                  <span className="ov-source-percent">{item.percent}</span>
+                  <span className="ov-source-percent" style={{ color: item.color }}>{item.percent}%</span>
                 </div>
               ))}
             </div>
@@ -365,9 +329,9 @@ export default function HomePage() {
           <div className="ov-card-head"><h2>会员男女占比</h2></div>
           <div className="ov-card-body ov-source-body">
             <div className="ov-donut">
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart key={loaded ? "pie-gender-loaded" : "pie-gender-empty"}>
-                  <Pie data={genderData} cx="50%" cy="50%" innerRadius={50} outerRadius={78} paddingAngle={2} dataKey="value" isAnimationActive animationDuration={1800}>
+              <ResponsiveContainer width="100%" height={104}>
+                <PieChart key={`pie-gender-${chartsReady ? (loaded ? "on" : "empty") : "boot"}`}>
+                  <Pie data={genderData} cx="50%" cy="50%" innerRadius={34} outerRadius={50} paddingAngle={1} dataKey="value" startAngle={90} endAngle={90 - 360 * pieSweep} isAnimationActive={false}>
                     {genderData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                   </Pie>
                   <Tooltip />
@@ -380,7 +344,7 @@ export default function HomePage() {
                 <div className="ov-gender-row" key={item.name}>
                   <span className="ov-gender-dot" style={{ background: item.color }} />
                   <div className="ov-gender-info">
-                    <span className="ov-gender-title">{item.name} <em className="ov-gender-percent">{item.percent}</em></span>
+                    <span className="ov-gender-title">{item.name} <em className="ov-gender-percent" style={{ color: item.color }}>{item.percent}</em></span>
                     <span className="ov-gender-value">{item.value}人</span>
                   </div>
                 </div>
@@ -393,10 +357,10 @@ export default function HomePage() {
         <div className="ov-card ov-mid-honor">
           <div className="ov-card-head"><h2>光荣榜</h2></div>
           <div className="ov-card-body ov-honor-body">
-            {honorList.map((item) => (
+            {HONOR_ROWS.map((item) => (
               <div className="ov-honor-row" key={item.label}>
-                <span className="ov-honor-label" style={{ color: item.color }}>{item.label}</span>
-                <span className="ov-honor-value">{item.value}</span>
+                <span className="ov-honor-label">{item.label}</span>
+                <span className="ov-honor-value" style={{ color: item.color }}>{item.value}<i>{item.unit}</i></span>
               </div>
             ))}
           </div>
@@ -415,8 +379,27 @@ export default function HomePage() {
             {materials.map((item) => (
               <div className="ov-mat-item" key={item.label}>
                 <span className="ov-mat-label">{item.label}</span>
-                <strong className="ov-mat-value">{item.value}</strong>
-                <span className="ov-mat-icon" style={{ background: item.color }} />
+                <strong className="ov-mat-value">{item.value}<em>{item.unit}</em></strong>
+                <svg className="ov-mat-art" viewBox="0 0 48 48" aria-hidden="true">
+                  {item.art === "card" ? (
+                    <>
+                      <rect x="5" y="10" width="30" height="22" rx="4" className="ov-mat-art-fill" />
+                      <circle cx="15" cy="19" r="4" className="ov-mat-art-ink" />
+                      <path d="M9 28c1.6-3.4 4-5 6-5s4.4 1.6 6 5Z" className="ov-mat-art-ink" />
+                      <rect x="24" y="16" width="9" height="2.4" rx="1.2" className="ov-mat-art-ink" />
+                      <rect x="24" y="21" width="9" height="2.4" rx="1.2" className="ov-mat-art-ink" />
+                      <rect x="34" y="18" width="10" height="20" rx="3" className="ov-mat-art-fill" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M6 12h22a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4h-9l-7 5v-5H6a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4Z" className="ov-mat-art-fill" />
+                      <circle cx="11" cy="22" r="1.8" className="ov-mat-art-ink" />
+                      <circle cx="17" cy="22" r="1.8" className="ov-mat-art-ink" />
+                      <circle cx="23" cy="22" r="1.8" className="ov-mat-art-ink" />
+                      <rect x="32" y="18" width="14" height="18" rx="4" className="ov-mat-art-fill" />
+                    </>
+                  )}
+                </svg>
               </div>
             ))}
           </div>

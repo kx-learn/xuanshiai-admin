@@ -5,19 +5,10 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import { getAdminToken } from "@/lib/admin-api";
 import AdminPagination from "@/components/AdminPagination";
 
 type Log = { id: number; account_id: number | null; username: string; login_status: 0 | 1; ip: string | null; user_agent: string | null; device_id: string | null; failure_reason: string | null; created_at: string };
 type Page = { items: Log[]; page: number; page_size: number; total: number; has_more: boolean };
-const mockLogs: Log[] = [
-  { id: 1733, account_id: 54, username: "出现1", login_status: 1, ip: "122.236.69.46:33078", user_agent: null, device_id: null, failure_reason: null, created_at: "2026-08-20 16:37:57" },
-  { id: 1732, account_id: 54, username: "出现1", login_status: 1, ip: "122.236.69.46:33080", user_agent: null, device_id: null, failure_reason: null, created_at: "2026-08-20 16:37:43" },
-  { id: 1731, account_id: 54, username: "出现1", login_status: 1, ip: "122.236.69.46:33082", user_agent: null, device_id: null, failure_reason: null, created_at: "2026-08-20 16:37:34" },
-  { id: 1730, account_id: 54, username: "出现1", login_status: 1, ip: "122.236.69.46:33078", user_agent: null, device_id: null, failure_reason: null, created_at: "2026-08-20 16:36:55" },
-  { id: 1729, account_id: 54, username: "出现1", login_status: 1, ip: "122.236.69.46:33082", user_agent: null, device_id: null, failure_reason: null, created_at: "2026-08-20 16:36:34" },
-  { id: 1724, account_id: 642, username: "当当", login_status: 1, ip: "39.144.156.63:46346", user_agent: null, device_id: null, failure_reason: null, created_at: "2026-08-14 06:49:06" },
-];
 
 export default function RegUserLogPage() {
   const [query, setQuery] = useState({ username: "", account_id: "", from: "", to: "" });
@@ -28,11 +19,6 @@ export default function RegUserLogPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const load = useCallback(async (page = 1) => {
     setLoading(true); setError("");
-    if (getAdminToken() === "local-demo-token") {
-      setResult({ items: mockLogs, page: 1, page_size: pageSize, total: mockLogs.length, has_more: false });
-      setLoading(false);
-      return;
-    }
     try { setResult(await adminEndpoints.adminLoginLogs({ page, page_size: pageSize, username: query.username.trim() || undefined, account_id: query.account_id || undefined, from: query.from || undefined, to: query.to || undefined }) as Page); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "登录日志加载失败"); }
     finally { setLoading(false); }
