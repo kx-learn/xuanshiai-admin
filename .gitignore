@@ -8,3 +8,4 @@ output/
 .env*
 !.env.example
 docs/ui配置项清单-财务管理及以后.md
+*.txt
