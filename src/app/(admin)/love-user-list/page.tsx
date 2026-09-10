@@ -23,7 +23,9 @@ import Link from "next/link";
 type Member = {
   id: number;
   nickname?: string | null;
+  real_name?: string | null;
   phone?: string | null;
+  wechat?: string | null;
   gender?: number | null;
   status: number;
   is_vip: boolean;
@@ -34,15 +36,21 @@ type Member = {
   birthday?: string | null;
   is_married?: number | null;
   height?: number | null;
+  weight?: number | null;
   income?: number | null;
   hometown?: string | null;
   residence?: string | null;
   education?: string | null;
   job?: string | null;
+  tags?: string[] | null;
+  ethnicity?: string | null;
+  religion?: string | null;
+  house_status?: string | null;
   auth_status?: number | null;
   intention_level?: number | null;
   last_follow_at?: string | null;
   next_follow_at?: string | null;
+  last_login_at?: string | null;
 };
 type Page = {
   items: Member[];
@@ -130,6 +138,11 @@ export default function LoveUserListPage() {
   const [nextFollowAt, setNextFollowAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [smartOpen, setSmartOpen] = useState(false);
+  const [simpleSetOpen, setSimpleSetOpen] = useState(false);
+  const [simpleFields] = useState([
+    "标记","资料ID","编号","头像","昵称","姓名","性别","出生","婚况","学历","身高","职业","体重","购房","民族","现居","老家","收入","标签","宗教","推广人","跟进人","客户意向","跟进情况","审核","状态","来源","登记时间","最后登录","操作",
+  ]);
   const [creating, setCreating] = useState(false);
   const [rowAuth, setRowAuth] = useState<Record<number, string>>({});
   const [rowIntentions, setRowIntentions] = useState<Record<number, string>>({});
@@ -138,10 +151,17 @@ export default function LoveUserListPage() {
   const [importing, setImporting] = useState(false);
   const [memberForm, setMemberForm] = useState({
     nickname: "",
+    real_name: "",
+    code: "",
     phone: "",
+    wechat: "",
+    wechat_same: false,
     gender: "1",
     birthday: "",
     is_married: "",
+    status: "1",
+    source: "1",
+    account_mode: "auto",
     remark: "",
   });
   const importInput = useRef<HTMLInputElement>(null);
@@ -264,22 +284,33 @@ export default function LoveUserListPage() {
         method: "POST",
         body: {
           nickname: memberForm.nickname,
+          real_name: memberForm.real_name || null,
           phone: memberForm.phone,
+          wechat: memberForm.wechat || null,
           gender: Number(memberForm.gender),
           birthday: memberForm.birthday || null,
           is_married: memberForm.is_married
             ? Number(memberForm.is_married)
             : null,
+          status: memberForm.status ? Number(memberForm.status) : 1,
+          source: memberForm.source ? Number(memberForm.source) : 1,
           remark: memberForm.remark || null,
         },
       });
       setCreateOpen(false);
       setMemberForm({
         nickname: "",
+        real_name: "",
+        code: "",
         phone: "",
+        wechat: "",
+        wechat_same: false,
         gender: "1",
         birthday: "",
         is_married: "",
+        status: "1",
+        source: "1",
+        account_mode: "auto",
         remark: "",
       });
       await load();
@@ -418,7 +449,7 @@ export default function LoveUserListPage() {
               icon={<FileText />}
               label="智能录入"
               primary
-              onClick={() => setCreateOpen(true)}
+              onClick={() => setSmartOpen(true)}
             />
             <ToolButton
               icon={<Download />}
@@ -571,6 +602,15 @@ export default function LoveUserListPage() {
             </label>
           </div>
           <div className="flex overflow-hidden border border-[#d9d9d9] text-xs">
+            {view === "compact" && (
+              <button
+                onClick={() => setSimpleSetOpen(true)}
+                aria-label="简洁模式设置"
+                className="grid h-8 w-9 place-items-center border-r border-[#d9d9d9] text-[#595959] hover:text-[#3658f7]"
+              >
+                ⚙
+              </button>
+            )}
             <button
               onClick={() => setView("compact")}
               className={`h-8 px-3 ${view === "compact" ? "bg-[#f5f7ff] text-[#3658f7]" : "text-[#595959]"}`}
@@ -653,10 +693,10 @@ export default function LoveUserListPage() {
           })}
         </div>
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-[1250px] w-full text-xs">
+          <table className={view === "compact" ? "min-w-[2400px] w-full text-xs" : "min-w-[1250px] w-full text-xs"}>
             <thead className="bg-[#fafafa] text-[#333]">
               <tr>
-                {[
+                {(view === "compact" ? ["", ...simpleFields] : [
                   "",
                   "ID",
                   "头像",
@@ -667,9 +707,9 @@ export default function LoveUserListPage() {
                   "跟进",
                   "客户意向",
                   "来源/注册/登录/分派时间",
-                ].map((name) => (
-                  <th key={name} className="p-3 text-left font-medium">
-                    {name || <input type="checkbox" aria-label="全选会员" checked={allSelected} onChange={toggleAll} />}
+                ]).map((name) => (
+                  <th key={name as string} className="whitespace-nowrap p-3 text-left font-medium">
+                    {name === "" ? <input type="checkbox" aria-label="全选会员" checked={allSelected} onChange={toggleAll} /> : name}
                   </th>
                 ))}
               </tr>
@@ -677,19 +717,19 @@ export default function LoveUserListPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="p-12 text-center text-[#8c8c8c]">
+                  <td colSpan={view === "compact" ? 31 : 10} className="p-12 text-center text-[#8c8c8c]">
                     加载中...
                   </td>
                 </tr>
               ) : loadError ? (
                 <tr>
-                  <td colSpan={10} className="p-12 text-center text-[#d4380d]">
+                  <td colSpan={view === "compact" ? 31 : 10} className="p-12 text-center text-[#d4380d]">
                     {loadError}
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-12 text-center text-[#8c8c8c]">
+                  <td colSpan={view === "compact" ? 31 : 10} className="p-12 text-center text-[#8c8c8c]">
                     暂无数据
                   </td>
                 </tr>
@@ -699,9 +739,77 @@ export default function LoveUserListPage() {
                     key={m.id}
                     className={`align-top border-t border-[#f0f0f0] hover:bg-[#fcfcff] ${selectedIds.includes(m.id) ? "bg-[#f5f7ff]" : ""}`}
                   >
-                    <td className="p-3">
-                      <input type="checkbox" aria-label={`选择会员 ${m.id}`} checked={selectedIds.includes(m.id)} onChange={() => toggleRow(m.id)} />
-                    </td>
+                    {view === "compact" ? (
+                      <>
+                        <td className="p-3">
+                          <input type="checkbox" aria-label={`选择会员 ${m.id}`} checked={selectedIds.includes(m.id)} onChange={() => toggleRow(m.id)} />
+                        </td>
+                        <td className="p-3 text-[#595959]">{m.id}</td>
+                        <td className="p-3 text-[#595959]">G{String(m.id).padStart(6, "0")}</td>
+                        <td className="p-3">
+                          <div className="h-[36px] w-[36px] overflow-hidden rounded-[3px] border border-[#f0f0f0] bg-[#f5f5f5]">
+                            {m.avatar ? <img src={resolveMediaUrl(m.avatar)} alt="" className="h-full w-full object-cover" /> : <UserRound className={`m-[9px] size-[18px] ${m.gender === 1 ? "text-[#5b8ff9]" : "text-[#f08bb4]"}`} />}
+                          </div>
+                        </td>
+                        <td className="p-3 text-sm font-semibold text-[#262626] whitespace-nowrap">{m.nickname || "未命名"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.real_name || "—"}</td>
+                        <td className="p-3 whitespace-nowrap"><span className={m.gender === 2 ? "rounded px-2 text-[#eb2f96] bg-[#fff0f6]" : "rounded px-2 text-[#1677ff] bg-[#e6f4ff]"}>{m.gender === 2 ? "女" : "男"}</span></td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.birthday ? `${new Date(m.birthday).getFullYear()}年(${new Date().getFullYear() - new Date(m.birthday).getFullYear()}岁)` : "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{marital(m.is_married)}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.education || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.height ? `${m.height}CM` : "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.job || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.weight ? `${m.weight}KG` : "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.house_status || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.ethnicity || "汉族"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.residence || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.hometown || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.income || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.tags || "—"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">{m.religion || "无宗教信仰"}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">-</td>
+                        <td className="p-3 whitespace-nowrap">
+                          <select className="h-7 w-[88px] border border-[#d9d9d9] bg-white px-1 text-xs text-[#595959] outline-none focus:border-[#3658f7]" defaultValue={m.matchmaker_id ? String(m.matchmaker_id) : ""}>
+                            <option value="">未分派</option>
+                            {matchmakers.map((matchmaker) => <option key={matchmaker.user_id} value={matchmaker.user_id}>{matchmaker.nickname || `红娘 #${matchmaker.user_id}`}</option>)}
+                          </select>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <select className="h-7 w-[80px] border border-[#d9d9d9] bg-white px-1 text-xs text-[#8c8c8c] outline-none focus:border-[#3658f7]" defaultValue={String(m.intention_level ?? "")}>
+                            <option value="">请选择</option>
+                            <option value="3">高意向</option>
+                            <option value="2">中意向</option>
+                            <option value="1">低意向</option>
+                          </select>
+                        </td>
+                        <td className="p-3 text-[11px] text-[#595959] whitespace-nowrap">
+                          {m.last_follow_at && <div>上次跟进:<br/>{formatTime(m.last_follow_at)}</div>}
+                          {m.next_follow_at && <div className={Number(m.next_follow_at.slice(0,10).replace(/-/g,"")) - Number(new Date().toISOString().slice(0,10).replace(/-/g,"")) < 0 ? "text-[#ff4d4f]" : "text-[#fa8c16]"}>{Number(m.next_follow_at.slice(0,10).replace(/-/g,"")) - Number(new Date().toISOString().slice(0,10).replace(/-/g,""))}天{m.next_follow_at.slice(5,7)}未跟进</div>}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <select value={rowAuth[m.id] ?? String(m.auth_status ?? 0)} onChange={(e) => { setRowAuth({ ...rowAuth, [m.id]: e.target.value }); void updateMemberField(m.id, { auth_status: Number(e.target.value) }); }} className="h-7 w-[72px] border border-[#d9d9d9] bg-white px-1 text-xs text-[#595959] outline-none focus:border-[#3658f7]">
+                            <option value="0">待审</option>
+                            <option value="1">审核中</option>
+                            <option value="2">通过</option>
+                            <option value="3">未通过</option>
+                          </select>
+                          <div className="mt-1 flex items-center gap-1 whitespace-nowrap text-[11px] text-[#3658f7]">
+                            <button type="button" onClick={() => { setRowAuth({ ...rowAuth, [m.id]: "2" }); void updateMemberField(m.id, { auth_status: 2 }); }}>免审核资质</button>
+                            <button type="button" title="编辑" onClick={() => { setRowAuth({ ...rowAuth, [m.id]: "1" }); void updateMemberField(m.id, { auth_status: 1 }); }}><Pencil className="size-3" /></button>
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">{m.status === 1 ? <span className="text-[#fa8c16]">公开相亲</span> : <span className="text-[#ff4d4f]">{m.status === 2 ? "已冻结" : "已注销"}</span>}</td>
+                        <td className="p-3 text-[#595959] whitespace-nowrap">自己注册</td>
+                        <td className="p-3 text-[11px] text-[#8c8c8c] whitespace-nowrap">{formatTime(m.created_at)}</td>
+                        <td className="p-3 text-[11px] text-[#8c8c8c] whitespace-nowrap">{m.last_login_at ? formatTime(m.last_login_at) : "—"}</td>
+                        <td className="p-3 whitespace-nowrap text-[#3658f7]">
+                          <button type="button" onClick={() => openWorkspace(m)}>详细</button>
+                          <button type="button" onClick={() => setFollowMember(m)}>跟进</button>
+                          <button type="button" onClick={() => openWorkspace(m, "超级管理")}>超管</button>
+                        </td>
+                      </>
+                    ) : (
+                    <>
                     <td className="p-3 text-[#595959]">{m.id}</td>
                     <td className="p-3">
                       <div className="w-[54px]">
@@ -870,6 +978,8 @@ export default function LoveUserListPage() {
                         注册：{formatTime(m.created_at)}
                       </div>
                     </td>
+                    </>
+                    )}
                   </tr>
                 ))
               )}
@@ -948,84 +1058,202 @@ export default function LoveUserListPage() {
         </Modal>
       )}
       {createOpen && (
-        <Modal title="添加会员资料" onClose={() => setCreateOpen(false)}>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <Field label="昵称" required>
-              <input
-                value={memberForm.nickname}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, nickname: e.target.value })
-                }
-                className="form-input"
-              />
-            </Field>
-            <Field label="手机号" required>
-              <input
-                value={memberForm.phone}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, phone: e.target.value })
-                }
-                className="form-input"
-              />
-            </Field>
-            <Field label="性别" required>
-              <select
-                value={memberForm.gender}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, gender: e.target.value })
-                }
-                className="form-input"
-              >
-                <option value="1">男</option>
-                <option value="2">女</option>
-              </select>
-            </Field>
-            <Field label="出生日期">
-              <input
-                type="date"
-                value={memberForm.birthday}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, birthday: e.target.value })
-                }
-                className="form-input"
-              />
-            </Field>
-            <Field label="婚况">
-              <select
-                value={memberForm.is_married}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, is_married: e.target.value })
-                }
-                className="form-input"
-              >
-                <option value="">未填写</option>
-                <option value="1">未婚</option>
-                <option value="2">离异</option>
-                <option value="3">丧偶</option>
-              </select>
-            </Field>
-            <Field label="备注">
-              <input
-                value={memberForm.remark}
-                onChange={(e) =>
-                  setMemberForm({ ...memberForm, remark: e.target.value })
-                }
-                className="form-input"
-              />
-            </Field>
+        <div className="member-add-mask" onClick={() => setCreateOpen(false)}>
+          <div className="member-add-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="member-add-head">
+              <div className="flex items-center gap-2"><span className="member-add-head-x" onClick={() => setCreateOpen(false)}>✕</span><h2>添加资料</h2></div>
+              <div className="member-add-head-actions">
+                <button type="button" className="member-add-cancel" onClick={() => setCreateOpen(false)}>取消</button>
+                <button type="button" className="member-add-submit" disabled={!memberForm.nickname || !memberForm.phone || creating} onClick={() => void createMember()}>{creating ? "提交中…" : "确定提交"}</button>
+              </div>
+            </div>
+            <div className="member-add-body">
+              <div className="member-add-row">
+                <div className="member-add-label">账号</div>
+                <div className="member-add-field-wrap">
+                  {([["auto","自动生成账号"],["bind","绑定已有账号"],["custom","自定义创建"]] as const).map(([key, label]) => (
+                    <label key={key} className={"member-add-radio" + (memberForm.account_mode === key ? " active" : "")}><input type="radio" name="member-add-account" checked={memberForm.account_mode === key} onChange={() => setMemberForm({ ...memberForm, account_mode: key })} />{label}</label>
+                  ))}
+                </div>
+              </div>
+              <div className="member-add-notice">
+                <span className="member-add-notice-dot">●</span>系统将以下发资料库中的手机号作为注册手机，将昵称作为客户登录账号（如：爱笑小天使），默认密码 abc123
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-field-wrap">
+                  <div className="member-add-field"><div className="member-add-field-label"><span className="req">*</span>昵称</div><div className="member-add-field-with-side"><input maxLength={28} value={memberForm.nickname} onChange={(e) => setMemberForm({ ...memberForm, nickname: e.target.value })} placeholder="3-28字符，最多14个汉字" className="form-input" /><span className="member-add-side">作为登录账号</span></div></div>
+                </div>
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-field-wrap">
+                  <div className="member-add-field"><div className="member-add-field-label">编号</div><div className="member-add-field-with-side"><input value={memberForm.code} onChange={(e) => setMemberForm({ ...memberForm, code: e.target.value })} placeholder="留空表示系统自动生成" className="form-input" /><span className="member-add-side">建议留空自动生成</span></div></div>
+                </div>
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-field-wrap">
+                  <div className="member-add-field"><div className="member-add-field-label">姓名</div><input maxLength={30} value={memberForm.real_name} onChange={(e) => setMemberForm({ ...memberForm, real_name: e.target.value })} placeholder="3-30字符，最多15个汉字" className="form-input" /></div>
+                </div>
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-label">性别</div>
+                <div className="member-add-field-wrap">
+                  <div className="member-add-radio-group">
+                    <label className="member-add-radio"><input type="radio" name="member-add-gender" checked={memberForm.gender === "1"} onChange={() => setMemberForm({ ...memberForm, gender: "1" })} />男</label>
+                    <label className="member-add-radio"><input type="radio" name="member-add-gender" checked={memberForm.gender === "2"} onChange={() => setMemberForm({ ...memberForm, gender: "2" })} />女</label>
+                  </div>
+                </div>
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-field-wrap member-add-row-2">
+                  <div className="member-add-field"><div className="member-add-field-label">手机</div><div className="member-add-field-with-side"><input value={memberForm.phone} onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })} placeholder="" className="form-input" /><span className="member-add-side">微信和手机至少填写一项</span></div></div>
+                  <div className="member-add-field"><div className="member-add-field-label">微信</div><div className="member-add-field-with-side"><input value={memberForm.wechat} onChange={(e) => setMemberForm({ ...memberForm, wechat: e.target.value })} placeholder="" className="form-input" /><label className="member-add-check"><input type="checkbox" checked={memberForm.wechat_same} onChange={(e) => setMemberForm({ ...memberForm, wechat_same: e.target.checked })} />微信同号</label></div></div>
+                </div>
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-label">状态</div>
+                <div className="member-add-field-wrap">
+                  <div className="member-add-radio-group">
+                    {([["1","公开相亲"],["2","委托红娘"],["3","完全私密"],["4","停止相亲"],["5","已经脱单"]] as const).map(([key, label]) => (
+                      <label key={key} className="member-add-radio"><input type="radio" name="member-add-status" checked={memberForm.status === key} onChange={() => setMemberForm({ ...memberForm, status: key })} />{label}</label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="member-add-notice">
+                <span className="member-add-notice-dot">●</span>在平台中向所有人公开显示基本信息，相亲会员可进入主页查看详细资料（不含联系方式）
+              </div>
+              <div className="member-add-row">
+                <div className="member-add-label">来源</div>
+                <div className="member-add-field-wrap">
+                  <div className="member-add-radio-group">
+                    <label className="member-add-radio"><input type="radio" name="member-add-source" checked={memberForm.source === "1"} onChange={() => setMemberForm({ ...memberForm, source: "1" })} />后台添加</label>
+                    <label className="member-add-radio"><input type="radio" name="member-add-source" checked={memberForm.source === "2"} onChange={() => setMemberForm({ ...memberForm, source: "2" })} />父母登记</label>
+                  </div>
+                </div>
+              </div>
+              <div className="member-add-notice">
+                <span className="member-add-notice-dot">●</span>请谨慎选择，一经提交，无法修改
+              </div>
+            </div>
           </div>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button
-              variant="primary"
-              loading={creating}
-              disabled={!memberForm.nickname || !memberForm.phone}
-              onClick={() => void createMember()}
-            >
-              保存
-            </Button>
+        </div>
+      )}
+      {simpleSetOpen && (
+        <div className="lc-set-mask" onClick={() => setSimpleSetOpen(false)}>
+          <div className="lc-set-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="lc-set-head">
+              <div className="flex items-center gap-2"><span className="lc-create-head-x" onClick={() => setSimpleSetOpen(false)}>✕</span><h2>列表设置</h2></div>
+              <div className="lc-set-head-actions">
+                <button type="button" className="lc-set-cancel" onClick={() => setSimpleSetOpen(false)}>取消</button>
+                <button type="button" className="lc-set-submit">确定提交</button>
+              </div>
+            </div>
+            <div className="lc-set-body">
+              <div className="lc-set-tip">
+                <span>勾选要显示的列，并可以任意排序</span>
+                <span className="lc-set-fix"><span className="lc-set-fix-label">固定前</span><select defaultValue={0}>{Array.from({ length: 6 }, (_, i) => <option key={i} value={i}>{i}</option>)}</select><span className="lc-set-fix-label">列</span></span>
+                <span className="lc-set-fix"><span className="lc-set-fix-label">固定后</span><select defaultValue={0}>{Array.from({ length: 6 }, (_, i) => <option key={i} value={i}>{i}</option>)}</select><span className="lc-set-fix-label">列</span></span>
+              </div>
+              <table className="lc-set-table">
+                <thead><tr><th className="check-cell">是否显示</th><th className="name-cell">字段名称</th><th className="sort-cell">排序</th></tr></thead>
+                <tbody>
+                  {simpleFields.map((name, idx) => (
+                    <tr key={name}>
+                      <td className="check-cell"><input type="checkbox" defaultChecked /></td>
+                      <td className="name-cell">{name}</td>
+                      <td className="sort-cell">
+                        <button type="button" className="move" disabled={idx === 0}>前移</button>
+                        <button type="button" className="move" disabled={idx === simpleFields.length - 1}>后移</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </Modal>
+        </div>
+      )}
+      {simpleSetOpen && (
+        <div className="lc-set-mask" onClick={() => setSimpleSetOpen(false)}>
+          <div className="lc-set-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="lc-set-head">
+              <div className="flex items-center gap-2"><span className="lc-create-head-x" onClick={() => setSimpleSetOpen(false)}>✕</span><h2>列表设置</h2></div>
+              <div className="lc-set-head-actions">
+                <button type="button" className="lc-set-cancel" onClick={() => setSimpleSetOpen(false)}>取消</button>
+                <button type="button" className="lc-set-submit">确定提交</button>
+              </div>
+            </div>
+            <div className="lc-set-body">
+              <div className="lc-set-tip">
+                <span>勾选要显示的列，并可以任意排序</span>
+                <span className="lc-set-fix"><span className="lc-set-fix-label">固定前</span><select defaultValue={0}>{Array.from({ length: 6 }, (_, i) => <option key={i} value={i}>{i}</option>)}</select><span className="lc-set-fix-label">列</span></span>
+                <span className="lc-set-fix"><span className="lc-set-fix-label">固定后</span><select defaultValue={0}>{Array.from({ length: 6 }, (_, i) => <option key={i} value={i}>{i}</option>)}</select><span className="lc-set-fix-label">列</span></span>
+              </div>
+              <table className="lc-set-table">
+                <thead><tr><th className="check-cell">是否显示</th><th className="name-cell">字段名称</th><th className="sort-cell">排序</th></tr></thead>
+                <tbody>
+                  {simpleFields.map((name, idx) => (
+                    <tr key={name}>
+                      <td className="check-cell"><input type="checkbox" defaultChecked /></td>
+                      <td className="name-cell">{name}</td>
+                      <td className="sort-cell">
+                        <button type="button" className="move" disabled={idx === 0}>前移</button>
+                        <button type="button" className="move" disabled={idx === simpleFields.length - 1}>后移</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+      {smartOpen && (
+        <div className="smart-drawer-mask" onClick={() => setSmartOpen(false)}>
+          <div className="smart-drawer-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="smart-drawer-head">
+              <div className="flex items-center gap-2"><span className="smart-drawer-head-x">✕</span><h2>智能录入</h2></div>
+              <div className="smart-drawer-head-actions">
+                <button type="button" className="smart-drawer-cancel" onClick={() => setSmartOpen(false)}>取消</button>
+                <button type="button" className="smart-drawer-submit">确定提交</button>
+              </div>
+            </div>
+            <div className="smart-drawer-body">
+              <div className="smart-drawer-notice"><div className="smart-drawer-notice-title">💡 须知</div><div>腾讯AI智能体+Deepseek大模型 实现信息识别，帮助婚介公司更加高效快捷的将客户信息录入到系统中</div></div>
+              <div className="smart-drawer-radio-row">
+                <label className="smart-drawer-radio"><input type="radio" name="ul-smart-mode" defaultChecked />文字识别录入 <span className="smart-drawer-radio-link">参考模版</span></label>
+                <label className="smart-drawer-radio"><input type="radio" name="ul-smart-mode" />图片识别录入 <span className="smart-drawer-radio-link">参考模版</span></label>
+              </div>
+              <textarea className="smart-drawer-textarea" placeholder="复制粘贴到这里" defaultValue="" />
+              <button type="button" className="smart-drawer-ai-btn">✦ 开始智能填写到下面信息中</button>
+              <label className="smart-drawer-check-row"><input type="checkbox" defaultChecked />将本内容自动存储到「原始登记信息存储」字段中</label>
+              <div className="smart-drawer-notice" style={{ marginTop: 10 }}><span style={{ color: "#3658f7", marginRight: 4 }}>📍</span>系统将以下发资料库中的手机号作为注册手机，将昵称作为客户登录账号（如：爱笑小天使），默认密码abc123</div>
+
+              <div className="smart-drawer-section-title">基本资料</div>
+              <div className="smart-drawer-section-title">择偶要求</div>
+              <div className="smart-drawer-grid">
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">手机</div><input placeholder="请输入手机号" /></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label"><span className="req">*</span>昵称</div><div className="smart-drawer-field-with-btn"><input placeholder="请输入" /><button type="button" className="smart-drawer-auto-btn">自动生成</button></div></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">姓名</div><input placeholder="请输入姓名" /></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">性别</div><div className="smart-drawer-radio-inline"><label><input type="radio" name="ul-smart-gender" defaultChecked />男</label><label><input type="radio" name="ul-smart-gender" />女</label></div></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">生日</div><input type="date" placeholder="请选择出生日期" /></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">属相</div><select defaultValue=""><option value="" disabled>请选择属相</option>{["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"].map((x) => <option key={x}>{x}</option>)}</select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">身高</div><div className="smart-drawer-input-with-unit"><input placeholder="请输入身高" /><span className="smart-drawer-input-unit">cm</span></div></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">体重</div><div className="smart-drawer-input-with-unit"><input placeholder="请输入体重" /><span className="smart-drawer-input-unit">kg</span></div></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">婚况</div><select defaultValue=""><option value="" disabled>请选择婚况</option>{["未婚","离异","丧偶"].map((x) => <option key={x}>{x}</option>)}</select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">家乡</div><select defaultValue=""><option value="" disabled>请选择家乡</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">现居</div><select defaultValue=""><option value="" disabled>请选择现居</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">学历</div><select defaultValue=""><option value="" disabled>请选择学历</option>{["高中","大专","本科","硕士","博士"].map((x) => <option key={x}>{x}</option>)}</select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">职业</div><select defaultValue=""><option value="" disabled>请选择职业</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">收入</div><select defaultValue=""><option value="" disabled>请选择收入</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">购房</div><select defaultValue=""><option value="" disabled>请选择购房</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">购车</div><select defaultValue=""><option value="" disabled>请选择购车</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">吸烟</div><select defaultValue=""><option value="" disabled>请选择吸烟</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">喝酒</div><select defaultValue=""><option value="" disabled>请选择喝酒</option></select></div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

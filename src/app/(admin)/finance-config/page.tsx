@@ -1,242 +1,176 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
+import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { Info } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import ListPage, { type ColumnDef } from "@/components/ListPage";
-import {
-  useConfigDomain,
-  showConfigToast,
-  useDebouncedFlush,
-  asStr,
-  asBool,
-  asObject,
-  type Dict,
-} from "@/lib/platform-config";
 
-/* 后端 finance 配置域默认结构（未涉及的键在合并时由服务端快照保留） */
-const FINANCE_DEFAULTS: Dict = {
-  payment_mode: "mock",
-  payment_channels: [],
-  withdrawal: { enabled: false, min_amount: "0.00" },
-  refund: { manual_review: true },
-  free_payment: { enabled: false },
-  e_contract: { enabled: false },
-  commission_rules: [],
-};
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="fin-row">
+      <span className="fin-label">{label}</span>
+      <div className="fin-content">{children}</div>
+    </div>
+  );
+}
 
-type ValueRow = { id: number; key: string; name: string; description: string; kind: "switch" | "select" | "number"; options?: { label: string; value: string }[]; unit?: string } & Record<string, unknown>;
+function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <label className={`mp-switch ${on ? "on" : ""}`}>
+      {on && <span className="mp-switch-label">开启</span>}
+      <span className="mp-switch-knob"></span>
+    </label>
+  );
+}
 
-const ROWS: ValueRow[] = [
-  {
-    id: 1,
-    key: "payment_mode",
-    name: "支付模式",
-    kind: "select",
-    options: [
-      { label: "mock（沙箱/测试）", value: "mock" },
-      { label: "production（正式）", value: "production" },
-    ],
-    description: "支付渠道运行模式。mock=沙箱/测试环境，production=正式环境（商户密钥经密钥系统注入，不在配置域存明文）",
-  },
-  {
-    id: 2,
-    key: "withdrawal_enabled",
-    name: "余额提现功能",
-    kind: "switch",
-    description: "是否允许用户将可提现余额申请提现（申请后由后台审核）",
-  },
-  {
-    id: 3,
-    key: "withdrawal_min_amount",
-    name: "最低提现金额",
-    kind: "number",
-    unit: "元",
-    description: "单笔提现申请的最低金额限制",
-  },
-  {
-    id: 4,
-    key: "refund_manual_review",
-    name: "退款人工审核",
-    kind: "switch",
-    description: "已支付订单退款是否需要后台人工审核确认",
-  },
-  {
-    id: 5,
-    key: "free_payment_enabled",
-    name: "自由收款",
-    kind: "switch",
-    description: "运营工具-自由收款功能是否开启",
-  },
-  {
-    id: 6,
-    key: "e_contract_enabled",
-    name: "电子合同",
-    kind: "switch",
-    description: "电子合同功能是否启用（未启用时合同菜单仅作占位展示）",
-  },
+const rechargePackages = [
+  { name: "积分充值套餐1", amount: 1, points: 10 },
+  { name: "积分充值套餐2", amount: 200, points: 2200 },
+  { name: "积分充值套餐3", amount: 300, points: 4000 },
+  { name: "积分充值套餐4", amount: 400, points: 6000 },
+  { name: "积分充值套餐5", amount: 500, points: 7500 },
+  { name: "积分充值套餐6", amount: 600, points: 9000 },
 ];
 
-/* 把嵌套配置压成扁平可编辑值 */
-function flattenFinance(c: Dict): Dict {
-  const withdrawal = asObject(c.withdrawal);
-  const refund = asObject(c.refund);
-  const freePayment = asObject(c.free_payment);
-  const eContract = asObject(c.e_contract);
-  return {
-    payment_mode: asStr(c.payment_mode, "mock"),
-    withdrawal_enabled: asBool(withdrawal.enabled, false),
-    withdrawal_min_amount: asStr(withdrawal.min_amount, "0.00"),
-    refund_manual_review: asBool(refund.manual_review, true),
-    free_payment_enabled: asBool(freePayment.enabled, false),
-    e_contract_enabled: asBool(eContract.enabled, false),
-  };
-}
-
-/* 把扁平值还原为嵌套 patch（未涉及的键不提交，服务端快照保留） */
-function nestFinancePatch(v: Dict): Dict {
-  return {
-    payment_mode: v.payment_mode,
-    withdrawal: { enabled: v.withdrawal_enabled, min_amount: v.withdrawal_min_amount },
-    refund: { manual_review: v.refund_manual_review },
-    free_payment: { enabled: v.free_payment_enabled },
-    e_contract: { enabled: v.e_contract_enabled },
-  };
-}
-
-/* 与平台配置/系统管理一致的开关 */
-function Switch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button type="button" className={`pcfg-switch${on ? " on" : ""}`} style={{ width: 46 }} onClick={() => onChange(!on)}>
-      <span className="pcfg-switch-text">{on ? "开" : "关"}</span>
-      <span className="pcfg-switch-knob" />
-    </button>
-  );
-}
-
 export default function FinanceConfigPage() {
-  const domain = useConfigDomain<Dict>("finance", FINANCE_DEFAULTS);
-  const [values, setValues] = useState<Dict | null>(null);
-  const [keyword, setKeyword] = useState("");
-  const initialized = useRef(false);
+  const [balanceWithdraw, setBalanceWithdraw] = useState(true);
+  const [feeMode, setFeeMode] = useState<"deduct" | "none">("deduct");
+  const [autoWechat, setAutoWechat] = useState(false);
+  const [manualWechat, setManualWechat] = useState(true);
+  const [manualBank, setManualBank] = useState(true);
+  const [manualAlipay, setManualAlipay] = useState(true);
 
-  /* 首次加载完成后用服务端值初始化本地编辑态 */
-  useEffect(() => {
-    if (!initialized.current && domain.ready && domain.snapshot?.config) {
-      initialized.current = true;
-      setValues(flattenFinance(domain.snapshot.config));
-    }
-  }, [domain.ready, domain.snapshot?.config]);
-
-  const active = values ?? flattenFinance(
-    domain.snapshot?.config && typeof domain.snapshot.config === "object"
-      ? domain.snapshot.config
-      : FINANCE_DEFAULTS,
-  );
-
-  const flush = async () => {
-    const ok = await domain.save(nestFinancePatch(active), "财务系统配置修改（支付模式/提现/退款/自由收款/电子合同）");
-    if (ok) showConfigToast("已保存财务系统配置");
-    return ok;
-  };
-  useDebouncedFlush([active], flush, 800);
-
-  const setValue = (key: string, value: boolean | string) => {
-    setValues((prev) => ({ ...(prev ?? active), [key]: value }));
-  };
-
-  const displayRows = useMemo(() => {
-    const base = ROWS.map((row) => ({ ...row }));
-    if (!keyword.trim()) return base;
-    const kw = keyword.trim().toLowerCase();
-    return base.filter((r) => r.name.toLowerCase().includes(kw) || r.description.toLowerCase().includes(kw));
-  }, [keyword]);
-
-  const columns: ColumnDef[] = [
-    { title: "编号", key: "id", width: 70 },
-    { title: "配置名称", key: "name" },
-    {
-      title: "配置值",
-      key: "value",
-      width: 220,
-      render: (row) => {
-        const meta = ROWS.find((r) => r.key === row.key);
-        if (!meta) return null;
-        const value = active[meta.key];
-        if (meta.kind === "switch") {
-          return <Switch on={Boolean(value)} onChange={(v) => setValue(meta.key, v)} />;
-        }
-        if (meta.kind === "select") {
-          return (
-            <select
-              className="h-8 rounded-md border border-[#d9d9d9] bg-white px-3 text-sm"
-              value={asStr(value, "mock")}
-              onChange={(e) => setValue(meta.key, e.target.value)}
-            >
-              {meta.options?.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          );
-        }
-        if (meta.kind === "number") {
-          return (
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className="h-8 w-28 rounded-md border border-[#d9d9d9] px-3 text-sm"
-                value={asStr(value, "0.00")}
-                onChange={(e) => setValue(meta.key, e.target.value)}
-              />
-              {meta.unit && <span className="whitespace-nowrap text-sm text-[#999]">{meta.unit}</span>}
-            </div>
-          );
-        }
-        return <span className="text-sm">{String(value ?? "")}</span>;
-      },
-    },
-    { title: "说明", key: "description" },
-    {
-      title: "更新时间",
-      key: "updatedAt",
-      width: 170,
-      render: () => (
-        <span>{domain.snapshot?.updated_at ? String(domain.snapshot.updated_at).slice(0, 19).replace("T", " ") : "-"}</span>
-      ),
-    },
-    {
-      title: "操作",
-      key: "action",
-      width: 90,
-      render: () => (
-        <button
-          type="button"
-          className="text-[#3658f7] hover:text-[#5281f3] text-sm cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
-          disabled={domain.saving}
-          onClick={() => { void flush(); }}
-        >
-          保存
-        </button>
-      ),
-    },
-  ];
+  const breadcrumb = getBreadcrumb("财务管理", "系统配置");
 
   return (
-    <ListPage
-      breadcrumb={getBreadcrumb("财务管理", "系统配置")}
-      pageTitle="系统配置"
-      columns={columns}
-      dataSource={displayRows}
-      rowKey="id"
-      loading={!domain.ready || domain.loading}
-      pagination={{ current: 1, pageSize: 20, total: displayRows.length }}
-      searchFields={[
-        { label: "配置名称", key: "keyword", type: "input", placeholder: "请输入配置名称" },
-      ]}
-      keywordValue={keyword}
-      onKeywordChange={setKeyword}
-      onSearch={() => {}}
-      onReset={() => setKeyword("")}
-    />
+    <div>
+      <AdminBreadcrumb items={breadcrumb} />
+
+      <div className="fin-card">
+        <div className="fin-title">支付配置</div>
+
+        <div className="fin-form">
+          <Field label="积分名称">
+            <input className="fin-input" defaultValue="金币" />
+          </Field>
+
+          <Field label="积分比例">
+            <div className="fin-inline">
+              <span className="fin-muted">1元 =</span>
+              <input className="fin-mini" defaultValue="10" />
+              <span className="fin-muted">积分</span>
+            </div>
+          </Field>
+
+          <Field label="余额名称">
+            <input className="fin-input" defaultValue="余额" />
+          </Field>
+
+          <Field label="余额提现">
+            <Switch on={balanceWithdraw} onToggle={() => setBalanceWithdraw((v) => !v)} />
+          </Field>
+
+          <Field label="提现手续费">
+            <div className="fin-fee-options">
+              <label className="fin-radio">
+                <input type="radio" name="feeMode" checked={feeMode === "none"} onChange={() => setFeeMode("none")} />
+                <span>不扣手续费</span>
+              </label>
+              <label className="fin-radio fin-radio-inline">
+                <input type="radio" name="feeMode" checked={feeMode === "deduct"} onChange={() => setFeeMode("deduct")} />
+                <span>提现金额 &gt;=</span>
+                <input className="fin-mini" defaultValue="100" disabled={feeMode !== "deduct"} />
+                <span>元，扣手续费</span>
+              </label>
+            </div>
+          </Field>
+
+          <Field label="手续费费率">
+            <div className="fin-inline">
+              <input className="fin-mini" defaultValue="1" />
+              <span className="fin-muted">%</span>
+            </div>
+          </Field>
+
+          <div className="fin-info">
+            <Info className="sign-info-i" />
+            <span>按提现金额计算，四舍五入，计算到分，手续费不满1元时直接按1元扣</span>
+          </div>
+
+          <div className="fin-sec-title">提现方式</div>
+
+          <div className="fin-row fin-row-nowrap">
+            <span className="fin-label">自动提现到微信零钱</span>
+            <Switch on={autoWechat} onToggle={() => setAutoWechat((v) => !v)} />
+            <div className="fin-amounts">
+              <span className="fin-muted">单笔最小金额</span>
+              <input className="fin-mini" defaultValue="1" disabled={!autoWechat} />
+              <span className="fin-muted">单笔最大金额</span>
+              <input className="fin-mini" defaultValue="500" disabled={!autoWechat} />
+              <span className="fin-badge">请不要超过商户平台单次最高提现金额限制</span>
+            </div>
+          </div>
+
+          <div className="fin-info">
+            <Info className="sign-info-i" />
+            <span>用户可自助将其账号中的余额立即提现至其微信零钱中，钱款将自动从微信商户的运营账户中支付。开启本功能前，请确保您已经在微信商户平台开通并配置了「商家转账」功能。运营账户中需有足够的余额用于支付提现；如尚未开通「商家转账」，切勿开启自动提现！微信商户平台会根据您的账号安全情况限制用户单次提现的上限（一般为200元）、单日提现的上限（一般为2000元）。此限制与本系统无关。</span>
+          </div>
+
+          <div className="fin-row fin-row-nowrap">
+            <span className="fin-label">人工转账提现到微信</span>
+            <Switch on={manualWechat} onToggle={() => setManualWechat((v) => !v)} />
+            <div className="fin-amounts">
+              <span className="fin-muted">单笔最小金额</span>
+              <input className="fin-mini" defaultValue="1" disabled={!manualWechat} />
+              <span className="fin-muted">单笔最大金额</span>
+              <input className="fin-mini" defaultValue="1000" disabled={!manualWechat} />
+              <span className="fin-badge">最小为1元，0为不限制</span>
+            </div>
+          </div>
+
+          <div className="fin-row fin-row-nowrap">
+            <span className="fin-label">人工转账提现到银行卡</span>
+            <Switch on={manualBank} onToggle={() => setManualBank((v) => !v)} />
+            <div className="fin-amounts">
+              <span className="fin-muted">单笔最小金额</span>
+              <input className="fin-mini" defaultValue="1" disabled={!manualBank} />
+              <span className="fin-muted">单笔最大金额</span>
+              <input className="fin-mini" defaultValue="1000" disabled={!manualBank} />
+              <span className="fin-badge">最小为1元，0为不限制</span>
+            </div>
+          </div>
+
+          <div className="fin-row fin-row-nowrap">
+            <span className="fin-label">人工转账提现到支付宝</span>
+            <Switch on={manualAlipay} onToggle={() => setManualAlipay((v) => !v)} />
+            <div className="fin-amounts">
+              <span className="fin-muted">单笔最小金额</span>
+              <input className="fin-mini" defaultValue="1" disabled={!manualAlipay} />
+              <span className="fin-muted">单笔最大金额</span>
+              <input className="fin-mini" defaultValue="1000" disabled={!manualAlipay} />
+              <span className="fin-badge">最小为1元，0为不限制</span>
+            </div>
+          </div>
+
+          <div className="fin-sec-title">充值套餐</div>
+
+          {rechargePackages.map((pkg) => (
+            <div className="fin-row fin-row-nowrap" key={pkg.name}>
+              <span className="fin-label">{pkg.name}</span>
+              <div className="fin-amounts">
+                <input className="fin-mini" defaultValue={pkg.amount} />
+                <span className="fin-muted">元</span>
+                <span className="fin-muted fin-gap">充值</span>
+                <input className="fin-mini" defaultValue={pkg.points} />
+                <span className="fin-muted">积分</span>
+              </div>
+            </div>
+          ))}
+
+          <div className="fin-actions">
+            <button className="fin-submit">确定提交</button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -244,6 +244,108 @@ export interface ApportionConfigPayload {
   abandon?: ApportionAbandonFields;
 }
 
+// ─── 管理端首页（admin/dashboard、公告、学苑栏目） ─────────────────
+export interface DashboardMetrics {
+  member_count: number;
+  platform_user_count: number;
+  wechat_fan_count: number;
+  online_days: number;
+  lead_count: number;
+  customer_lead_count: number;
+  vip_count: number;
+  online_vip_count: number;
+  offline_vip_count: number;
+  matchmaker_count: number;
+  service_matchmaker_count: number;
+  promotion_matchmaker_count: number;
+  successful_match_count: number;
+  male_member_count: number;
+  female_member_count: number;
+  pending_withdrawal_count: number;
+  online_income: string;
+  offline_income: string;
+}
+
+export interface DashboardPending {
+  withdrawal: number;
+  matchmaker_application: number;
+  matchmaker_service: number;
+  match_application: number;
+  report: number;
+}
+
+export interface DashboardGender {
+  male: number;
+  female: number;
+  unspecified: number;
+}
+
+export interface IncomeRankItem {
+  product_type: string;
+  income: string;
+  proportion: string;
+}
+
+export interface DashboardTrend {
+  date: string;
+  member_count: number;
+  lead_count: number;
+  paid_count: number;
+  paid_amount: string;
+  online_paid_amount: string;
+  offline_paid_amount: string;
+  net_amount: string;
+}
+
+export interface AdminDashboardReport {
+  from_date: string;
+  to_date: string;
+  metrics: DashboardMetrics;
+  pending: DashboardPending;
+  member_gender: DashboardGender;
+  income_rank: IncomeRankItem[];
+  trends: DashboardTrend[];
+}
+
+export interface AnnouncementItem {
+  id: number;
+  version_id: number | null;
+  category: string;
+  title: string;
+  title_color: string | null;
+  title_bold: boolean;
+  top: boolean;
+  sort_order: number;
+  link_to: string | null;
+  created_at: string;
+  read: boolean;
+}
+
+export interface AnnouncementPage {
+  items: AnnouncementItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface AcademyCategory {
+  id: number;
+  parent_id: number | null;
+  name: string;
+  description: string | null;
+  sort: number;
+  enabled: boolean;
+  matchmaker_class_enabled: boolean;
+  children: AcademyCategory[];
+}
+
+export interface AdminBootstrap {
+  operator: { id: number; account: string; name: string; permissions: string[]; locked: boolean };
+  authorization: { status: string; expires_at: string | null; sms_remaining_count: number };
+  header: { has_unread_feedback: boolean; unread_announcement_count: number; sms: { success_count: number; failed_count: number; remaining_count: number } };
+}
+
 const list = (path: string, query: AdminListQuery = {}) => adminApi(path, { method: "GET", query });
 const create = (path: string, body: JsonBody) => adminApi(path, { method: "POST", body });
 const update = (path: string, body: JsonBody) => adminApi(path, { method: "PATCH", body });
@@ -283,8 +385,10 @@ export const adminEndpoints = {
   me: () => adminApi<{ account: Record<string, unknown>; permissions: string[] }>("admin/matchmaker/auth/me"),
   refresh: (body: { refresh_token: string }) => adminApi<{ access_token: string; refresh_token: string; token_type: "bearer"; expires_in: number; account: Record<string, unknown> }>("admin/matchmaker/auth/refresh", { method: "POST", body }),
   logout: () => adminApi<void>("admin/matchmaker/auth/logout", { method: "POST" }),
-  bootstrap: () => adminApi<Record<string, unknown>>("admin/bootstrap"),
-  dashboard: (query: DashboardQuery = {}) => adminApi<Record<string, unknown>>("admin/dashboard", { method: "GET", query }),
+  bootstrap: () => adminApi<AdminBootstrap>("admin/bootstrap"),
+  dashboard: (query: DashboardQuery = {}) => adminApi<AdminDashboardReport>("admin/dashboard", { method: "GET", query }),
+  announcements: (query: { page?: number; page_size?: number; category?: string; keyword?: string } = {}) => adminApi<AnnouncementPage>("admin/announcements", { method: "GET", query }),
+  academyCategories: () => adminApi<AcademyCategory[]>("admin/academy/categories"),
   memberStatistics: (query: DashboardQuery = {}) => adminApi<Record<string, unknown>>("admin/member-statistics", { method: "GET", query }),
   dashboardStats: () => adminApi<Record<string, unknown>>("admin/dashboard/stats"),
   adminAccounts: (query: AdminListQuery = {}) => adminApi<{ items: AdminAccountItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/matchmaker/accounts", { method: "GET", query }),
