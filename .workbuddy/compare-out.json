@@ -1,0 +1,1178 @@
+{
+ "active-alliance": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 33,
+  "local_buttons_sample": []
+ },
+ "active-config": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "上传图片",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 35,
+  "local_buttons_sample": []
+ },
+ "active-list": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "eye 预览活动栏目",
+   "left",
+   "picture 云端素材",
+   "plus 上传图片",
+   "plus 发布活动",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "名单展示",
+   "复制"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 87,
+  "local_buttons_sample": []
+ },
+ "active-signupmanager": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "edit 修改",
+   "idcard 导出报名资料卡",
+   "left",
+   "right",
+   "search",
+   "upload 上传图片",
+   "upload 导出EXCEL",
+   "修改报名",
+   "充 值",
+   "关 闭",
+   "删 除",
+   "报名历史"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 70,
+  "local_buttons_sample": []
+ },
+ "mutual-selection-activities-list": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "left",
+   "picture 云端素材",
+   "plus 上传图标",
+   "plus 上传图片",
+   "plus 创建活动",
+   "plus 加入到本次活动",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "复制"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 0,
+  "local_buttons_sample": []
+ },
+ "mutual-selection-activities-record": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 0,
+  "local_buttons_sample": []
+ },
+ "branch-config": {
+  "site_buttons": [
+   "left",
+   "plus 添加分站",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定切换",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 41,
+  "local_buttons_sample": [
+   "删除",
+   "编辑"
+  ]
+ },
+ "branch-matchmaker-list": {
+  "site_buttons": [
+   "left",
+   "plus 添加红娘",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 79,
+  "local_buttons_sample": [
+   "查看",
+   "编辑"
+  ]
+ },
+ "branch-report-list": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 39,
+  "local_buttons_sample": []
+ },
+ "branch-distribuion-list": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "upload 导出Excel（当前分店）",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 0,
+  "local_buttons_sample": []
+ },
+ "merchant-alliance-config": {
+  "site_buttons": [
+   "arrow-down 下移",
+   "arrow-up 上移",
+   "delete 删除",
+   "left",
+   "right",
+   "search",
+   "upload 上传",
+   "充 值",
+   "关 闭",
+   "增加分类",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 35,
+  "local_buttons_sample": []
+ },
+ "merchant-management": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "left",
+   "plus 300*300",
+   "plus 添加商家",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 54,
+  "local_buttons_sample": []
+ },
+ "merchant-product": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "left",
+   "plus 800*800",
+   "plus 添加商品",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "原价值",
+   "合作优惠价",
+   "确定提交",
+   "请输入"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 64,
+  "local_buttons_sample": []
+ },
+ "merchant-order": {
+  "site_buttons": [
+   "download 导出EXCEL",
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 97,
+  "local_buttons_sample": []
+ },
+ "short-video-config": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "上传图片",
+   "充 值",
+   "关 闭",
+   "执 行",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 36,
+  "local_buttons_sample": []
+ },
+ "short-video-list": {
+  "site_buttons": [
+   "left",
+   "plus 上传视频",
+   "plus 添加视频",
+   "right",
+   "search",
+   "sync 一键刷新发布时间",
+   "充 值",
+   "关 闭",
+   "删除",
+   "发红包",
+   "确定提交",
+   "编辑",
+   "预览视频"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 70,
+  "local_buttons_sample": []
+ },
+ "short-video-red-packet": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交",
+   "领取明细"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 89,
+  "local_buttons_sample": [
+   "上一页",
+   "下一页",
+   "详情"
+  ]
+ },
+ "short-video-comment": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "回复",
+   "确定提交",
+   "编辑"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 61,
+  "local_buttons_sample": []
+ },
+ "short-video-homepage": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "确定提交",
+   "编辑资料",
+   "预览主页"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 77,
+  "local_buttons_sample": [
+   "上一页",
+   "下一页",
+   "查看"
+  ]
+ },
+ "short-video-tip": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 69,
+  "local_buttons_sample": [
+   "上一页",
+   "下一页",
+   "详情"
+  ]
+ },
+ "free-pay": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "left",
+   "plus 300*300",
+   "plus 750*350",
+   "plus 添加收款类目",
+   "plus 添加收款项目",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "收款订单",
+   "新功能",
+   "细节改进",
+   "自由收款"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 43,
+  "local_buttons_sample": []
+ },
+ "gift-list": {
+  "site_buttons": [
+   "form 添加礼品",
+   "left",
+   "plus 上传图片",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "确定提交",
+   "编辑"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 49,
+  "local_buttons_sample": []
+ },
+ "gift-exchange": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "兑换失败",
+   "兑换成功",
+   "关 闭",
+   "删除",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 90,
+  "local_buttons_sample": []
+ },
+ "love-gift-wrap": {
+  "site_buttons": [
+   "arrow-down 下移",
+   "arrow-up 上移",
+   "form 添加礼物",
+   "left",
+   "plus 上传图片",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "确定提交",
+   "编辑"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "礼物管理",
+   "细节改进",
+   "赠送礼物"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 41,
+  "local_buttons_sample": []
+ },
+ "generate-tool": {
+  "site_buttons": [
+   "copy 一键复制",
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "生成模板",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 38,
+  "local_buttons_sample": []
+ },
+ "qrcode-wrap": {
+  "site_buttons": [
+   "form 添加二维码",
+   "left",
+   "plus 上传图片",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "查看",
+   "确定提交",
+   "续期"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 38,
+  "local_buttons_sample": []
+ },
+ "sales-library": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "control 功能配置",
+   "left",
+   "plus 创建销售匹配库",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交",
+   "请输入选人上限"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 0,
+  "local_buttons_sample": []
+ },
+ "single-page": {
+  "site_buttons": [
+   "left",
+   "plus 上传图片",
+   "plus 添加单页",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "复制",
+   "查看",
+   "确定提交",
+   "编辑",
+   "预览"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 41,
+  "local_buttons_sample": []
+ },
+ "customer-landing": {
+  "site_buttons": [
+   "left",
+   "plus 上传图片",
+   "plus 创建落地页",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "复制",
+   "恢复默认",
+   "查看",
+   "确定提交",
+   "编辑",
+   "预览"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 41,
+  "local_buttons_sample": []
+ },
+ "free-form": {
+  "site_buttons": [
+   "left",
+   "profile 字段管理",
+   "right",
+   "search",
+   "upload 导出EXCEL",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 40,
+  "local_buttons_sample": []
+ },
+ "tool-lovecard": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "eye 模版样式总览",
+   "form 新建批量生成",
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "直接下载",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "按活动报名",
+   "新功能",
+   "细节改进",
+   "自定义条件"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 40,
+  "local_buttons_sample": []
+ },
+ "tool-theme": {
+  "site_buttons": [
+   "arrow-down 下移",
+   "arrow-up 上移",
+   "form 添加分区",
+   "left",
+   "plus 上传图片",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "取消背景",
+   "确定提交",
+   "编辑",
+   "配置条件"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 36,
+  "local_buttons_sample": []
+ },
+ "poplove-matchmaker-list": {
+  "site_buttons": [
+   "download 导出EXCEL",
+   "left",
+   "plus 添加推广红娘",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "删除",
+   "加入团队",
+   "变更团队",
+   "报 表",
+   "推广海报",
+   "明 细",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": true,
+  "local_lines": 838,
+  "local_buttons_sample": [
+   "上一页",
+   "下一页",
+   "入职时间",
+   "关闭",
+   "分成级别",
+   "创建时间",
+   "取消",
+   "备注 / 简介"
+  ]
+ },
+ "poplove-matchmaker-distribution": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交",
+   "编辑配置"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": true,
+  "local_lines": 263,
+  "local_buttons_sample": [
+   "关闭"
+  ]
+ },
+ "poplove-matchmaker-distribution-details": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "download 导出EXCEL",
+   "left",
+   "plus 录入一笔分成",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 55,
+  "local_buttons_sample": []
+ },
+ "love-matchmaker-distribution": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交",
+   "编辑配置"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": true,
+  "local_lines": 337,
+  "local_buttons_sample": [
+   "保存配置",
+   "分成模式",
+   "分成比例 (%)",
+   "取消",
+   "启用状态",
+   "固定分成金额 (元)",
+   "平台额外奖励 (元)",
+   "排序"
+  ]
+ },
+ "love-matchmaker-distribution-details": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "left",
+   "plus 录入一笔分成",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "已退款",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": true,
+  "local_lines": 346,
+  "local_buttons_sample": [
+   "上一页",
+   "下一页",
+   "每页条数"
+  ]
+ },
+ "love-user-behavior": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "收藏记录",
+   "新功能",
+   "浏览记录",
+   "线上爆灯"
+  ],
+  "local_has_endpoint": true,
+  "local_lines": 44,
+  "local_buttons_sample": []
+ },
+ "love-user-vip-underline": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "bar-chart 业绩报表",
+   "left",
+   "picture 从云端素材选择",
+   "plus 上传图片",
+   "plus 添加线下VIP会员",
+   "right",
+   "search",
+   "setting",
+   "upload 上传图片",
+   "upload 导出EXCEL",
+   "修 改",
+   "充 值"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "合同管理",
+   "年度销售额",
+   "新功能",
+   "月度销售额"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 106,
+  "local_buttons_sample": []
+ },
+ "vip-popularize-record": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 55,
+  "local_buttons_sample": [
+   "删除",
+   "查看"
+  ]
+ },
+ "love-partner-config": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 35,
+  "local_buttons_sample": []
+ },
+ "reg-user-cancel": {
+  "site_buttons": [
+   "Back Home"
+  ],
+  "site_tabs": [],
+  "local_has_endpoint": false,
+  "local_lines": 22,
+  "local_buttons_sample": [
+   "取消注销",
+   "搜索",
+   "确定注销"
+  ]
+ },
+ "mendian-list": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": true,
+  "local_lines": 21,
+  "local_buttons_sample": [
+   "查看"
+  ]
+ },
+ "love-customer-config": {
+  "site_buttons": [
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 75,
+  "local_buttons_sample": [
+   "确定提交"
+  ]
+ },
+ "sms-group": {
+  "site_buttons": [
+   "edit 提交群发模板",
+   "left",
+   "plus 创建群发任务",
+   "right",
+   "search",
+   "transaction 短信充值",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 264,
+  "local_buttons_sample": [
+   "关闭",
+   "删除",
+   "取消",
+   "明细"
+  ]
+ },
+ "interactive-messages-function": {
+  "site_buttons": [
+   "Decrease Value",
+   "Increase Value",
+   "left",
+   "right",
+   "search",
+   "充 值",
+   "关 闭",
+   "确定提交"
+  ],
+  "site_tabs": [
+   "BUG修复",
+   "全部",
+   "其他更新",
+   "功能升级",
+   "新功能",
+   "细节改进"
+  ],
+  "local_has_endpoint": false,
+  "local_lines": 0,
+  "local_buttons_sample": []
+ }
+}
