@@ -55,7 +55,7 @@ export default function Page() {
     setFixedAmount(row.fixed_amount ?? "");
     setConditionType("累积>");
     setConditionValue(row.promotion_condition ?? "");
-    setPayMethod("manual");
+    setPayMethod(row.platform_extra_pay_mode ?? "manual");
     try {
       const detail = await adminEndpoints.commissionLevel(row.id);
       setLevelName(detail.name);
@@ -94,6 +94,7 @@ export default function Page() {
       body.fixed_amount = null;
     }
     if (extraAmount.trim()) body.platform_extra_amount = extraAmount.trim();
+    body.platform_extra_pay_mode = payMethod as "manual" | "balance";
     const cond = `${conditionType}${conditionValue}`.trim();
     if (cond) body.promotion_condition = cond.length > 255 ? cond.slice(0, 255) : cond;
 

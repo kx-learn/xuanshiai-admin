@@ -29,13 +29,13 @@ const ASSIGN_OPTIONS = [
   { value: "none", label: "不分派" },
 ];
 
-// UI 选项值 -> 后端枚举（by-partner 后端暂不支持）
+// UI 选项值 -> 后端枚举
 const STRATEGY_MAP: Record<string, ApportionStrategy | null> = {
   designated: "designated",
   "round-robin": "round_robin_random",
   "by-region": "by_region",
   "by-promoter": "by_promoter",
-  "by-partner": null,
+  "by-partner": "by_partner",
   none: "none",
 };
 
@@ -131,12 +131,15 @@ export default function Page() {
   }, [activeScopeKey, configs]);
 
   const submitAssign = async () => {
-    if (assignStrategy === "by-partner") {
-      showConfigToast("该策略后端暂不支持", "error");
-      return;
-    }
     const strategy = STRATEGY_MAP[assignStrategy];
     if (!strategy) return;
+    if (
+      activeScope === "customer_lead" &&
+      (strategy === "by_region" || strategy === "by_promoter" || strategy === "by_partner")
+    ) {
+      showConfigToast("该策略仅会员CRM支持", "error");
+      return;
+    }
     setSavingAssign(true);
     try {
       const body: Record<string, unknown> = { strategy };
@@ -218,18 +221,27 @@ export default function Page() {
         <h2 className="appo-section-title">分派配置</h2>
 
         <div className="appo-radios">
-          {ASSIGN_OPTIONS.map((option) => (
-            <label key={option.value} className="appo-radio">
-              <input
-                type="radio"
-                name="assign-strategy"
-                checked={assignStrategy === option.value}
-                onChange={() => setAssignStrategy(option.value)}
-              />
-              <span>{option.label}</span>
-            </label>
-          ))}
+          {ASSIGN_OPTIONS.map((option) => {
+            const disabled =
+              activeScope === "customer_lead" &&
+              (option.value === "by-region" || option.value === "by-promoter" || option.value === "by-partner");
+            return (
+              <label key={option.value} className={`appo-radio${disabled ? " disabled" : ""}`}>
+                <input
+                  type="radio"
+                  name="assign-strategy"
+                  checked={assignStrategy === option.value}
+                  disabled={disabled}
+                  onChange={() => setAssignStrategy(option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            );
+          })}
         </div>
+        {activeScope === "customer_lead" && (
+          <Hint>按现居地分派 / 按推广红娘分派 / 按合伙红娘分派 仅会员CRM支持</Hint>
+        )}
 
         {assignStrategy === "designated" && (
           <div className="appo-select-wrap">

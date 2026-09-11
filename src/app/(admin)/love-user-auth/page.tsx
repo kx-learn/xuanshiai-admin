@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   Image as ImageIcon,
@@ -12,6 +12,23 @@ import {
 } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import type {
+  AuthTypeItem,
+  CommitmentReviewItem,
+  EducationReviewItem,
+  HouseReviewItem,
+  MarriageReviewItem,
+  MemberAuthKind,
+  OtherReviewItem,
+  RealnameReviewItem,
+  RealnameStats,
+  MarriageStats,
+} from "@/lib/admin-endpoints";
+import { showConfigToast, pickAndUploadImage, asStr, asBool } from "@/lib/platform-config";
+import type { Dict } from "@/lib/platform-config";
+import { resolveMediaUrl } from "@/lib/admin-api";
+import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 
 type AuthTab = "realname" | "commitment" | "marriage" | "house" | "education" | "other";
 
@@ -24,68 +41,45 @@ const tabs: { key: AuthTab; label: string }[] = [
   { key: "other", label: "其他认证" },
 ];
 
-/* ---------- 实名认证数据 ---------- */
-const realnameStats = [
-  { value: "786条", label: "人脸核验余量", recharge: true },
-  { value: "361次", label: "核验成功" },
-  { value: "9次", label: "核验失败" },
-  { value: "364次", label: "总计消耗" },
-];
-
-type RealnameRow = {
-  id: string; nick: string; code: string; name: string; idcard: string;
-  gender: string; birth: string; issued: string; photo: boolean;
-  method: string; vendor: string; score: string; result: "success" | "fail"; time: string;
+/* 状态 Tab 中文标签 → 后端 status 枚举 */
+const statusApi = (kind: AuthTab, ui: string): string => {
+  if (kind === "realname") return ui === "认证成功" ? "success" : ui === "认证失败" ? "fail" : "all";
+  if (kind === "marriage")
+    return ui === "已婚" ? "married" : ui === "无登记信息" ? "no_record" : ui === "离异" ? "divorced" : "all";
+  if (ui === "通过") return "pass";
+  if (ui === "待审") return "pending";
+  if (ui === "未通过") return "fail";
+  return "all";
 };
 
-const realnameRows: RealnameRow[] = [
-  { id: "364", nick: "hunyun", code: "B470445", name: "王宇琪", idcard: "330105199306******", gender: "男", birth: "1993-06-15", issued: "浙江省杭州市", photo: false, method: "动作活检", vendor: "腾讯云人脸核身", score: "93.39", result: "success", time: "2026-07-12 11:14:48" },
-  { id: "363", nick: "小稳", code: "B671811", name: "马鹏稳", idcard: "321284200211******", gender: "男", birth: "2002-11-03", issued: "江苏省泰州市", photo: false, method: "动作活检", vendor: "腾讯云人脸核身", score: "93.39", result: "success", time: "2026-07-09 14:07:51" },
-  { id: "362", nick: "Kellen", code: "B696610", name: "徐竹轩", idcard: "320582199306******", gender: "男", birth: "1993-06-29", issued: "江苏省苏州市", photo: false, method: "照片比对", vendor: "腾讯云人脸核身", score: "95.51", result: "success", time: "2026-07-05 22:22:01" },
-  { id: "361", nick: "xy", code: "B011925", name: "谢维", idcard: "440307199308******", gender: "男", birth: "2000-08-28", issued: "", photo: false, method: "动作活检", vendor: "腾讯云人脸核身", score: "96.24", result: "success", time: "2026-07-05 18:17:43" },
-];
+/* 时间格式化：ISO -> YYYY-MM-DD HH:mm:ss（与 UI 原占位一致） */
+const fmtDateTime = (v: string | null | undefined): string => {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
 
-/* ---------- 会员承诺数据 ---------- */
-type CommitRow = { id: string; nick: string; code: string; name: string; idcard: string; times: number; result: "pass" | "pending" | "fail"; time: string };
-
-const commitRows: CommitRow[] = [
-  { id: "343", nick: "Ellen", code: "B669610", name: "徐竹轩", idcard: "320582199306******", times: 2, result: "pending", time: "2026-07-05 22:24:42" },
-  { id: "342", nick: "muf", code: "B198419", name: "杜雨枫", idcard: "420303200010******", times: 1, result: "pass", time: "2026-07-05 16:31:52" },
-  { id: "341", nick: "麒", code: "B036800", name: "张毓麒", idcard: "420602199706******", times: 1, result: "pending", time: "2026-07-05 09:30:10" },
-  { id: "340", nick: "普提缇", code: "G746064", name: "陶佳鹭", idcard: "310114200204******", times: 1, result: "pending", time: "2026-07-04 18:16:15" },
-  { id: "339", nick: "joker", code: "B715844", name: "孙毅", idcard: "320111199602******", times: 1, result: "pending", time: "2026-07-04 10:55:52" },
-  { id: "338", nick: "秋刀鱼", code: "B976071", name: "李会强", idcard: "341224199902******", times: 1, result: "pass", time: "2026-07-03 20:18:33" },
-  { id: "337", nick: "是静香本人没错", code: "G858401", name: "潘蜜", idcard: "320121199309******", times: 1, result: "pending", time: "2026-07-03 15:42:07" },
-  { id: "336", nick: "当叮", code: "B228260", name: "李思", idcard: "330102199505******", times: 1, result: "fail", time: "2026-07-02 19:11:20" },
-];
-
-/* ---------- 房产认证数据 ---------- */
-const houseRows = [
-  { id: "12", nick: "muf", code: "B198419", name: "杜雨枫", idcard: "420303200010******", file: false, result: "pass", time: "2026-07-05 16:31:52" },
-  { id: "11", nick: "秋刀鱼", code: "B976071", name: "李会强", idcard: "341224199902******", file: false, result: "pass", time: "2026-07-01 16:37:20" },
-  { id: "10", nick: "Sofia", code: "G410116", name: "陈林林", idcard: "420381200012******", file: true, result: "pass", time: "2026-06-30 16:54:09" },
-  { id: "9", nick: "q_nd_l", code: "B134461", name: "李会强", idcard: "341224199902******", file: false, result: "pass", time: "2026-06-18 15:04:11" },
-  { id: "8", nick: "kina", code: "B735680", name: "卓虹宇", idcard: "422802200512******", file: true, result: "pass", time: "2026-06-12 17:56:44" },
-  { id: "7", nick: "不凡", code: "B355054", name: "杨凡", idcard: "654323456******", file: false, result: "pass", time: "2026-06-08 11:20:35" },
-  { id: "6", nick: "最爱汪汪队", code: "G806737", name: "吴谦谦", idcard: "3441343434******", file: false, result: "pass", time: "2026-06-05 09:47:12" },
-  { id: "5", nick: "听风者", code: "B952678", name: "郑凯", idcard: "330102199001******", file: false, result: "pass", time: "2026-06-02 14:33:58" },
-];
-
-/* ---------- 学历认证数据 ---------- */
-const eduRows = [
-  { id: "248", nick: "Ellen", code: "B669610", name: "徐竹轩", idcard: "320582199306******", degree: "博士", school: "罗格斯大学", file: true, result: "pass", time: "2026-07-05 22:41:13" },
-  { id: "247", nick: "muf", code: "B198419", name: "杜雨枫", idcard: "420303200010******", degree: "硕士", school: "", file: false, result: "pass", time: "2026-07-05 16:31:52" },
-  { id: "246", nick: "普提缇", code: "G746064", name: "陶佳鹭", idcard: "310114200204******", degree: "硕士", school: "上海师范大学", file: true, result: "pass", time: "2026-07-04 18:16:52" },
-  { id: "245", nick: "joker", code: "B715844", name: "孙毅", idcard: "320111199602******", degree: "本科", school: "江苏大学", file: true, result: "pass", time: "2026-07-04 11:00:42" },
-  { id: "244", nick: "秋刀鱼", code: "B976071", name: "李会强", idcard: "341224199902******", degree: "本科", school: "", file: false, result: "pass", time: "2026-07-01 16:37:20" },
-  { id: "243", nick: "Sofia", code: "G410116", name: "陈林林", idcard: "420381200012******", degree: "本科", school: "南京大学", file: true, result: "pass", time: "2026-06-30 16:54:09" },
-];
-
+/* 审核结果徽标（pass/pending/fail） */
 const statusMap: Record<string, { label: string; cls: string }> = {
   pass: { label: "通过", cls: "uath-badge pass" },
   pending: { label: "待审", cls: "uath-badge pending" },
   fail: { label: "未通过", cls: "uath-badge fail" },
 };
+
+function EmptyRow({ colSpan }: { colSpan: number }) {
+  return (
+    <tr>
+      <td colSpan={colSpan}>
+        <div className="uath-empty">
+          <Inbox className="uath-empty-icon" strokeWidth={1.2} />
+          <span>暂无数据</span>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 /* ---------- 通用筛选行 ---------- */
 function FilterRow({
@@ -94,6 +88,12 @@ function FilterRow({
   onStatus,
   placeholder,
   showType,
+  typeValue,
+  onTypeChange,
+  typeOptions,
+  keyword,
+  onKeywordChange,
+  onSearch,
   right,
 }: {
   statusTabs: string[];
@@ -101,6 +101,12 @@ function FilterRow({
   onStatus: (v: string) => void;
   placeholder: string;
   showType?: boolean;
+  typeValue?: string;
+  onTypeChange?: (v: string) => void;
+  typeOptions?: AuthTypeItem[];
+  keyword?: string;
+  onKeywordChange?: (v: string) => void;
+  onSearch?: () => void;
   right?: React.ReactNode;
 }) {
   return (
@@ -120,18 +126,23 @@ function FilterRow({
       <div className="uath-filter-right">
         <label className="uath-searchbox">
           <span className="uath-search-label">按昵称搜</span>
-          <input type="text" placeholder={placeholder} />
+          <input type="text" placeholder={placeholder} value={keyword ?? ""} onChange={(e) => onKeywordChange?.(e.target.value)} />
         </label>
         {showType && (
           <label className="uath-select">
             <span className="uath-select-prefix">认证类型</span>
-            <select defaultValue="">
+            <select value={typeValue ?? ""} onChange={(e) => onTypeChange?.(e.target.value)}>
               <option value="">不限</option>
+              {(typeOptions ?? []).map((o) => (
+                <option key={o.id} value={String(o.id)}>
+                  {o.name}
+                </option>
+              ))}
             </select>
             <ChevronDown className="uath-select-caret size-3.5" />
           </label>
         )}
-        <button type="button" className="uath-btn primary">
+        <button type="button" className="uath-btn primary" onClick={onSearch}>
           <Search className="size-3.5" />
           搜索
         </button>
@@ -164,7 +175,42 @@ export default function LoveUserAuthPage() {
   const [edStatus, setEdStatus] = useState("全部");
   const [otStatus, setOtStatus] = useState("全部");
 
-  // 承诺书表单
+  // 关键字（受控）
+  const [rnKeyword, setRnKeyword] = useState("");
+  const [cmKeyword, setCmKeyword] = useState("");
+  const [mrKeyword, setMrKeyword] = useState("");
+  const [hsKeyword, setHsKeyword] = useState("");
+  const [edKeyword, setEdKeyword] = useState("");
+  const [otKeyword, setOtKeyword] = useState("");
+  const [otType, setOtType] = useState("");
+
+  // 各 Tab 列表数据
+  const [rnStats, setRnStats] = useState<RealnameStats | null>(null);
+  const [rnRows, setRnRows] = useState<RealnameReviewItem[]>([]);
+  const [rnLoading, setRnLoading] = useState(false);
+  const [cmRows, setCmRows] = useState<CommitmentReviewItem[]>([]);
+  const [cmLoading, setCmLoading] = useState(false);
+  const [mrStats, setMrStats] = useState<MarriageStats | null>(null);
+  const [mrRows, setMrRows] = useState<MarriageReviewItem[]>([]);
+  const [mrLoading, setMrLoading] = useState(false);
+  const [hsRows, setHsRows] = useState<HouseReviewItem[]>([]);
+  const [hsLoading, setHsLoading] = useState(false);
+  const [edRows, setEdRows] = useState<EducationReviewItem[]>([]);
+  const [edLoading, setEdLoading] = useState(false);
+  const [otRows, setOtRows] = useState<OtherReviewItem[]>([]);
+  const [otLoading, setOtLoading] = useState(false);
+
+  // 认证类型（其他认证 select + 管理抽屉）
+  const [authTypes, setAuthTypes] = useState<AuthTypeItem[]>([]);
+
+  // 查看资料
+  const [profile, setProfile] = useState<{ memberId: number; nickname?: string | null; memberCode?: string | null } | null>(null);
+
+  // 配置域
+  const [configVersion, setConfigVersion] = useState(1);
+  const [configData, setConfigData] = useState<Dict>({});
+
+  // 承诺书 / 婚姻协议表单
   const [commitTitle, setCommitTitle] = useState("单身承诺");
   const [commitContent, setCommitContent] = useState(
     "本人使用昵称[[会员昵称]]，编号：[[相亲会员编号]]，在[[相亲平台名称]]登记婚姻交友信息，承诺所登记资料属实，承诺当前婚恋状态为[[婚姻状态]]，本人自行承担信息不属实造成的一切后果，与平台无关。",
@@ -173,19 +219,285 @@ export default function LoveUserAuthPage() {
     "为保障婚恋交友平台信息真实性，维护健康诚信的交友环境，本人（授权人）自愿、真实、不可撤销地授权，依法依规查询本人婚姻状态信息，用于婚恋相亲资料核实，现就授权、使用、免责事宜确认如下：\n一、授权事项与范围\n授权平台通过合法合规渠道，查询并核验本人婚姻登记状态（未婚/已婚/离异/丧偶）、登记时间、登记机关等依法可查询信息。\n授权平台仅为本人自助查询使用、展示、存储查询结果，不用于任何其他目的，不代查、不泄露、不向第三方提供。\n本人确认：本次授权为本人查询本人信息，不冒用、不伪造、不侵犯他人隐私。\n二、信息真实性与责任承诺\n本人承诺所提供身份信息真实、有效、完整。因信息不实、验证失败、冒用他人信息导致的一切法律责任与损失，由本人自行承担。\n本人知悉并同意：查询结果以婚姻登记机关官方登记数据为准，平台仅提供查询通道与结果展示服务。\n三、隐私与保密\n平台对本人信息严格保密，仅在授权范围内处理，不泄露、不出售、不非法提供给第三方（法律法规强制性要求除外）。\n本人同意平台为完成查询所需的身份信息、信息传输与临时存储，并遵守平台隐私政策。\n四、授权期限\n自本人在线确认之日起生效，至本次查询结果展示完毕止；法律法规另有规定的从其规定。\n五、免责声明\n信息来源免责。",
   );
 
+  // 快捷设置表单
+  const [quickForceId, setQuickForceId] = useState(false);
+  const [quickFee, setQuickFee] = useState("0");
+
   // 认证类型表单
   const [ctypeName, setCtypeName] = useState("");
   const [ctypeRealname, setCtypeRealname] = useState("need");
   const [ctypeDesc, setCtypeDesc] = useState("");
   const [ctypeSort, setCtypeSort] = useState("0");
   const [ctypeEnable, setCtypeEnable] = useState("on");
+  const [ctypeIcon, setCtypeIcon] = useState<string | null>(null);
+  const [ctypeEditId, setCtypeEditId] = useState<number | null>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
 
   const label = tabs.find((item) => item.key === tab)?.label || "实名认证";
+
+  // ─── 数据加载 ───────────────────────────────────────────────
+  const loadRealname = async () => {
+    setRnLoading(true);
+    try {
+      const [stats, page] = await Promise.all([
+        adminEndpoints.memberAuthRealnameStats(),
+        adminEndpoints.memberAuthRealnameReviews({
+          page: 1,
+          page_size: 20,
+          status: statusApi("realname", rnStatus),
+          keyword: rnKeyword || undefined,
+        }),
+      ]);
+      setRnStats(stats);
+      setRnRows(page.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setRnLoading(false);
+    }
+  };
+
+  const loadCommitment = async () => {
+    setCmLoading(true);
+    try {
+      const page = await adminEndpoints.memberAuthCommitmentReviews({
+        page: 1,
+        page_size: 20,
+        status: statusApi("commitment", cmStatus),
+        keyword: cmKeyword || undefined,
+      });
+      setCmRows(page.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setCmLoading(false);
+    }
+  };
+
+  const loadMarriage = async () => {
+    setMrLoading(true);
+    try {
+      const [stats, page] = await Promise.all([
+        adminEndpoints.memberAuthMarriageStats(),
+        adminEndpoints.memberAuthMarriageReviews({
+          page: 1,
+          page_size: 20,
+          status: statusApi("marriage", mrStatus),
+          keyword: mrKeyword || undefined,
+        }),
+      ]);
+      setMrStats(stats);
+      setMrRows(page.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setMrLoading(false);
+    }
+  };
+
+  const loadHouse = async () => {
+    setHsLoading(true);
+    try {
+      const page = await adminEndpoints.memberAuthHouseReviews({
+        page: 1,
+        page_size: 20,
+        status: statusApi("house", hsStatus),
+        keyword: hsKeyword || undefined,
+      });
+      setHsRows(page.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setHsLoading(false);
+    }
+  };
+
+  const loadEducation = async () => {
+    setEdLoading(true);
+    try {
+      const page = await adminEndpoints.memberAuthEducationReviews({
+        page: 1,
+        page_size: 20,
+        status: statusApi("education", edStatus),
+        keyword: edKeyword || undefined,
+      });
+      setEdRows(page.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setEdLoading(false);
+    }
+  };
+
+  const loadOther = async () => {
+    setOtLoading(true);
+    try {
+      const page = await adminEndpoints.memberAuthOtherReviews({
+        page: 1,
+        page_size: 20,
+        status: statusApi("other", otStatus),
+        keyword: otKeyword || undefined,
+        auth_type_id: otType ? Number(otType) : undefined,
+      });
+      setOtRows(page.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setOtLoading(false);
+    }
+  };
+
+  const loadAuthTypes = async () => {
+    try {
+      setAuthTypes(await adminEndpoints.memberAuthTypes());
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    }
+  };
+
+  // Tab 切换 / 状态切换 → 重新加载对应列表
+  useEffect(() => {
+    if (tab === "realname") void loadRealname();
+    else if (tab === "commitment") void loadCommitment();
+    else if (tab === "marriage") void loadMarriage();
+    else if (tab === "house") void loadHouse();
+    else if (tab === "education") void loadEducation();
+    else if (tab === "other") void loadOther();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, rnStatus, cmStatus, mrStatus, hsStatus, edStatus, otStatus, otType]);
+
+  // 管理认证类型抽屉：进入列表模式时加载类型
+  useEffect(() => {
+    if (drawer === "ctype" && ctypeMode === "list") void loadAuthTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawer, ctypeMode]);
+
+  // ─── 配置抽屉（打开时回填） ─────────────────────────────────
+  const openConfigDrawer = async (name: "quick" | "commit" | "marriage") => {
+    try {
+      const snap = await adminEndpoints.memberAuthConfig();
+      setConfigVersion(snap.version);
+      const cfg = (snap.config ?? {}) as Dict;
+      setConfigData(cfg);
+      setQuickForceId(asBool(cfg.realname_force_id_card, false));
+      setQuickFee(asStr(cfg.realname_fee, "0"));
+      setCommitTitle(asStr(cfg.commitment_title, "单身承诺"));
+      setCommitContent(
+        asStr(cfg.commitment_content, commitContent),
+      );
+      setAgreement(asStr(cfg.marriage_agreement, agreement));
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "配置加载失败", "error");
+    }
+    setDrawer(name);
+  };
+
+  const saveConfig = async (patch: Dict, summary: string) => {
+    try {
+      const merged = { ...configData, ...patch };
+      await adminEndpoints.memberAuthConfigUpdate({ version: configVersion, config: merged, change_summary: summary });
+      setConfigData(merged);
+      showConfigToast("保存成功", "ok");
+      setDrawer(null);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    }
+  };
+
+  // ─── 审核 / 删除 ───────────────────────────────────────────
+  const onCommitResult = async (row: CommitmentReviewItem, value: string) => {
+    if (value === "pending") return; // 审核不支持置为待审
+    const status = value === "pass" ? 1 : 2;
+    try {
+      await adminEndpoints.memberAuthReview("commitment", row.id, { status });
+      showConfigToast("已更新", "ok");
+      await loadCommitment();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    }
+  };
+
+  const onDeleteReview = async (kind: MemberAuthKind, id: number, name: string) => {
+    if (!window.confirm(`确定删除该${name}记录吗？`)) return;
+    try {
+      await adminEndpoints.memberAuthDeleteReview(kind, id);
+      showConfigToast("已删除", "ok");
+      if (kind === "commitment") await loadCommitment();
+      else if (kind === "house") await loadHouse();
+      else if (kind === "education") await loadEducation();
+      else if (kind === "other") await loadOther();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
+    }
+  };
+
+  // ─── 认证类型 创建/编辑/删除 ───────────────────────────────
+  const openCreateType = () => {
+    setCtypeEditId(null);
+    setCtypeName("");
+    setCtypeRealname("need");
+    setCtypeDesc("");
+    setCtypeSort("0");
+    setCtypeEnable("on");
+    setCtypeIcon(null);
+    setCtypeMode("create");
+  };
+
+  const openEditType = (t: AuthTypeItem) => {
+    setCtypeEditId(t.id);
+    setCtypeName(t.name);
+    setCtypeRealname(t.require_realname ? "need" : "no");
+    setCtypeDesc(t.description ?? "");
+    setCtypeSort(String(t.sort));
+    setCtypeEnable(t.status === 1 ? "on" : "off");
+    setCtypeIcon(t.icon_url);
+    setCtypeMode("create");
+  };
+
+  const submitCtype = async () => {
+    if (!ctypeName.trim()) {
+      showConfigToast("请填写认证类型名称", "error");
+      return;
+    }
+    const payload = {
+      name: ctypeName.trim(),
+      require_realname: ctypeRealname === "need",
+      description: ctypeDesc || null,
+      sort: Number(ctypeSort) || 0,
+      status: ctypeEnable === "on" ? 1 : 0,
+      icon_url: ctypeIcon,
+    };
+    try {
+      if (ctypeEditId) await adminEndpoints.memberAuthUpdateType(ctypeEditId, payload);
+      else await adminEndpoints.memberAuthCreateType(payload);
+      showConfigToast("保存成功", "ok");
+      await loadAuthTypes();
+      setCtypeMode("list");
+      setCtypeEditId(null);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    }
+  };
+
+  const onDeleteType = async (id: number, name: string) => {
+    if (!window.confirm(`确定删除认证类型「${name}」吗？`)) return;
+    try {
+      await adminEndpoints.memberAuthDeleteType(id);
+      showConfigToast("已删除", "ok");
+      await loadAuthTypes();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
+    }
+  };
+
+  const onPickIcon = (file: File | undefined | null) => {
+    pickAndUploadImage(file, (url) => setCtypeIcon(url), (msg) => showConfigToast(msg, "error"));
+  };
 
   const currentRight = () => {
     if (tab === "commitment") {
       return (
-        <button type="button" className="uath-btn primary" onClick={() => setDrawer("commit")}>
+        <button type="button" className="uath-btn primary" onClick={() => openConfigDrawer("commit")}>
           <Settings className="size-3.5" />
           配置承诺书
         </button>
@@ -197,7 +509,7 @@ export default function LoveUserAuthPage() {
           <button type="button" className="uath-btn link">
             婚姻状况核验说明
           </button>
-          <button type="button" className="uath-btn primary" onClick={() => setDrawer("marriage")}>
+          <button type="button" className="uath-btn primary" onClick={() => openConfigDrawer("marriage")}>
             配置《婚姻状态查询授权协议》
           </button>
         </div>
@@ -220,6 +532,20 @@ export default function LoveUserAuthPage() {
     }
     return null;
   };
+
+  const realnameStatCards = rnStats
+    ? [
+        { value: `${rnStats.quota_remaining}条`, label: "人脸核验余量", recharge: true },
+        { value: `${rnStats.success_count}次`, label: "核验成功" },
+        { value: `${rnStats.fail_count}次`, label: "核验失败" },
+        { value: `${rnStats.total_consumed}次`, label: "总计消耗" },
+      ]
+    : [
+        { value: "0条", label: "人脸核验余量", recharge: true },
+        { value: "0次", label: "核验成功" },
+        { value: "0次", label: "核验失败" },
+        { value: "0次", label: "总计消耗" },
+      ];
 
   return (
     <div className="min-w-0">
@@ -255,7 +581,7 @@ export default function LoveUserAuthPage() {
             </div>
 
             <div className="uath-stat-row">
-              {realnameStats.map((card) => (
+              {realnameStatCards.map((card) => (
                 <div key={card.label} className="uath-stat">
                   <div className="uath-stat-top">
                     <span className="uath-stat-value">{card.value}</span>
@@ -285,13 +611,18 @@ export default function LoveUserAuthPage() {
               </div>
               <div className="uath-filter-right">
                 <label className="uath-searchbox grow">
-                  <input type="text" placeholder="请输入会员昵称/编号/姓名/身份证号" />
+                  <input
+                    type="text"
+                    placeholder="请输入会员昵称/编号/姓名/身份证号"
+                    value={rnKeyword}
+                    onChange={(e) => setRnKeyword(e.target.value)}
+                  />
                 </label>
-                <button type="button" className="uath-btn primary">
+                <button type="button" className="uath-btn primary" onClick={() => loadRealname()}>
                   <Search className="size-3.5" />
                   搜索
                 </button>
-                <button type="button" className="uath-btn primary" onClick={() => setDrawer("quick")}>
+                <button type="button" className="uath-btn primary" onClick={() => openConfigDrawer("quick")}>
                   <Settings className="size-3.5" />
                   快捷设置
                 </button>
@@ -329,51 +660,57 @@ export default function LoveUserAuthPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {realnameRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="uath-td-id">{row.id}</td>
-                      <td>
-                        <div className="uath-member">
-                          <span className="uath-avatar" />
-                          <div className="uath-member-info">
-                            <div className="uath-member-nick">
-                              {row.nick} <span className="uath-code">编号:{row.code}</span>
-                            </div>
-                            <div className="uath-member-name">
-                              姓名：{row.name} <span className="uath-idcard">身份证：{row.idcard}</span>
+                  {rnLoading ? (
+                    <EmptyRow colSpan={11} />
+                  ) : rnRows.length === 0 ? (
+                    <EmptyRow colSpan={11} />
+                  ) : (
+                    rnRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="uath-td-id">{row.id}</td>
+                        <td>
+                          <div className="uath-member">
+                            <span className="uath-avatar" />
+                            <div className="uath-member-info">
+                              <div className="uath-member-nick">
+                                {row.nickname} <span className="uath-code">编号:{row.member_code}</span>
+                              </div>
+                              <div className="uath-member-name">
+                                姓名：{row.real_name} <span className="uath-idcard">身份证：{row.id_card_masked}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="uath-idinfo">
-                          <span>性别：{row.gender}</span>
-                          <span>出生：{row.birth}</span>
-                          {row.issued && <span>发证：{row.issued}</span>}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="uath-nofile">未上传</span>
-                      </td>
-                      <td>{row.method}</td>
-                      <td>{row.vendor}</td>
-                      <td className="uath-score">{row.score}</td>
-                      <td>
-                        <Thumb kind="face" />
-                      </td>
-                      <td>
-                        <span className={`uath-badge ${row.result}`}>
-                          {row.result === "success" ? "认证成功" : "认证失败"}
-                        </span>
-                      </td>
-                      <td className="uath-time">{row.time}</td>
-                      <td>
-                        <button type="button" className="uath-link">
-                          查看资料
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          <div className="uath-idinfo">
+                            <span>性别：{row.gender}</span>
+                            <span>出生：{row.birthday}</span>
+                            {row.id_card_issued && <span>发证：{row.id_card_issued}</span>}
+                          </div>
+                        </td>
+                        <td>
+                          {row.id_card_front ? <span>有</span> : <span className="uath-nofile">未上传</span>}
+                        </td>
+                        <td>{row.face_method}</td>
+                        <td>{row.face_vendor}</td>
+                        <td className="uath-score">{row.face_score}</td>
+                        <td>
+                          {row.face_photo ? <Thumb kind="face" /> : <span className="uath-nofile">未上传</span>}
+                        </td>
+                        <td>
+                          <span className={`uath-badge ${row.result}`}>
+                            {row.result === "success" ? "认证成功" : row.result === "fail" ? "认证失败" : "待审"}
+                          </span>
+                        </td>
+                        <td className="uath-time">{fmtDateTime(row.created_at)}</td>
+                        <td>
+                          <button type="button" className="uath-link" onClick={() => setProfile({ memberId: row.user_id, nickname: row.nickname, memberCode: row.member_code })}>
+                            查看资料
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -398,6 +735,9 @@ export default function LoveUserAuthPage() {
               active={cmStatus}
               onStatus={setCmStatus}
               placeholder="请输入"
+              keyword={cmKeyword}
+              onKeywordChange={setCmKeyword}
+              onSearch={() => loadCommitment()}
               right={currentRight()}
             />
 
@@ -424,55 +764,65 @@ export default function LoveUserAuthPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {commitRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="uath-td-id">{row.id}</td>
-                      <td>
-                        <div className="uath-member">
-                          <span className="uath-avatar" />
-                          <div className="uath-member-info">
-                            <div className="uath-member-nick">
-                              {row.nick} <span className="uath-code">编号:{row.code}</span>
-                            </div>
-                            <div className="uath-member-name">
-                              姓名：{row.name} <span className="uath-idcard">身份证：{row.idcard}</span>
+                  {cmLoading ? (
+                    <EmptyRow colSpan={7} />
+                  ) : cmRows.length === 0 ? (
+                    <EmptyRow colSpan={7} />
+                  ) : (
+                    cmRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="uath-td-id">{row.id}</td>
+                        <td>
+                          <div className="uath-member">
+                            <span className="uath-avatar" />
+                            <div className="uath-member-info">
+                              <div className="uath-member-nick">
+                                {row.nickname} <span className="uath-code">编号:{row.member_code}</span>
+                              </div>
+                              <div className="uath-member-name">
+                                姓名：{row.real_name} <span className="uath-idcard">身份证：{row.id_card_masked}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <button type="button" className="uath-file-btn">
-                          查看文件
-                        </button>
-                      </td>
-                      <td>{row.times}</td>
-                      <td>
-                        {row.result === "pass" ? (
-                          <span className="uath-badge plain pass">{statusMap.pass.label}</span>
-                        ) : (
-                          <label className="uath-inline-select">
-                            <select defaultValue={row.result} className={row.result}>
-                              <option value="pass">通过</option>
-                              <option value="pending">待审</option>
-                              <option value="fail">未通过</option>
-                            </select>
-                            <ChevronDown className="uath-select-caret size-3.5" />
-                          </label>
-                        )}
-                      </td>
-                      <td className="uath-time">{row.time}</td>
-                      <td>
-                        <div className="uath-actions">
-                          <button type="button" className="uath-link">
-                            查看资料
+                        </td>
+                        <td>
+                          <button type="button" className="uath-file-btn" onClick={() => row.file_url && window.open(resolveMediaUrl(row.file_url), "_blank")}>
+                            查看文件
                           </button>
-                          <button type="button" className="uath-link danger">
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>{row.sign_times}</td>
+                        <td>
+                          {row.result === "pass" ? (
+                            <span className="uath-badge plain pass">{statusMap.pass.label}</span>
+                          ) : (
+                            <label className="uath-inline-select">
+                              <select
+                                value={row.result}
+                                className={row.result}
+                                onChange={(e) => onCommitResult(row, e.target.value)}
+                              >
+                                <option value="pass">通过</option>
+                                <option value="pending">待审</option>
+                                <option value="fail">未通过</option>
+                              </select>
+                              <ChevronDown className="uath-select-caret size-3.5" />
+                            </label>
+                          )}
+                        </td>
+                        <td className="uath-time">{fmtDateTime(row.created_at)}</td>
+                        <td>
+                          <div className="uath-actions">
+                            <button type="button" className="uath-link" onClick={() => setProfile({ memberId: row.user_id, nickname: row.nickname, memberCode: row.member_code })}>
+                              查看资料
+                            </button>
+                            <button type="button" className="uath-link danger" onClick={() => onDeleteReview("commitment", row.id, "承诺书签署")}>
+                              删除
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -499,7 +849,7 @@ export default function LoveUserAuthPage() {
             <div className="uath-stat-row">
               <div className="uath-stat">
                 <div className="uath-stat-top">
-                  <span className="uath-stat-value">1条</span>
+                  <span className="uath-stat-value">{mrStats ? `${mrStats.quota_remaining}条` : "0条"}</span>
                   <button type="button" className="uath-btn primary sm">
                     在线充值
                   </button>
@@ -508,7 +858,7 @@ export default function LoveUserAuthPage() {
               </div>
               <div className="uath-stat">
                 <div className="uath-stat-top">
-                  <span className="uath-stat-value">0次</span>
+                  <span className="uath-stat-value">{mrStats ? `${mrStats.total_consumed}次` : "0次"}</span>
                 </div>
                 <div className="uath-stat-label">总计消耗</div>
               </div>
@@ -519,6 +869,9 @@ export default function LoveUserAuthPage() {
               active={mrStatus}
               onStatus={setMrStatus}
               placeholder="请输入会员昵称/编号/姓名/身份证号"
+              keyword={mrKeyword}
+              onKeywordChange={setMrKeyword}
+              onSearch={() => loadMarriage()}
               right={currentRight()}
             />
 
@@ -545,14 +898,35 @@ export default function LoveUserAuthPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="uath-empty">
-                        <Inbox className="uath-empty-icon" strokeWidth={1.2} />
-                        <span>暂无数据</span>
-                      </div>
-                    </td>
-                  </tr>
+                  {mrLoading ? (
+                    <EmptyRow colSpan={7} />
+                  ) : mrRows.length === 0 ? (
+                    <EmptyRow colSpan={7} />
+                  ) : (
+                    mrRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="uath-td-id">{row.id}</td>
+                        <td>
+                          <div className="uath-member">
+                            <span className="uath-avatar" />
+                            <div className="uath-member-info">
+                              <div className="uath-member-nick">
+                                {row.nickname} <span className="uath-code">编号:{row.member_code}</span>
+                              </div>
+                              <div className="uath-member-name">
+                                姓名：{row.real_name} <span className="uath-idcard">身份证：{row.id_card_masked}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{row.check_method}</td>
+                        <td>{row.declared_status}</td>
+                        <td>{row.result_label}</td>
+                        <td className="uath-time">{fmtDateTime(row.checked_at)}</td>
+                        <td>{row.cost ?? "暂无数据"}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -576,6 +950,9 @@ export default function LoveUserAuthPage() {
               active={hsStatus}
               onStatus={setHsStatus}
               placeholder="请输入"
+              keyword={hsKeyword}
+              onKeywordChange={setHsKeyword}
+              onSearch={() => loadHouse()}
             />
 
             <div className="uath-table-wrap">
@@ -599,41 +976,47 @@ export default function LoveUserAuthPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {houseRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="uath-td-id">{row.id}</td>
-                      <td>
-                        <div className="uath-member">
-                          <span className="uath-avatar" />
-                          <div className="uath-member-info">
-                            <div className="uath-member-nick">
-                              {row.nick} <span className="uath-code">编号:{row.code}</span>
-                            </div>
-                            <div className="uath-member-name">
-                              姓名：{row.name} <span className="uath-idcard">身份证：{row.idcard}</span>
+                  {hsLoading ? (
+                    <EmptyRow colSpan={6} />
+                  ) : hsRows.length === 0 ? (
+                    <EmptyRow colSpan={6} />
+                  ) : (
+                    hsRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="uath-td-id">{row.id}</td>
+                        <td>
+                          <div className="uath-member">
+                            <span className="uath-avatar" />
+                            <div className="uath-member-info">
+                              <div className="uath-member-nick">
+                                {row.nickname} <span className="uath-code">编号:{row.member_code}</span>
+                              </div>
+                              <div className="uath-member-name">
+                                姓名：{row.real_name} <span className="uath-idcard">身份证：{row.id_card_masked}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <Thumb kind={row.file ? "doc" : "none"} />
-                      </td>
-                      <td>
-                        <span className="uath-badge plain pass">{statusMap.pass.label}</span>
-                      </td>
-                      <td className="uath-time">{row.time}</td>
-                      <td>
-                        <div className="uath-actions">
-                          <button type="button" className="uath-link">
-                            查看资料
-                          </button>
-                          <button type="button" className="uath-link danger">
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          {row.file_url ? <Thumb kind="doc" /> : <Thumb kind="none" />}
+                        </td>
+                        <td>
+                          <span className={`uath-badge plain ${row.result}`}>{statusMap[row.result]?.label ?? row.result_label}</span>
+                        </td>
+                        <td className="uath-time">{fmtDateTime(row.created_at)}</td>
+                        <td>
+                          <div className="uath-actions">
+                            <button type="button" className="uath-link" onClick={() => setProfile({ memberId: row.user_id, nickname: row.nickname, memberCode: row.member_code })}>
+                              查看资料
+                            </button>
+                            <button type="button" className="uath-link danger" onClick={() => onDeleteReview("house", row.id, "房产认证")}>
+                              删除
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -657,6 +1040,9 @@ export default function LoveUserAuthPage() {
               active={edStatus}
               onStatus={setEdStatus}
               placeholder="请输入"
+              keyword={edKeyword}
+              onKeywordChange={setEdKeyword}
+              onSearch={() => loadEducation()}
             />
 
             <div className="uath-table-wrap">
@@ -684,43 +1070,49 @@ export default function LoveUserAuthPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {eduRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="uath-td-id">{row.id}</td>
-                      <td>
-                        <div className="uath-member">
-                          <span className="uath-avatar" />
-                          <div className="uath-member-info">
-                            <div className="uath-member-nick">
-                              {row.nick} <span className="uath-code">编号:{row.code}</span>
-                            </div>
-                            <div className="uath-member-name">
-                              姓名：{row.name} <span className="uath-idcard">身份证：{row.idcard}</span>
+                  {edLoading ? (
+                    <EmptyRow colSpan={8} />
+                  ) : edRows.length === 0 ? (
+                    <EmptyRow colSpan={8} />
+                  ) : (
+                    edRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="uath-td-id">{row.id}</td>
+                        <td>
+                          <div className="uath-member">
+                            <span className="uath-avatar" />
+                            <div className="uath-member-info">
+                              <div className="uath-member-nick">
+                                {row.nickname} <span className="uath-code">编号:{row.member_code}</span>
+                              </div>
+                              <div className="uath-member-name">
+                                姓名：{row.real_name} <span className="uath-idcard">身份证：{row.id_card_masked}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>{row.degree}</td>
-                      <td>{row.school || "-"}</td>
-                      <td>
-                        <Thumb kind={row.file ? "doc" : "none"} />
-                      </td>
-                      <td>
-                        <span className="uath-badge plain pass">{statusMap.pass.label}</span>
-                      </td>
-                      <td className="uath-time">{row.time}</td>
-                      <td>
-                        <div className="uath-actions">
-                          <button type="button" className="uath-link">
-                            查看资料
-                          </button>
-                          <button type="button" className="uath-link danger">
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>{row.degree}</td>
+                        <td>{row.school || "-"}</td>
+                        <td>
+                          {row.file_url ? <Thumb kind="doc" /> : <Thumb kind="none" />}
+                        </td>
+                        <td>
+                          <span className={`uath-badge plain ${row.result}`}>{statusMap[row.result]?.label ?? row.result_label}</span>
+                        </td>
+                        <td className="uath-time">{fmtDateTime(row.created_at)}</td>
+                        <td>
+                          <div className="uath-actions">
+                            <button type="button" className="uath-link" onClick={() => setProfile({ memberId: row.user_id, nickname: row.nickname, memberCode: row.member_code })}>
+                              查看资料
+                            </button>
+                            <button type="button" className="uath-link danger" onClick={() => onDeleteReview("education", row.id, "学历认证")}>
+                              删除
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -744,6 +1136,12 @@ export default function LoveUserAuthPage() {
               onStatus={setOtStatus}
               placeholder="请输入"
               showType
+              typeValue={otType}
+              onTypeChange={setOtType}
+              typeOptions={authTypes}
+              keyword={otKeyword}
+              onKeywordChange={setOtKeyword}
+              onSearch={() => loadOther()}
               right={currentRight()}
             />
 
@@ -770,14 +1168,48 @@ export default function LoveUserAuthPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="uath-empty">
-                        <Inbox className="uath-empty-icon" strokeWidth={1.2} />
-                        <span>暂无数据</span>
-                      </div>
-                    </td>
-                  </tr>
+                  {otLoading ? (
+                    <EmptyRow colSpan={7} />
+                  ) : otRows.length === 0 ? (
+                    <EmptyRow colSpan={7} />
+                  ) : (
+                    otRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="uath-td-id">{row.id}</td>
+                        <td>{row.auth_type_name}</td>
+                        <td>
+                          <div className="uath-member">
+                            <span className="uath-avatar" />
+                            <div className="uath-member-info">
+                              <div className="uath-member-nick">
+                                {row.nickname} <span className="uath-code">编号:{row.member_code}</span>
+                              </div>
+                              <div className="uath-member-name">
+                                姓名：{row.real_name} <span className="uath-idcard">身份证：{row.id_card_masked}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          {row.file_url ? <Thumb kind="doc" /> : <Thumb kind="none" />}
+                        </td>
+                        <td>
+                          <span className={`uath-badge plain ${row.result}`}>{statusMap[row.result]?.label ?? row.result_label}</span>
+                        </td>
+                        <td className="uath-time">{fmtDateTime(row.created_at)}</td>
+                        <td>
+                          <div className="uath-actions">
+                            <button type="button" className="uath-link" onClick={() => setProfile({ memberId: row.user_id, nickname: row.nickname, memberCode: row.member_code })}>
+                              查看资料
+                            </button>
+                            <button type="button" className="uath-link danger" onClick={() => onDeleteReview("other", row.id, "其他认证")}>
+                              删除
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -800,7 +1232,16 @@ export default function LoveUserAuthPage() {
                 <button type="button" className="uath-panel-cancel" onClick={() => setDrawer(null)}>
                   取消
                 </button>
-                <button type="button" className="uath-panel-submit">
+                <button
+                  type="button"
+                  className="uath-panel-submit"
+                  onClick={() =>
+                    saveConfig(
+                      { realname_force_id_card: quickForceId, realname_fee: quickFee },
+                      "更新实名认证快捷设置",
+                    )
+                  }
+                >
                   确定提交
                 </button>
               </div>
@@ -810,8 +1251,12 @@ export default function LoveUserAuthPage() {
                 <div className="uath-field-label">实名时强制上传身份证</div>
                 <div className="uath-field-control column">
                   <label className="uath-radio">
-                    <input type="radio" name="force-id" defaultChecked />
+                    <input type="radio" name="force-id" checked={!quickForceId} onChange={() => setQuickForceId(false)} />
                     <span>不强制上传</span>
+                  </label>
+                  <label className="uath-radio">
+                    <input type="radio" name="force-id" checked={quickForceId} onChange={() => setQuickForceId(true)} />
+                    <span>强制上传</span>
                   </label>
                   <div className="uath-field-hint">
                     强制上传（在实名认证时除了人脸识别之外，还将强制要求客户必须上传身份证的照片给平台，开启本功能后可能会降低到实名认证率，注意系统并不对身份证照片进行验证）
@@ -823,7 +1268,12 @@ export default function LoveUserAuthPage() {
                 <div className="uath-field-label">实名认证费</div>
                 <div className="uath-field-control column">
                   <div className="uath-inline-unit">
-                    <input type="text" className="uath-input short" defaultValue="0" />
+                    <input
+                      type="text"
+                      className="uath-input short"
+                      value={quickFee}
+                      onChange={(e) => setQuickFee(e.target.value)}
+                    />
                     <span className="uath-inline-unit-text">元/次</span>
                   </div>
                   <div className="uath-tip">
@@ -852,7 +1302,16 @@ export default function LoveUserAuthPage() {
                 <button type="button" className="uath-panel-cancel" onClick={() => setDrawer(null)}>
                   取消
                 </button>
-                <button type="button" className="uath-panel-submit">
+                <button
+                  type="button"
+                  className="uath-panel-submit"
+                  onClick={() =>
+                    saveConfig(
+                      { commitment_title: commitTitle, commitment_content: commitContent },
+                      "更新会员承诺书配置",
+                    )
+                  }
+                >
                   确定提交
                 </button>
               </div>
@@ -909,7 +1368,11 @@ export default function LoveUserAuthPage() {
                 <button type="button" className="uath-panel-cancel" onClick={() => setDrawer(null)}>
                   取消
                 </button>
-                <button type="button" className="uath-panel-submit">
+                <button
+                  type="button"
+                  className="uath-panel-submit"
+                  onClick={() => saveConfig({ marriage_agreement: agreement }, "更新婚姻状态查询授权协议")}
+                >
                   确定提交
                 </button>
               </div>
@@ -949,15 +1412,14 @@ export default function LoveUserAuthPage() {
                     <button
                       type="button"
                       className="uath-panel-cancel"
-                      onClick={() => setCtypeMode("list")}
+                      onClick={() => {
+                        setCtypeEditId(null);
+                        setCtypeMode("list");
+                      }}
                     >
                       取消
                     </button>
-                    <button
-                      type="button"
-                      className="uath-panel-submit"
-                      onClick={() => setCtypeMode("list")}
-                    >
+                    <button type="button" className="uath-panel-submit" onClick={() => submitCtype()}>
                       确定提交
                     </button>
                   </>
@@ -985,18 +1447,49 @@ export default function LoveUserAuthPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td colSpan={5}>
-                          <div className="uath-empty">
-                            <Inbox className="uath-empty-icon" strokeWidth={1.2} />
-                            <span>暂无数据</span>
-                          </div>
-                        </td>
-                      </tr>
+                      {authTypes.length === 0 ? (
+                        <tr>
+                          <td colSpan={5}>
+                            <div className="uath-empty">
+                              <Inbox className="uath-empty-icon" strokeWidth={1.2} />
+                              <span>暂无数据</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        authTypes.map((t) => (
+                          <tr key={t.id}>
+                            <td>{t.name}</td>
+                            <td>
+                              {t.icon_url ? (
+                                <img className="uath-thumb-img" src={resolveMediaUrl(t.icon_url)} alt={t.name} />
+                              ) : (
+                                <span className="uath-nofile">未上传</span>
+                              )}
+                            </td>
+                            <td>{t.sort}</td>
+                            <td>
+                              <span className={`uath-badge plain ${t.status === 1 ? "pass" : "fail"}`}>
+                                {t.status === 1 ? "启用" : "关闭"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="uath-actions">
+                                <button type="button" className="uath-link" onClick={() => openEditType(t)}>
+                                  编辑
+                                </button>
+                                <button type="button" className="uath-link danger" onClick={() => onDeleteType(t.id, t.name)}>
+                                  删除
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                   <div className="uath-ctype-create">
-                    <button type="button" className="uath-btn primary" onClick={() => setCtypeMode("create")}>
+                    <button type="button" className="uath-btn primary" onClick={() => openCreateType()}>
                       <Plus className="size-3.5" />
                       创建新的认证类型
                     </button>
@@ -1053,10 +1546,20 @@ export default function LoveUserAuthPage() {
                       <span className="req">*</span>认证图标
                     </div>
                     <div className="uath-field-control column">
-                      <button type="button" className="uath-upload">
+                      <input
+                        ref={iconInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={(e) => onPickIcon(e.target.files?.[0])}
+                      />
+                      <button type="button" className="uath-upload" onClick={() => iconInputRef.current?.click()}>
                         <Plus className="size-4" />
                         上传照片
                       </button>
+                      {ctypeIcon && (
+                        <img className="uath-thumb-img" src={resolveMediaUrl(ctypeIcon)} alt="认证图标" />
+                      )}
                       <div className="uath-tip">
                         <span className="uath-tip-icon">i</span>
                         PNG格式，尺寸100像素X100像素，为了界面美观建议设计与系统中其他认证图标风格一致
@@ -1125,6 +1628,15 @@ export default function LoveUserAuthPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {profile && (
+        <MemberQuickProfileDrawer
+          memberId={profile.memberId}
+          nickname={profile.nickname}
+          memberCode={profile.memberCode}
+          onClose={() => setProfile(null)}
+        />
       )}
     </div>
   );

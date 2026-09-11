@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, Inbox, Settings } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import type { MemberBehaviorItem } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
+import { resolveMediaUrl } from "@/lib/admin-api";
 
 type Tab = "browse" | "favorite" | "superlike" | "gift" | "report";
 
@@ -18,80 +22,33 @@ const tabs: { key: Tab; label: string }[] = [
 const NOTICE =
   "您可以在这里快速浏览到平台所有会员的Ta人的资料的记录，能方便红娘分析掌握会员的意向对象，以便为其提供更加精准的匹配和牵线服务";
 
-/* ---------- 浏览记录 ---------- */
-type PairRow = {
-  from: string; fromCode: string; to: string; toCode: string; fg: string; tg: string;
-};
-type BrowseRow = PairRow & { times: string; time: string };
-
-const browseRows: BrowseRow[] = [
-  { from: "是静香本人没错", fromCode: "G858401", to: "画爸爸打球", toCode: "G412252", times: "第3次", time: "2026-09-08 14:34:45", fg: "a", tg: "b" },
-  { from: "宜萱爱~扒姐助理", fromCode: "G257956", to: "我脸1点也不圆", toCode: "B328247", times: "第1次", time: "2026-09-03 11:03:13", fg: "c", tg: "d" },
-  { from: "是静香本人没错", fromCode: "G858401", to: "宋宋", toCode: "G765156", times: "第3次", time: "2026-09-01 16:32:59", fg: "a", tg: "e" },
-  { from: "是静香本人没错", fromCode: "G858401", to: "宋宋", toCode: "G765156", times: "第2次", time: "2026-09-01 16:31:56", fg: "a", tg: "e" },
-  { from: "是静香本人没错", fromCode: "G858401", to: "宋宋", toCode: "G765156", times: "第1次", time: "2026-09-01 16:31:19", fg: "a", tg: "e" },
-  { from: "是静香本人没错", fromCode: "G858401", to: "超级无敌赖格宝", toCode: "B819352", times: "第1次", time: "2026-09-01 16:30:51", fg: "a", tg: "f" },
-  { from: "是静香本人没错", fromCode: "G858401", to: "画爸爸打球", toCode: "G412252", times: "第2次", time: "2026-09-01 16:30:25", fg: "a", tg: "b" },
-  { from: "是静香本人没错", fromCode: "G858401", to: "画爸爸打球", toCode: "G412252", times: "第1次", time: "2026-09-01 16:29:53", fg: "a", tg: "b" },
-];
-
-/* ---------- 收藏记录 ---------- */
-type FavRow = PairRow & { time: string };
-
-const favRows: FavRow[] = [
-  { from: "lll", fromCode: "G396140", to: "lll", toCode: "G396140", time: "2026-08-27 09:27:58", fg: "b", tg: "b" },
-  { from: "禾禾禾", fromCode: "G944467", to: "kkzz", toCode: "B801415", time: "2026-07-19 09:33:57", fg: "c", tg: "d" },
-  { from: "禾禾禾", fromCode: "G944467", to: "众里寻她", toCode: "B652108", time: "2026-07-19 09:33:37", fg: "c", tg: "e" },
-  { from: "泥絮", fromCode: "B914415", to: ",", toCode: "G397921", time: "2026-07-16 15:43:19", fg: "f", tg: "a" },
-  { from: "rasin", fromCode: "G847150", to: "一个好人", toCode: "B124065", time: "2026-07-12 21:36:52", fg: "g", tg: "h" },
-  { from: "乌龙茶607i", fromCode: "G714715", to: "我脸1点也不圆", toCode: "B328247", time: "2026-07-01 10:37:00", fg: "i", tg: "j" },
-  { from: "代表月亮消灭你", fromCode: "G298183", to: "q~nd~N", toCode: "B134461", time: "2026-06-28 18:12:03", fg: "d", tg: "b" },
-  { from: "出现1", fromCode: "B241050", to: "三世暖眬梦", toCode: "G415647", time: "2026-06-24 21:05:41", fg: "e", tg: "c" },
-];
-
-/* ---------- 线上爆灯 ---------- */
-type LikeRow = PairRow & {
-  id: string; time: string; pay: "已支付" | "未支付"; method: string; order: string; on: boolean;
-};
-
-const likeRows: LikeRow[] = [
-  { id: "29", from: "出现1", fromCode: "B241050", to: "0黎吧啦", toCode: "G368717", time: "2026-07-09 09:48:41", pay: "未支付", method: "-", order: "F03667157235269829", on: false, fg: "e", tg: "a" },
-  { id: "28", from: "q~nd~N", fromCode: "B134461", to: "余生请指教", toCode: "G519122", time: "2026-07-01 14:15:11", pay: "未支付", method: "-", order: "F09945226857574380", on: false, fg: "b", tg: "c" },
-  { id: "27", from: "乌龙茶607i", fromCode: "G714715", to: "q~nd~N", toCode: "B876545", time: "2026-06-30 20:36:27", pay: "已支付", method: "微信支付", order: "F07337230480653545", on: true, fg: "i", tg: "d" },
-  { id: "26", from: "Sofia", fromCode: "G410116", to: "muf", toCode: "B198419", time: "2026-06-30 14:45:51", pay: "未支付", method: "-", order: "F01253172594903830", on: false, fg: "j", tg: "e" },
-  { id: "25", from: "是静香本人没错", fromCode: "G858401", to: "q~nd~N", toCode: "B876545", time: "2026-06-30 11:53:06", pay: "已支付", method: "微信支付", order: "F0529227950660520", on: true, fg: "a", tg: "d" },
-  { id: "24", from: "q~nd~N", fromCode: "x268645", to: "你芝士甘薯么呢", toCode: "G674881", time: "2026-06-28 15:37:54", pay: "已支付", method: "余额支付", order: "F08629559476035556", on: true, fg: "b", tg: "f" },
-  { id: "23", from: "出现1", fromCode: "B237195", to: "小猪", toCode: "G916807", time: "2026-06-28 15:37:09", pay: "已支付", method: "后台支付", order: "F02210478728060753", on: true, fg: "e", tg: "g" },
-  { id: "22", from: "q~nd~N", fromCode: "x268645", to: "不吃猪肉", toCode: "G022437", time: "2026-06-28 15:32:26", pay: "已支付", method: "后台支付", order: "F04320512358021127", on: true, fg: "b", tg: "h" },
-  { id: "21", from: "q~nd~N", fromCode: "x268645", to: "不吃猪肉", toCode: "G022437", time: "2026-06-28 15:14:30", pay: "已支付", method: "后台支付", order: "F02005307216053", on: true, fg: "b", tg: "h" },
-  { id: "20", from: "q~nd~N", fromCode: "x268645", to: "余生请指教", toCode: "G519122", time: "2026-06-21 12:38:30", pay: "已支付", method: "后台支付", order: "F03826465941869", on: true, fg: "b", tg: "c" },
-];
-
-/* ---------- 赠送礼物 ---------- */
-type GiftRow = {
-  id: string; gift: string; qty: string; from: string; fromCode: string;
-  cost: string; paid: string; reward: string; to: string; toCode: string;
-  pay: "已支付" | "未支付"; time: string; fg: string; tg: string;
-};
-
-const giftRows: GiftRow[] = [
-  { id: "33", gift: "水晶球", qty: "1颗", from: "速发砸老师", fromCode: "G8634017", cost: "900金币", paid: "0元", reward: "450金币", to: "恰口奥立奥", toCode: "G606087", pay: "未支付", time: "2026-07-07 11:44:24", fg: "a", tg: "b" },
-  { id: "32", gift: "水晶球", qty: "1颗", from: "秋刀鱼", fromCode: "B976071", cost: "900金币", paid: "0元", reward: "450金币", to: "恰口奥立奥", toCode: "G606087", pay: "未支付", time: "2026-07-07 11:41:40", fg: "c", tg: "b" },
-  { id: "31", gift: "水晶球", qty: "1颗", from: "秋刀鱼", fromCode: "B8245655", cost: "900金币", paid: "0元", reward: "450金币", to: "1196", toCode: "G617884", pay: "未支付", time: "2026-07-07 09:55:18", fg: "c", tg: "d" },
-  { id: "30", gift: "水晶球", qty: "1颗", from: "秋刀鱼", fromCode: "B8245655", cost: "900金币", paid: "0元", reward: "450金币", to: "乌龙茶607i", toCode: "G714715", pay: "未支付", time: "2026-07-07 09:54:28", fg: "c", tg: "e" },
-  { id: "29", gift: "水晶球", qty: "1颗", from: "秋刀鱼", fromCode: "B8245655", cost: "900金币", paid: "0元", reward: "450金币", to: "乌龙茶607i", toCode: "G714715", pay: "未支付", time: "2026-07-07 09:54:23", fg: "c", tg: "e" },
-  { id: "28", gift: "宇宙火箭", qty: "1发", from: "Sofia", fromCode: "G410116", cost: "900金币", paid: "0元", reward: "450金币", to: "莓泥不行ya", toCode: "B165423", pay: "未支付", time: "2026-07-06 18:44:24", fg: "j", tg: "f" },
-  { id: "27", gift: "宇宙火箭", qty: "1发", from: "Sofia", fromCode: "G410116", cost: "900金币", paid: "0元", reward: "450金币", to: "莓泥不行ya", toCode: "B165423", pay: "未支付", time: "2026-07-06 18:44:15", fg: "j", tg: "f" },
-  { id: "26", gift: "爱心气球", qty: "1个", from: "乌龙茶607i", fromCode: "G714715", cost: "200金币", paid: "0元", reward: "100金币", to: "我脸1点也不圆", toCode: "B328247", pay: "未支付", time: "2026-07-06 18:24:08", fg: "e", tg: "g" },
-  { id: "25", gift: "炫酷飞机", qty: "1架", from: "q~nd~N", fromCode: "B134461", cost: "500金币", paid: "0元", reward: "250金币", to: "0黎吧啦", toCode: "G368717", pay: "未支付", time: "2026-07-06 18:24:08", fg: "h", tg: "a" },
-  { id: "24", gift: "炫酷飞机", qty: "1架", from: "q~nd~N", fromCode: "B134461", cost: "500金币", paid: "0元", reward: "250金币", to: "余生请指教", toCode: "G519122", pay: "未支付", time: "2026-07-06 18:12:04", fg: "h", tg: "c" },
-];
+const PALETTE = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+const gOf = (id: number | null | undefined) =>
+  PALETTE[Math.abs(Number(id) || 0) % PALETTE.length];
 
 /* ---------- 通用片段 ---------- */
-function Member({ nick, code, g }: { nick: string; code: string; g: string }) {
+function Member({
+  nick,
+  code,
+  g,
+  avatar,
+}: {
+  nick: string;
+  code: string;
+  g: string;
+  avatar?: string | null;
+}) {
+  const resolved = avatar ? resolveMediaUrl(avatar) : null;
   return (
     <div className="lub-member">
-      <span className={`lub-avatar lub-g-${g}`} />
+      <span
+        className={`lub-avatar lub-g-${g}`}
+        style={
+          resolved
+            ? { backgroundImage: `url(${resolved})`, backgroundSize: "cover", backgroundPosition: "center" }
+            : undefined
+        }
+      />
       <div className="lub-member-info">
         <div className="lub-member-nick">{nick}</div>
         <div className="lub-member-code">编号：{code}</div>
@@ -112,22 +69,58 @@ function Notice() {
   );
 }
 
-function SearchBar({ placeholder }: { placeholder: string }) {
+function SearchBar({
+  placeholder,
+  byCode,
+  keyword,
+  onByCodeChange,
+  onKeywordChange,
+  onSearch,
+}: {
+  placeholder: string;
+  byCode: boolean;
+  keyword: string;
+  onByCodeChange: (byCode: boolean) => void;
+  onKeywordChange: (value: string) => void;
+  onSearch: () => void;
+}) {
   return (
     <div className="lub-filter">
       <label className="lub-select">
-        <select defaultValue="nick">
+        <select
+          value={byCode ? "code" : "nick"}
+          onChange={(e) => onByCodeChange(e.target.value === "code")}
+        >
           <option value="nick">按昵称搜</option>
           <option value="code">按编号搜</option>
         </select>
         <ChevronDown className="lub-caret" />
       </label>
-      <input type="text" className="lub-search-input" placeholder={placeholder} />
-      <button type="button" className="lub-btn primary">
+      <input
+        type="text"
+        className="lub-search-input"
+        placeholder={placeholder}
+        value={keyword}
+        onChange={(e) => onKeywordChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onSearch();
+        }}
+      />
+      <button type="button" className="lub-btn primary" onClick={onSearch}>
         搜索
       </button>
     </div>
   );
+}
+
+function formatTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).replace("T", " ").slice(0, 19);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(
+    d.getMinutes(),
+  )}:${p(d.getSeconds())}`;
 }
 
 export default function LoveUserBehaviorPage() {
@@ -136,7 +129,62 @@ export default function LoveUserBehaviorPage() {
   const [reportFilter, setReportFilter] = useState("全部");
   const [browseFilter, setBrowseFilter] = useState("不限");
   const [giftChecked, setGiftChecked] = useState<Set<string>>(new Set());
+
+  // 搜索（受控）
+  const [byCode, setByCode] = useState(false);
+  const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+
+  const [rows, setRows] = useState<MemberBehaviorItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const label = tabs.find((item) => item.key === tab)?.label ?? "浏览记录";
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const minTimes =
+        tab === "browse"
+          ? browseFilter === "3次以上浏览"
+            ? 3
+            : browseFilter === "5次以上浏览"
+              ? 5
+              : undefined
+          : undefined;
+      const payStatus =
+        (tab === "superlike" || tab === "gift") && payFilter !== "全部"
+          ? payFilter === "已支付"
+            ? 1
+            : 0
+          : undefined;
+      const reportStatus =
+        tab === "report" && reportFilter !== "全部"
+          ? reportFilter === "待处理"
+            ? 0
+            : 1
+          : undefined;
+
+      const page = await adminEndpoints.memberBehaviorEvents({
+        page: 1,
+        page_size: 20,
+        category: tab,
+        search: appliedKeyword || undefined,
+        min_times: minTimes,
+        status: reportStatus,
+        pay_status: payStatus,
+      });
+      setRows(page.items ?? []);
+    } catch (err) {
+      setRows([]);
+      showConfigToast(err instanceof Error ? err.message : "加载失败", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, browseFilter, payFilter, reportFilter, appliedKeyword]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const toggleGift = (id: string) => {
     setGiftChecked((prev) => {
@@ -146,6 +194,28 @@ export default function LoveUserBehaviorPage() {
       return next;
     });
   };
+
+  const runSearch = () => {
+    setAppliedKeyword(keyword.trim());
+  };
+
+  const removeRow = async (category: "superlike" | "gift" | "report", id: number) => {
+    if (!window.confirm("确定删除该条记录吗？删除后不可恢复。")) return;
+    try {
+      await adminEndpoints.deleteMemberBehaviorEvent(category, id);
+      showConfigToast("已删除", "ok");
+      setRows((prev) => prev.filter((r) => r.event_id !== id));
+    } catch (err) {
+      showConfigToast(err instanceof Error ? err.message : "删除失败", "error");
+    }
+  };
+
+  const emptyRow = (colSpan: number) => (
+    <div className="lub-empty">
+      <Inbox className="lub-empty-icon" />
+      {loading ? "加载中…" : "暂无数据"}
+    </div>
+  );
 
   return (
     <div className="min-w-0">
@@ -158,7 +228,12 @@ export default function LoveUserBehaviorPage() {
               key={item.key}
               type="button"
               className={`lub-tab ${tab === item.key ? "active" : ""}`}
-              onClick={() => setTab(item.key)}
+              onClick={() => {
+                setTab(item.key);
+                setKeyword("");
+                setAppliedKeyword("");
+                setGiftChecked(new Set());
+              }}
             >
               {item.label}
             </button>
@@ -181,14 +256,26 @@ export default function LoveUserBehaviorPage() {
                 </button>
               ))}
               <label className="lub-select">
-                <select defaultValue="nick">
+                <select
+                  value={byCode ? "code" : "nick"}
+                  onChange={(e) => setByCode(e.target.value === "code")}
+                >
                   <option value="nick">按昵称搜</option>
                   <option value="code">按编号搜</option>
                 </select>
                 <ChevronDown className="lub-caret" />
               </label>
-              <input type="text" className="lub-search-input" placeholder="请输入" />
-              <button type="button" className="lub-btn primary">
+              <input
+                type="text"
+                className="lub-search-input"
+                placeholder="请输入"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") runSearch();
+                }}
+              />
+              <button type="button" className="lub-btn primary" onClick={runSearch}>
                 搜索
               </button>
             </div>
@@ -210,20 +297,31 @@ export default function LoveUserBehaviorPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {browseRows.map((row, i) => (
-                    <tr key={i}>
+                  {rows.map((row) => (
+                    <tr key={row.event_id}>
                       <td>
-                        <Member nick={row.from} code={row.fromCode} g={row.fg} />
+                        <Member
+                          nick={row.nickname ?? "—"}
+                          code={row.member_code}
+                          g={gOf(row.user_id)}
+                          avatar={row.user_avatar}
+                        />
                       </td>
                       <td>
-                        <Member nick={row.to} code={row.toCode} g={row.tg} />
+                        <Member
+                          nick={row.target_nickname ?? "—"}
+                          code={row.target_member_code ?? "—"}
+                          g={gOf(row.target_user_id)}
+                          avatar={row.target_avatar}
+                        />
                       </td>
-                      <td>{row.times}</td>
-                      <td className="lub-time">{row.time}</td>
+                      <td>第{row.browse_times ?? 1}次</td>
+                      <td className="lub-time">{formatTime(row.occurred_at)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {rows.length === 0 && emptyRow(4)}
             </div>
           </>
         )}
@@ -232,7 +330,14 @@ export default function LoveUserBehaviorPage() {
         {tab === "favorite" && (
           <>
             <Notice />
-            <SearchBar placeholder="请输入" />
+            <SearchBar
+              placeholder="请输入"
+              byCode={byCode}
+              keyword={keyword}
+              onByCodeChange={setByCode}
+              onKeywordChange={setKeyword}
+              onSearch={runSearch}
+            />
             <div className="lub-table-wrap">
               <table className="lub-table">
                 <colgroup>
@@ -248,19 +353,30 @@ export default function LoveUserBehaviorPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {favRows.map((row, i) => (
-                    <tr key={i}>
+                  {rows.map((row) => (
+                    <tr key={row.event_id}>
                       <td>
-                        <Member nick={row.from} code={row.fromCode} g={row.fg} />
+                        <Member
+                          nick={row.nickname ?? "—"}
+                          code={row.member_code}
+                          g={gOf(row.user_id)}
+                          avatar={row.user_avatar}
+                        />
                       </td>
                       <td>
-                        <Member nick={row.to} code={row.toCode} g={row.tg} />
+                        <Member
+                          nick={row.target_nickname ?? "—"}
+                          code={row.target_member_code ?? "—"}
+                          g={gOf(row.target_user_id)}
+                          avatar={row.target_avatar}
+                        />
                       </td>
-                      <td className="lub-time">{row.time}</td>
+                      <td className="lub-time">{formatTime(row.occurred_at)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {rows.length === 0 && emptyRow(3)}
             </div>
           </>
         )}
@@ -307,30 +423,44 @@ export default function LoveUserBehaviorPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {likeRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="lub-muted">{row.id}</td>
+                  {rows.map((row) => (
+                    <tr key={row.event_id}>
+                      <td className="lub-muted">{row.event_id}</td>
                       <td>
-                        <Member nick={row.from} code={row.fromCode} g={row.fg} />
+                        <Member
+                          nick={row.nickname ?? "—"}
+                          code={row.member_code}
+                          g={gOf(row.user_id)}
+                          avatar={row.user_avatar}
+                        />
                       </td>
                       <td>
-                        <Member nick={row.to} code={row.toCode} g={row.tg} />
+                        <Member
+                          nick={row.target_nickname ?? "—"}
+                          code={row.target_member_code ?? "—"}
+                          g={gOf(row.target_user_id)}
+                          avatar={row.target_avatar}
+                        />
                       </td>
-                      <td className="lub-time">{row.time}</td>
+                      <td className="lub-time">{formatTime(row.occurred_at)}</td>
                       <td>
-                        <span className={`lub-pay ${row.pay === "已支付" ? "paid" : "unpaid"}`}>
-                          {row.pay}
+                        <span className={`lub-pay ${row.pay_status === 1 ? "paid" : "unpaid"}`}>
+                          {row.pay_status_label ?? "未支付"}
                         </span>
                       </td>
-                      <td className="lub-muted">{row.method}</td>
-                      <td className="lub-order">{row.order}</td>
+                      <td className="lub-muted">{row.pay_method || "-"}</td>
+                      <td className="lub-order">{row.order_no ?? "-"}</td>
                       <td>
-                        <span className={`lub-toggle ${row.on ? "on" : "off"}`}>
-                          {row.on ? "正常" : "取消"}
+                        <span className={`lub-toggle ${row.event_status === 1 ? "on" : "off"}`}>
+                          {row.event_status === 1 ? "正常" : "取消"}
                         </span>
                       </td>
                       <td>
-                        <button type="button" className="lub-link danger">
+                        <button
+                          type="button"
+                          className="lub-link danger"
+                          onClick={() => removeRow("superlike", row.event_id)}
+                        >
                           删除
                         </button>
                       </td>
@@ -338,6 +468,7 @@ export default function LoveUserBehaviorPage() {
                   ))}
                 </tbody>
               </table>
+              {rows.length === 0 && emptyRow(9)}
             </div>
           </>
         )}
@@ -382,7 +513,19 @@ export default function LoveUserBehaviorPage() {
                 <thead>
                   <tr>
                     <th>
-                      <input type="checkbox" className="lub-check" aria-label="全选" />
+                      <input
+                        type="checkbox"
+                        className="lub-check"
+                        aria-label="全选"
+                        checked={rows.length > 0 && rows.every((r) => giftChecked.has(String(r.event_id)))}
+                        onChange={() =>
+                          setGiftChecked(
+                            rows.length > 0 && rows.every((r) => giftChecked.has(String(r.event_id)))
+                              ? new Set()
+                              : new Set(rows.map((r) => String(r.event_id))),
+                          )
+                        }
+                      />
                     </th>
                     <th>ID</th>
                     <th>赠送礼物</th>
@@ -398,37 +541,54 @@ export default function LoveUserBehaviorPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {giftRows.map((row) => (
-                    <tr key={row.id}>
+                  {rows.map((row) => (
+                    <tr key={row.event_id}>
                       <td>
                         <input
                           type="checkbox"
                           className="lub-check"
-                          checked={giftChecked.has(row.id)}
-                          onChange={() => toggleGift(row.id)}
-                          aria-label={`选择 ${row.id}`}
+                          checked={giftChecked.has(String(row.event_id))}
+                          onChange={() => toggleGift(String(row.event_id))}
+                          aria-label={`选择 ${row.event_id}`}
                         />
                       </td>
-                      <td className="lub-muted">{row.id}</td>
-                      <td>{row.gift}</td>
-                      <td>{row.qty}</td>
+                      <td className="lub-muted">{row.event_id}</td>
+                      <td>{row.gift_name ?? "—"}</td>
                       <td>
-                        <Member nick={row.from} code={row.fromCode} g={row.fg} />
-                      </td>
-                      <td>{row.cost}</td>
-                      <td>{row.paid}</td>
-                      <td>{row.reward}</td>
-                      <td>
-                        <Member nick={row.to} code={row.toCode} g={row.tg} />
+                        {row.gift_qty ?? 0}
+                        {row.qty_unit ?? ""}
                       </td>
                       <td>
-                        <span className={`lub-pay ${row.pay === "已支付" ? "paid" : "unpaid"}`}>
-                          {row.pay}
+                        <Member
+                          nick={row.nickname ?? "—"}
+                          code={row.member_code}
+                          g={gOf(row.user_id)}
+                          avatar={row.user_avatar}
+                        />
+                      </td>
+                      <td>{row.point_cost ?? 0}金币</td>
+                      <td>{row.paid_amount ?? "0"}元</td>
+                      <td>{row.reward_points ?? 0}金币</td>
+                      <td>
+                        <Member
+                          nick={row.target_nickname ?? "—"}
+                          code={row.target_member_code ?? "—"}
+                          g={gOf(row.target_user_id)}
+                          avatar={row.target_avatar}
+                        />
+                      </td>
+                      <td>
+                        <span className={`lub-pay ${row.pay_status === 1 ? "paid" : "unpaid"}`}>
+                          {row.pay_status_label ?? "未支付"}
                         </span>
                       </td>
-                      <td className="lub-time">{row.time}</td>
+                      <td className="lub-time">{formatTime(row.occurred_at)}</td>
                       <td>
-                        <button type="button" className="lub-link danger">
+                        <button
+                          type="button"
+                          className="lub-link danger"
+                          onClick={() => removeRow("gift", row.event_id)}
+                        >
                           删除
                         </button>
                       </td>
@@ -436,6 +596,7 @@ export default function LoveUserBehaviorPage() {
                   ))}
                 </tbody>
               </table>
+              {rows.length === 0 && emptyRow(12)}
             </div>
           </>
         )}
@@ -483,11 +644,57 @@ export default function LoveUserBehaviorPage() {
                     <th>操作</th>
                   </tr>
                 </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.event_id}>
+                      <td className="lub-muted">{row.event_id}</td>
+                      <td className="lub-time">{formatTime(row.occurred_at)}</td>
+                      <td>
+                        <Member
+                          nick={row.nickname ?? "—"}
+                          code={row.member_code}
+                          g={gOf(row.user_id)}
+                          avatar={row.user_avatar}
+                        />
+                      </td>
+                      <td className="lub-muted">{row.submit_ip ?? "—"}</td>
+                      <td>
+                        <Member
+                          nick={row.target_nickname ?? "—"}
+                          code={row.target_member_code ?? "—"}
+                          g={gOf(row.target_user_id)}
+                          avatar={row.target_avatar}
+                        />
+                      </td>
+                      <td>{row.report_type ?? "—"}</td>
+                      <td>{row.detail ?? "—"}</td>
+                      <td>
+                        {(row.images ?? []).slice(0, 3).map((url, i) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={i}
+                            src={resolveMediaUrl(url)}
+                            alt="证据"
+                            style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 4, marginRight: 4 }}
+                          />
+                        ))}
+                        {(row.images ?? []).length === 0 && "—"}
+                      </td>
+                      <td>{row.report_status_label ?? "待处理"}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="lub-link danger"
+                          onClick={() => removeRow("report", row.event_id)}
+                        >
+                          删除
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
-              <div className="lub-empty">
-                <Inbox className="lub-empty-icon" />
-                暂无数据
-              </div>
+              {rows.length === 0 && emptyRow(10)}
             </div>
           </>
         )}

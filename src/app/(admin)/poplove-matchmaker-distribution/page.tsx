@@ -1,30 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
+import type {
+  PromoterLevelItem,
+  PromoterLevelUpdatePayload,
+} from "@/lib/admin-endpoints";
 
 const breadcrumb = getBreadcrumb("推广红娘", "分成配置");
 
-type LevelRow = {
-  id: number;
-  level: string;
-  name: string;
-  mode: string;
-  count: number;
-  condition: string;
-};
-
-const levels: LevelRow[] = [
-  { id: 5, level: "级别1", name: "初级", mode: "自定义固定金额", count: 7, condition: "默认" },
-  { id: 6, level: "级别2", name: "推广大师", mode: "按照比例自动计算：10%", count: 0, condition: "累计发展有效相亲会员数量>=51人" },
-  { id: 7, level: "级别3", name: "推广大使", mode: "自定义固定金额", count: 0, condition: "累计发展有效相亲会员数量>=100人" },
-  { id: 8, level: "级别4", name: "推广天使", mode: "自定义固定金额", count: 0, condition: "累计发展有效相亲会员数量>=500人" },
-];
-
 export default function PoploveMatchmakerDistributionPage() {
-  const [editing, setEditing] = useState<LevelRow | null>(null);
+  const [levels, setLevels] = useState<PromoterLevelItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<PromoterLevelItem | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminEndpoints.promoterLevelList();
+      setLevels(res.items ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加载失败");
+      setLevels([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const openEditor = async (row: PromoterLevelItem) => {
+    setEditing(row);
+    try {
+      const detail = await adminEndpoints.promoterLevel(row.level_id);
+      setEditing(detail);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载详情失败", "error");
+    }
+  };
+
+  const closeEditor = () => setEditing(null);
 
   return (
     <div className="min-w-0">
@@ -58,38 +81,98 @@ export default function PoploveMatchmakerDistributionPage() {
               </tr>
             </thead>
             <tbody>
-              {levels.map((row) => (
-                <tr key={row.id}>
-                  <td className="pd-td-id">{row.id}</td>
-                  <td className="pd-td-text">{row.level}</td>
-                  <td className="pd-td-strong">{row.name}</td>
-                  <td className="pd-td-text">{row.mode}</td>
-                  <td className="pd-td-text">{row.count}</td>
-                  <td className="pd-td-text">{row.condition}</td>
-                  <td>
-                    <button type="button" className="pd-link" onClick={() => setEditing(row)}>
-                      编辑配置
-                    </button>
-                  </td>
+              {loading && (
+                <tr>
+                  <td className="pd-td-id" colSpan={7}>加载中…</td>
                 </tr>
-              ))}
+              )}
+              {!loading && error && (
+                <tr>
+                  <td className="pd-td-id" colSpan={7}>{error}</td>
+                </tr>
+              )}
+              {!loading && !error && levels.length === 0 && (
+                <tr>
+                  <td className="pd-td-id" colSpan={7}>暂无数据</td>
+                </tr>
+              )}
+              {!loading &&
+                !error &&
+                levels.map((row) => (
+                  <tr key={row.id}>
+                    <td className="pd-td-id">{row.level_id}</td>
+                    <td className="pd-td-text">{row.level_name}</td>
+                    <td className="pd-td-strong">{row.level_name}</td>
+                    <td className="pd-td-text">{row.auto_split_mode_label}</td>
+                    <td className="pd-td-text">{row.matchmaker_count}</td>
+                    <td className="pd-td-text">{row.promote_threshold_text}</td>
+                    <td>
+                      <button type="button" className="pd-link" onClick={() => void openEditor(row)}>
+                        编辑配置
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {editing && <EditDrawer row={editing} onClose={() => setEditing(null)} />}
+      {editing && <EditDrawer row={editing} onClose={closeEditor} onSaved={() => { setEditing(null); void reload(); }} />}
     </div>
   );
 }
 
-function EditDrawer({ row, onClose }: { row: LevelRow; onClose: () => void }) {
-  const [levelName, setLevelName] = useState(row.name);
+function EditDrawer({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: PromoterLevelItem;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [levelName, setLevelName] = useState(row.level_name);
   const [operator, setOperator] = useState("累积>");
-  const [threshold, setThreshold] = useState("100");
-  const [rewardMale, setRewardMale] = useState("0.00");
-  const [rewardFemale, setRewardFemale] = useState("0.00");
-  const [consumeMode, setConsumeMode] = useState("none");
+  const [threshold, setThreshold] = useState(row.promote_threshold != null ? String(row.promote_threshold) : "0");
+  const [rewardMale, setRewardMale] = useState(row.register_reward_male ?? "0.00");
+  const [rewardFemale, setRewardFemale] = useState(row.register_reward_female ?? "0.00");
+  const [consumeMode, setConsumeMode] = useState<"none" | "auto_rate">(row.consume_commission_mode);
+  const [consumeRate, setConsumeRate] = useState(row.consume_commission_rate ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLevelName(row.level_name);
+    setThreshold(row.promote_threshold != null ? String(row.promote_threshold) : "0");
+    setRewardMale(row.register_reward_male ?? "0.00");
+    setRewardFemale(row.register_reward_female ?? "0.00");
+    setConsumeMode(row.consume_commission_mode);
+    setConsumeRate(row.consume_commission_rate ?? "");
+  }, [row]);
+
+  const submit = async () => {
+    if (consumeMode === "auto_rate" && !consumeRate.trim()) {
+      showConfigToast("会员消费分成选择“给予分成”时必须填写分成比例", "error");
+      return;
+    }
+    const body: PromoterLevelUpdatePayload = {
+      promote_threshold: threshold.trim() ? Number(threshold.trim()) : null,
+      register_reward_male: rewardMale.trim() || null,
+      register_reward_female: rewardFemale.trim() || null,
+      consume_commission_mode: consumeMode,
+      consume_commission_rate: consumeMode === "auto_rate" ? consumeRate.trim() : null,
+    };
+    setSaving(true);
+    try {
+      await adminEndpoints.updatePromoterLevel(row.level_id, body);
+      showConfigToast("已保存");
+      onSaved();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -101,15 +184,17 @@ function EditDrawer({ row, onClose }: { row: LevelRow; onClose: () => void }) {
           </button>
           <h2 className="pd-panel-title">编辑配置</h2>
           <div className="pd-panel-actions">
-            <button className="pd-btn" onClick={onClose}>
+            <button className="pd-btn" onClick={onClose} disabled={saving}>
               关闭
             </button>
-            <button className="pd-btn primary">确定提交</button>
+            <button className="pd-btn primary" onClick={() => void submit()} disabled={saving}>
+              {saving ? "提交中…" : "确定提交"}
+            </button>
           </div>
         </div>
 
         <div className="pd-panel-body">
-          {/* 分成级别名称 */}
+          {/* 分成级别名称（后端不可修改，仅展示） */}
           <div className="pd-field">
             <span className="pd-field-label">
               <b className="req">*</b>分成级别名称
@@ -118,12 +203,13 @@ function EditDrawer({ row, onClose }: { row: LevelRow; onClose: () => void }) {
               <input
                 className="pd-input"
                 value={levelName}
+                readOnly
                 onChange={(e) => setLevelName(e.target.value)}
                 placeholder="请输入"
               />
               <div className="pd-hint">
                 <i className="pd-hint-icon">i</i>
-                不要超过4个汉字
+                不要超过4个汉字（该名称由系统固定，不可修改）
               </div>
             </div>
           </div>
@@ -206,11 +292,22 @@ function EditDrawer({ row, onClose }: { row: LevelRow; onClose: () => void }) {
                   <input
                     type="radio"
                     name="pd-consume"
-                    checked={consumeMode === "give"}
-                    onChange={() => setConsumeMode("give")}
+                    checked={consumeMode === "auto_rate"}
+                    onChange={() => setConsumeMode("auto_rate")}
                   />
                   <span>给予分成</span>
                 </label>
+                {consumeMode === "auto_rate" && (
+                  <>
+                    <input
+                      className="pd-input short"
+                      value={consumeRate}
+                      onChange={(e) => setConsumeRate(e.target.value)}
+                      placeholder="比例"
+                    />
+                    <span className="pd-unit">%</span>
+                  </>
+                )}
               </div>
               <div className="pd-hint">
                 <i className="pd-hint-icon">i</i>

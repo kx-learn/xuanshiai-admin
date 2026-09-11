@@ -1,4 +1,5 @@
-import { adminApi } from "@/lib/admin-api";
+import { adminApi, getAdminToken } from "@/lib/admin-api";
+import type { ConfigSnapshot, Dict } from "@/lib/platform-config";
 
 export type PageQuery = { page?: number; page_size?: number; status?: number | string; keyword?: string };
 export type ReviewPayload = { status?: number; reason?: string; result?: string; action?: string; hide_content?: boolean; restore_content?: boolean };
@@ -17,6 +18,7 @@ export interface CommissionLevel {
   rate_percent: string;
   fixed_amount: string | null;
   platform_extra_amount: string;
+  platform_extra_pay_mode: "manual" | "balance";
   promotion_condition: string | null;
   sort: number;
   status: 1 | 2;
@@ -31,6 +33,7 @@ export type CommissionLevelUpdatePayload = Partial<{
   "rate_percent": string;
   "fixed_amount": string | null;
   "platform_extra_amount": string;
+  "platform_extra_pay_mode": "manual" | "balance";
   "promotion_condition": string | null;
   "sort": number;
   "status": 1 | 2;
@@ -112,12 +115,24 @@ export interface PromoterStaffItem {
   user_id: number;
   avatar: string | null;
   display_name: string;
+  account: string | null;
   phone: string | null;
   channel: string | null;
+  matchmaker_type: PromoterMatchmakerType | null;
+  matchmaker_type_label: string | null;
+  commission_level_id: number | null;
+  commission_level_name: string | null;
+  team_id: number | null;
+  team_name: string | null;
   member_count: number;
+  member_month: number;
+  lead_total: number;
+  lead_month: number;
+  order_amount: string;
   touch_count: number;
   status: 1 | 2;
-  status_label: "在职" | "离职";
+  status_label: string | null;
+  visible: boolean;
   reviewed_at: string | null;
   intro: string | null;
   created_at: string | null;
@@ -134,9 +149,7 @@ export interface PromoterStaffPage {
 export interface PromoterStaffDetail extends PromoterStaffItem {
   real_name: string | null;
   suspension_reason: string | null;
-  matchmaker_type: PromoterMatchmakerType | null;
   slogan: string | null;
-  commission_level_id: 1 | 2 | 3 | 4 | null;
   can_view_lead_follow: boolean;
   can_write_lead_follow: boolean;
   can_view_member_crm_follow: boolean;
@@ -147,36 +160,117 @@ export type PromoterListQuery = {
   page_size?: number;
   keyword?: string;
   status?: 1 | 2;
+  commission_level_id?: number;
+  team_id?: number;
+  visible?: boolean;
+  sort?: "joined_desc" | "joined_asc" | "member_desc" | "member_asc";
 };
+
+export interface PromoterStatistics {
+  part_time_count: number;
+  full_time_count: number;
+  member_total: number;
+  member_month: number;
+  member_last_month: number;
+  lead_total: number;
+  lead_month: number;
+  lead_last_month: number;
+}
+
+export interface PromoterTeamItem {
+  id: number;
+  name: string;
+  owner_user_id: number | null;
+  owner_name: string | null;
+  status: number | null;
+}
 
 export type PromoterCreatePayload = {
   user_id?: number;
   lookup?: string;
   lookup_by?: "nickname" | "phone";
+  display_name: string;
+  phone?: string | null;
   channel?: string | null;
   intro?: string | null;
   matchmaker_type?: PromoterMatchmakerType | null;
   slogan?: string | null;
-  commission_level_id?: 1 | 2 | 3 | 4 | null;
+  commission_level_id?: number | null;
   can_view_lead_follow?: boolean;
   can_write_lead_follow?: boolean;
   can_view_member_crm_follow?: boolean;
 };
 
 export type PromoterUpdatePayload = Partial<{
-  channel: string | null;
-  intro: string | null;
   display_name: string;
-  phone: string;
-  status: 1 | 2;
-  reason: string | null;
+  phone: string | null;
   matchmaker_type: PromoterMatchmakerType | null;
   slogan: string | null;
-  commission_level_id: 1 | 2 | 3 | 4 | null;
+  commission_level_id: number | null;
+  visible: boolean;
   can_view_lead_follow: boolean;
   can_write_lead_follow: boolean;
   can_view_member_crm_follow: boolean;
 }>;
+
+export type PromoterTeamUpdatePayload = {
+  team_id: number | null;
+  reason?: string;
+};
+
+// ─── 推广红娘线上分成明细类型 ─────────────────────────────
+export interface PromoterCommissionEntryItem {
+  id: number;
+  created_at: string;
+  promoter_id: number;
+  promoter_name: string;
+  promoter_avatar: string | null;
+  consumer_id: number;
+  consumer_name: string;
+  consumer_phone: string | null;
+  event_name: string;
+  order_id: number | null;
+  order_no: string | null;
+  base_amount: string;
+  amount: string;
+  status: "PENDING" | "AVAILABLE" | "FROZEN" | "REVERSED";
+}
+
+export interface PromoterCommissionEntryPage {
+  items: PromoterCommissionEntryItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export type PromoterCommissionEntryListQuery = {
+  page?: number;
+  page_size?: number;
+  promoter_id?: number;
+  rule_id?: number;
+  start_date?: string;
+  end_date?: string;
+};
+
+export interface PromoterCommissionEntryOptions {
+  promoters: { id: number; name: string; avatar: string | null }[];
+  events: { id: number; name: string }[];
+}
+
+export interface PromoterPosterResponse {
+  promoter_id: number;
+  url: string;
+  qr_content: string;
+}
+
+export interface PromoterPlatformTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  jump_url: string;
+}
 
 // ─── 推广红娘分成配置（4 固定级别）类型 ────────────────────────────
 export type PromoterAutoSplitMode = "fixed_amount" | "auto_rate";
@@ -214,7 +308,7 @@ export type PromoterLevelUpdatePayload = {
 // ─── 分派配置类型 ────────────────────────────────────────────
 export type ApportionScope = "member_crm" | "customer_lead";
 export type ApportionConfigType = "assign" | "abandon";
-export type ApportionStrategy = "designated" | "round_robin_random" | "by_region" | "by_promoter" | "none";
+export type ApportionStrategy = "designated" | "round_robin_random" | "by_region" | "by_promoter" | "by_partner" | "none";
 
 export interface ApportionConfig {
   id: number;
@@ -255,6 +349,7 @@ export interface MatchmakerStaffItem {
   commission_amount: string;
   locked: boolean;
   visible: boolean;
+  wechat_qr: string | null;
   description: string | null;
   /** 以下 4 个字段由后端同事同步添加，目前可能尚未返回 */
   slogan: string | null;
@@ -269,6 +364,7 @@ export interface MatchmakerStaffDetail extends MatchmakerStaffItem {
   account_id: number | null;
   data_scope: "SELF" | "STORE" | "ORGANIZATION" | "ALL" | null;
   intro: string | null;
+  wechat_qr: string | null;
 }
 
 export interface MatchmakerStaffPage {
@@ -303,6 +399,7 @@ export type MatchmakerStaffCreatePayload = {
   display_name: string;
   phone: string;
   wechat?: string | null;
+  wechat_qr?: string | null;
   store_id?: number;
   commission_level_id?: number;
   role_tag?: MatchmakerRoleTag;
@@ -322,6 +419,7 @@ export type MatchmakerStaffUpdatePayload = Partial<{
   display_name: string;
   phone: string;
   wechat: string | null;
+  wechat_qr: string | null;
   store_id: number;
   commission_level_id: number;
   role_tag: MatchmakerRoleTag;
@@ -557,6 +655,539 @@ export interface CertificationDetail {
   audit_history: Record<string, unknown>[];
 }
 
+// ─── 会员认证（M3-1）类型 ─────────────────────────────────────
+
+// ─── 会员资料媒体验证（M3-2）类型 ──────────────────────────────
+export type MemberMediaType = "avatar" | "photo" | "video";
+
+export interface MemberIntroItem {
+  id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  avatar: string | null;
+  self_intro: string | null;
+  updated_at: string | null;
+}
+
+export interface MemberIntroPage {
+  items: MemberIntroItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface MemberMediaItem {
+  id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  avatar: string | null;
+  media_type: MemberMediaType;
+  file_url: string | null;
+  thumbnail_url: string | null;
+  mime_type: string | null;
+  duration_seconds: number | null;
+  review_status: number;
+  review_status_label: string;
+  review_reason: string | null;
+  age: number | null;
+  meta_text: string | null;
+  created_at: string | null;
+}
+
+export interface MemberMediaPage {
+  items: MemberMediaItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export type MemberMediaReviewPayload = {
+  review_status: number;
+  review_reason?: string | null;
+};
+
+export type MemberMediaReplacePayload = {
+  file_url: string;
+  thumbnail_url?: string | null;
+};
+
+/** 个人介绍列表查询：布尔筛选按后端 bool 参数以 0/1 传递（adminApi 的 query 只支持 string|number） */
+export type MemberIntroQuery = {
+  page?: number;
+  page_size?: number;
+  keyword?: string;
+  letter_mode?: string;
+  letter_lower?: 0 | 1;
+  digit?: 0 | 1;
+  cn_digit?: 0 | 1;
+};
+
+/** 媒体列表查询 */
+export type MemberMediaQuery = {
+  media_type: MemberMediaType;
+  page?: number;
+  page_size?: number;
+  review_status?: number;
+  keyword?: string;
+  gender?: number;
+};
+
+// ─── 线上行为（M3-3）类型 ─────────────────────────────────────
+export type MemberBehaviorCategory = "browse" | "favorite" | "superlike" | "gift" | "report";
+
+export interface MemberBehaviorItem {
+  event_id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  user_avatar: string | null;
+  target_user_id: number | null;
+  target_member_code: string | null;
+  target_nickname: string | null;
+  target_avatar: string | null;
+  occurred_at: string | null;
+  browse_times?: number | null;
+  amount?: string | null;
+  order_no?: string | null;
+  pay_status?: number | null;
+  pay_status_label?: string | null;
+  pay_method?: string | null;
+  event_status?: number | null;
+  event_status_label?: string | null;
+  gift_name?: string | null;
+  gift_qty?: number | null;
+  qty_unit?: string | null;
+  point_cost?: number | null;
+  paid_amount?: string | null;
+  reward_points?: number | null;
+  submit_ip?: string | null;
+  report_type?: string | null;
+  detail?: string | null;
+  images?: string[] | null;
+  report_status?: number | null;
+  report_status_label?: string | null;
+}
+
+export interface MemberBehaviorPage {
+  items: MemberBehaviorItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+// ─── 会员跟进全览与批量导入（M3-5） ──────────────────────────────
+export type MemberFollowUpMethod = "PHONE" | "WECHAT" | "VISIT" | "OTHER";
+
+export interface MemberFollowUpRow {
+  id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  avatar: string | null;
+  matchmaker_name: string;
+  method: string;
+  method_label: string;
+  content: string;
+  note: string | null;
+  intention_level: number | null;
+  created_at: string | null;
+}
+
+export interface MemberFollowUpListPage {
+  items: MemberFollowUpRow[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface MemberFollowUpSummary {
+  all: number;
+  today: number;
+  yesterday: number;
+  three_days: number;
+  this_week: number;
+  last_week: number;
+  this_month: number;
+  last_month: number;
+}
+
+export interface MemberFollowUpImportResult {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+}
+
+// ─── 线下VIP会员服务（M3-6） ────────────────────────────────────
+export type OfflineVipProgress =
+  | "matching"
+  | "dating"
+  | "deep"
+  | "in_love"
+  | "met_parents"
+  | "paused"
+  | "breakup"
+  | "married";
+
+export type OfflineVipContractStatus = "none" | "pending" | "signed" | "void";
+
+export interface OfflineVipItem {
+  id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  avatar: string | null;
+  phone: string | null;
+  sign_date: string | null;
+  package_name: string | null;
+  progress: OfflineVipProgress;
+  progress_label: string;
+  service_start: string | null;
+  service_end: string | null;
+  last_follow_at: string | null;
+  contract_amount: string;
+  sales_matchmaker_id: number | null;
+  sales_matchmaker_name: string | null;
+  service_matchmaker_id: number | null;
+  service_matchmaker_name: string | null;
+  promoter_id: number | null;
+  promoter_name: string | null;
+  contract_status: OfflineVipContractStatus;
+  contract_status_label: string;
+  contract_no: string | null;
+  promise_meet_count: number;
+  success_meet_count: number;
+  remark: string | null;
+  attach_urls: string[];
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface OfflineVipPage {
+  items: OfflineVipItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface OfflineVipStatistics {
+  store_count: number;
+  vip_count: number;
+  serving_count: number;
+  expiring_count: number;
+  expired_count: number;
+  paid_count: number;
+  promise_meet_total: number;
+  promise_meet_month: number;
+  refund_risk_count: number;
+  refunded_count: number;
+}
+
+export interface OfflineVipCreatePayload {
+  user_id?: number;
+  lookup?: string;
+  lookup_by?: "nickname" | "phone";
+  sales_matchmaker_id?: number | null;
+  service_matchmaker_id?: number | null;
+  promoter_id?: number | null;
+  sign_date?: string | null;
+  service_start?: string | null;
+  service_end?: string | null;
+  package_name?: string | null;
+  contract_amount?: string | number;
+  promise_meet_count?: number;
+  success_meet_count?: number;
+  remark?: string | null;
+  attach_urls?: string[];
+}
+
+export interface OfflineVipUpdatePayload {
+  sales_matchmaker_id?: number | null;
+  service_matchmaker_id?: number | null;
+  promoter_id?: number | null;
+  sign_date?: string | null;
+  service_start?: string | null;
+  service_end?: string | null;
+  package_name?: string | null;
+  contract_amount?: string | number;
+  promise_meet_count?: number;
+  success_meet_count?: number;
+  progress?: OfflineVipProgress;
+  remark?: string | null;
+  attach_urls?: string[];
+  meet_change_remark?: string | null;
+}
+
+export interface OfflineVipMeetLogItem {
+  id: number;
+  vip_id: number;
+  before_count: number;
+  after_count: number;
+  remark: string | null;
+  changed_by: number | null;
+  changed_by_name: string | null;
+  created_at: string | null;
+}
+
+export interface OfflineVipMeetLogPage {
+  items: OfflineVipMeetLogItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface OfflineVipOption {
+  id: number;
+  name: string;
+  extra: string | null;
+}
+
+export interface OfflineVipOptions {
+  sales_matchmakers: OfflineVipOption[];
+  service_matchmakers: OfflineVipOption[];
+  promoters: OfflineVipOption[];
+  packages: string[];
+}
+
+export type MemberAuthKind = "realname" | "commitment" | "marriage" | "house" | "education" | "other";
+export interface MemberAuthReviewItem {
+  id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  avatar: string | null;
+  real_name: string | null;
+  id_card_masked: string | null;
+  file_url: string | null;
+  result: string;
+  result_label: string;
+  created_at: string | null;
+}
+
+export interface MemberAuthReviewPage {
+  items: MemberAuthReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface RealnameReviewItem extends MemberAuthReviewItem {
+  gender: string | null;
+  birthday: string | null;
+  id_card_issued: string | null;
+  id_card_front: string | null;
+  id_card_back: string | null;
+  face_method: string | null;
+  face_vendor: string | null;
+  face_score: string | null;
+  face_photo: string | null;
+}
+
+export interface RealnameReviewPage {
+  items: RealnameReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface RealnameStats {
+  quota_remaining: number;
+  success_count: number;
+  fail_count: number;
+  total_consumed: number;
+}
+
+export interface MarriageStats {
+  quota_remaining: number;
+  total_consumed: number;
+}
+
+export interface CommitmentReviewItem extends MemberAuthReviewItem {
+  sign_times: number;
+  title: string | null;
+}
+
+export interface CommitmentReviewPage {
+  items: CommitmentReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface MarriageReviewItem extends MemberAuthReviewItem {
+  check_method: string | null;
+  declared_status: string | null;
+  cost: string | null;
+  checked_at: string | null;
+}
+
+export interface MarriageReviewPage {
+  items: MarriageReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface HouseReviewItem extends MemberAuthReviewItem {}
+
+export interface HouseReviewPage {
+  items: HouseReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface EducationReviewItem extends MemberAuthReviewItem {
+  degree: string | null;
+  school: string | null;
+}
+
+export interface EducationReviewPage {
+  items: EducationReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface OtherReviewItem extends MemberAuthReviewItem {
+  auth_type_id: number | null;
+  auth_type_name: string | null;
+}
+
+export interface OtherReviewPage {
+  items: OtherReviewItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface AuthTypeItem {
+  id: number;
+  name: string;
+  icon_url: string | null;
+  description: string | null;
+  require_realname: boolean;
+  sort: number;
+  status: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export type AuthTypePayload = {
+  name: string;
+  icon_url?: string | null;
+  description?: string | null;
+  require_realname?: boolean;
+  sort?: number;
+  status?: number;
+};
+
+/* ─── 会员CRM 数据报表（GET admin/member-statistics） ─────────────── */
+export interface MemberStatDistItem {
+  label: string;
+  value: number;
+}
+
+export interface MemberStatGrowthRow {
+  date: string;
+  member_count: number;
+  male_count: number;
+  female_count: number;
+  vip_count: number;
+  apply_count: number;
+  failed_count: number;
+  success_count: number;
+}
+
+export interface MemberStatFollowRow {
+  matchmaker: string;
+  member_count: number;
+  never_followed: number;
+  over_3_days: number;
+  over_7_days: number;
+  over_15_days: number;
+  over_30_days: number;
+  follow_count: number;
+  month_follow_count: number;
+}
+
+export interface MemberStatIntentionItem {
+  label: string;
+  count: number;
+}
+
+export interface MemberStatBrowseRow {
+  date: string;
+  home_views: number;
+  profile_views: number;
+  popular_member: string;
+}
+
+export interface MemberStatPreferenceReport {
+  age: MemberStatDistItem[];
+  marriage: MemberStatDistItem[];
+  height: MemberStatDistItem[];
+  education: MemberStatDistItem[];
+  housing: MemberStatDistItem[];
+  smoking: MemberStatDistItem[];
+  drinking: MemberStatDistItem[];
+  goal: MemberStatDistItem[];
+  occupation: MemberStatDistItem[];
+}
+
+export interface MemberStatGroups {
+  follow: MemberStatDistItem[];
+  intention: MemberStatDistItem[];
+  basic: MemberStatDistItem[];
+  requirement: MemberStatDistItem[];
+  browse: MemberStatDistItem[];
+  popularity: MemberStatDistItem[];
+  basic_groups: Record<string, MemberStatDistItem[]>;
+  browse_daily: MemberStatDistItem[];
+  popularity_female: MemberStatDistItem[];
+  popularity_male: MemberStatDistItem[];
+  apply_female: MemberStatDistItem[];
+  apply_male: MemberStatDistItem[];
+  growth: MemberStatGrowthRow[];
+  follow_report: MemberStatFollowRow[];
+  browse_report: MemberStatBrowseRow[];
+  requirements: { male: MemberStatPreferenceReport; female: MemberStatPreferenceReport };
+  preference_labels: Record<string, string>;
+  intention_report: MemberStatIntentionItem[];
+}
+
+export interface MemberStatMetrics {
+  total_members: number;
+  today_members: number;
+  max_daily_members: number;
+  max_daily_date: string;
+  max_monthly_members: number;
+  max_monthly_month: string;
+}
+
+export interface MemberStatisticsReport {
+  from_date: string;
+  to_date: string;
+  groups: MemberStatGroups;
+  totals: Record<string, number>;
+  metrics: MemberStatMetrics;
+}
+
 export const adminEndpoints = {
   login: (body: { username: string; password: string }) => adminApi<{ access_token: string; refresh_token: string; token_type: "bearer"; expires_in: number; account: Record<string, unknown> }>("admin/matchmaker/auth/login", { method: "POST", body }),
   me: () => adminApi<{ account: Record<string, unknown>; permissions: string[] }>("admin/matchmaker/auth/me"),
@@ -566,7 +1197,7 @@ export const adminEndpoints = {
   dashboard: (query: DashboardQuery = {}) => adminApi<AdminDashboardReport>("admin/dashboard", { method: "GET", query }),
   announcements: (query: { page?: number; page_size?: number; category?: string; keyword?: string } = {}) => adminApi<AnnouncementPage>("admin/announcements", { method: "GET", query }),
   academyCategories: () => adminApi<AcademyCategory[]>("admin/academy/categories"),
-  memberStatistics: (query: DashboardQuery = {}) => adminApi<Record<string, unknown>>("admin/member-statistics", { method: "GET", query }),
+  memberStatistics: (query: DashboardQuery = {}) => adminApi<MemberStatisticsReport>("admin/member-statistics", { method: "GET", query }),
   dashboardStats: () => adminApi<Record<string, unknown>>("admin/dashboard/stats"),
   adminAccounts: (query: AdminListQuery = {}) => adminApi<{ items: AdminAccountItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/matchmaker/accounts", { method: "GET", query }),
   adminAccount: (id: number | string) => adminApi<AdminAccountItem>(`admin/matchmaker/accounts/${id}`),
@@ -705,7 +1336,14 @@ export const adminEndpoints = {
 
   // ─── 推广红娘管理（推广体系独立于总店服务红娘） ─────────────
   promoterStaffList: (query: PromoterListQuery = {}) =>
-    adminApi<PromoterStaffPage>("admin/promoters", { method: "GET", query }),
+    adminApi<PromoterStaffPage>("admin/promoters", {
+      method: "GET",
+      // visible 为布尔开关，query 序列化统一转 1/0（后端按 bool 解析）
+      query: {
+        ...query,
+        visible: query.visible === undefined ? undefined : query.visible ? 1 : 0,
+      } as Record<string, string | number | undefined>,
+    }),
   promoterUserCandidates: (keyword: string) =>
     adminApi<PromoterUserCandidate[]>("admin/promoters/user-candidates", { method: "GET", query: { keyword } }),
   createPromoterStaff: (body: PromoterCreatePayload) =>
@@ -716,6 +1354,18 @@ export const adminEndpoints = {
     adminApi<PromoterStaffDetail>(`admin/promoters/${userId}`, { method: "PUT", body }),
   updatePromoterStatus: (userId: number, body: { status: 1 | 2; reason?: string | null }) =>
     adminApi<PromoterStaffDetail>(`admin/promoters/${userId}/status`, { method: "PATCH", body }),
+  promoterStatistics: () =>
+    adminApi<PromoterStatistics>("admin/promoters/statistics", { method: "GET" }),
+  promoterTeams: () =>
+    adminApi<PromoterTeamItem[]>("admin/promoters/teams", { method: "GET" }),
+  promoterPlatformToken: (userId: number) =>
+    adminApi<PromoterPlatformTokenResponse>(`admin/promoters/${userId}/platform-token`, { method: "POST" }),
+  promoterPoster: (userId: number) =>
+    adminApi<PromoterPosterResponse>(`admin/promoters/${userId}/poster`, { method: "POST" }),
+  updatePromoterTeam: (userId: number, body: PromoterTeamUpdatePayload) =>
+    adminApi<PromoterStaffDetail>(`admin/promoters/${userId}/team`, { method: "PUT", body }),
+  deletePromoterStaff: (userId: number) =>
+    adminApi<{ id: number; deleted: boolean }>(`admin/promoters/${userId}`, { method: "DELETE" }),
 
   // ─── 推广红娘分成配置（4 固定级别） ──────────────────────
   promoterLevelList: () =>
@@ -724,6 +1374,12 @@ export const adminEndpoints = {
     adminApi<PromoterLevelItem>(`admin/promoter-levels/${levelId}`),
   updatePromoterLevel: (levelId: 1 | 2 | 3 | 4, body: PromoterLevelUpdatePayload) =>
     adminApi<PromoterLevelItem>(`admin/promoter-levels/${levelId}`, { method: "PUT", body }),
+
+  // ─── 推广红娘线上分成明细 ─────────────────────────────
+  promoterCommissionEntries: (query: PromoterCommissionEntryListQuery = {}) =>
+    adminApi<PromoterCommissionEntryPage>("admin/promoters/commission-entries", { method: "GET", query }),
+  promoterCommissionEntryOptions: () =>
+    adminApi<PromoterCommissionEntryOptions>("admin/promoters/commission-entries/options", { method: "GET" }),
 
   // ─── 服务红娘管理（总店） ─────────────────────────────────────
   matchmakerStaffList: (query: MatchmakerStaffListQuery = {}) =>
@@ -763,4 +1419,138 @@ export const adminEndpoints = {
     adminApi<CommissionLevelDictItem[]>("admin/dict/commission-levels"),
   dictStores: () =>
     adminApi<StoreDictItem[]>("admin/dict/stores"),
+
+  // ─── 会员资料媒体验证（M3-2） ──────────────────────────────
+  memberMediaIntros: (query: MemberIntroQuery = {}) =>
+    adminApi<MemberIntroPage>("admin/members/media/intros", { method: "GET", query }),
+  updateMemberIntro: (userId: number | string, body: { self_intro: string }) =>
+    adminApi<MemberIntroItem>(`admin/members/media/intros/${userId}`, { method: "PUT", body }),
+  memberMediaList: (query: MemberMediaQuery) =>
+    adminApi<MemberMediaPage>("admin/members/media", { method: "GET", query }),
+  memberMediaHistory: (userId: number | string, query: { page?: number; page_size?: number } = {}) =>
+    adminApi<MemberMediaPage>(`admin/members/media/${userId}/history`, { method: "GET", query }),
+  reviewMemberMedia: (id: number | string, body: MemberMediaReviewPayload) =>
+    update(`admin/members/media/${id}`, body),
+  replaceMemberMedia: (id: number | string, body: MemberMediaReplacePayload) =>
+    adminApi(`admin/members/media/${id}`, { method: "PUT", body }),
+  deleteMemberMedia: (id: number | string) =>
+    adminApi<void>(`admin/members/media/${id}`, { method: "DELETE" }),
+
+  // ─── 会员认证（M3-1） ──────────────────────────────────────
+  memberAuthRealnameReviews: (query: { page?: number; page_size?: number; status?: string; keyword?: string } = {}) =>
+    adminApi<RealnameReviewPage>("admin/members/auth/realname-reviews", { method: "GET", query }),
+  memberAuthRealnameStats: () =>
+    adminApi<RealnameStats>("admin/members/auth/realname-stats"),
+  memberAuthCommitmentReviews: (query: { page?: number; page_size?: number; status?: string; keyword?: string } = {}) =>
+    adminApi<CommitmentReviewPage>("admin/members/auth/commitment-reviews", { method: "GET", query }),
+  memberAuthMarriageReviews: (query: { page?: number; page_size?: number; status?: string; keyword?: string } = {}) =>
+    adminApi<MarriageReviewPage>("admin/members/auth/marriage-reviews", { method: "GET", query }),
+  memberAuthMarriageStats: () =>
+    adminApi<MarriageStats>("admin/members/auth/marriage-stats"),
+  memberAuthHouseReviews: (query: { page?: number; page_size?: number; status?: string; keyword?: string } = {}) =>
+    adminApi<HouseReviewPage>("admin/members/auth/house-reviews", { method: "GET", query }),
+  memberAuthEducationReviews: (query: { page?: number; page_size?: number; status?: string; keyword?: string } = {}) =>
+    adminApi<EducationReviewPage>("admin/members/auth/education-reviews", { method: "GET", query }),
+  memberAuthOtherReviews: (query: { page?: number; page_size?: number; status?: string; keyword?: string; auth_type_id?: number } = {}) =>
+    adminApi<OtherReviewPage>("admin/members/auth/other-reviews", { method: "GET", query }),
+  memberAuthReview: (kind: MemberAuthKind, id: number | string, body: { status: number; remark?: string }) =>
+    update(`admin/members/auth/${kind}/${id}`, body),
+  memberAuthDeleteReview: (kind: MemberAuthKind, id: number | string) =>
+    adminApi<void>(`admin/members/auth/${kind}/${id}`, { method: "DELETE" }),
+  memberAuthTypes: (keyword?: string) =>
+    adminApi<AuthTypeItem[]>("admin/members/auth/types", { method: "GET", query: keyword ? { keyword } : {} }),
+  memberAuthCreateType: (body: AuthTypePayload) =>
+    adminApi<AuthTypeItem>("admin/members/auth/types", { method: "POST", body }),
+  memberAuthUpdateType: (id: number | string, body: AuthTypePayload) =>
+    adminApi<AuthTypeItem>(`admin/members/auth/types/${id}`, { method: "PUT", body }),
+  memberAuthDeleteType: (id: number | string) =>
+    adminApi<void>(`admin/members/auth/types/${id}`, { method: "DELETE" }),
+  memberAuthConfig: () =>
+    adminApi<ConfigSnapshot<Dict>>("admin/configs/member_auth"),
+  memberAuthConfigUpdate: (body: { version: number; config: Dict; change_summary: string }) =>
+    adminApi<ConfigSnapshot<Dict>>("admin/configs/member_auth", { method: "PATCH", body }),
+
+  // ─── 线上行为（M3-3） ──────────────────────────────────────
+  memberBehaviorEvents: (
+    query: {
+      page?: number;
+      page_size?: number;
+      category?: MemberBehaviorCategory;
+      search?: string;
+      min_times?: number;
+      status?: number;
+      pay_status?: number;
+    } = {},
+  ) => adminApi<MemberBehaviorPage>("admin/members/behavior-events", { method: "GET", query }),
+  deleteMemberBehaviorEvent: (category: "superlike" | "gift" | "report", eventId: number | string) =>
+    adminApi<{ id: number; deleted: boolean }>(`admin/members/behavior-events/${category}/${eventId}`, {
+      method: "DELETE",
+    }),
+
+  // ─── 会员跟进全览与导入（M3-5） ──────────────────────────────
+  memberFollowUpList: (
+    query: { page?: number; page_size?: number; keyword?: string; intention_level?: number; start_date?: string; end_date?: string } = {},
+  ) => adminApi<MemberFollowUpListPage>("admin/members/follow-ups", { method: "GET", query }),
+  memberFollowUpSummary: () =>
+    adminApi<MemberFollowUpSummary>("admin/members/follow-ups/summary", { method: "GET" }),
+  memberFollowUpImport: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return adminApi<MemberFollowUpImportResult>("admin/members/follow-ups/import", { method: "POST", body: form });
+  },
+
+  // ─── 线下VIP会员服务（M3-6） ────────────────────────────────
+  offlineVipList: (
+    query: {
+      page?: number;
+      page_size?: number;
+      progress?: OfflineVipProgress;
+      sales_matchmaker_id?: number;
+      service_matchmaker_id?: number;
+      promoter_id?: number;
+      sign_start?: string;
+      sign_end?: string;
+      keyword?: string;
+    } = {},
+  ) => adminApi<OfflineVipPage>("admin/offline-vips", { method: "GET", query }),
+  offlineVipStatistics: () =>
+    adminApi<OfflineVipStatistics>("admin/offline-vips/statistics", { method: "GET" }),
+  offlineVipOptions: () =>
+    adminApi<OfflineVipOptions>("admin/offline-vips/options", { method: "GET" }),
+  createOfflineVip: (body: OfflineVipCreatePayload) =>
+    adminApi<OfflineVipItem>("admin/offline-vips", { method: "POST", body }),
+  offlineVip: (id: number | string) =>
+    adminApi<OfflineVipItem>(`admin/offline-vips/${id}`, { method: "GET" }),
+  updateOfflineVip: (id: number | string, body: OfflineVipUpdatePayload) =>
+    adminApi<OfflineVipItem>(`admin/offline-vips/${id}`, { method: "PUT", body }),
+  offlineVipMeetLogs: (id: number | string, query: { page?: number; page_size?: number } = {}) =>
+    adminApi<OfflineVipMeetLogPage>(`admin/offline-vips/${id}/meet-logs`, { method: "GET", query }),
 };
+
+/**
+ * 下载「历史跟进」导入模板。
+ * 该接口返回二进制 xlsx（非 JSON），adminApi 无法直接消费，故在 api 层单独处理：
+ * 携带后台 token 拉取 Blob 后触发浏览器下载。
+ */
+export async function downloadMemberFollowUpTemplate(): Promise<void> {
+  const url = new URL(
+    "/api/v1/admin/members/follow-ups/import-template",
+    process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
+  );
+  const token = getAdminToken();
+  const response = await fetch(url, {
+    headers: token ? { authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) {
+    throw new Error((await response.text()) || `模板下载失败 (${response.status})`);
+  }
+  const blob = await response.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = "follow-up-import-template.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}

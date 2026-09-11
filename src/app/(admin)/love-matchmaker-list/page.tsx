@@ -23,6 +23,7 @@ import {
 } from "@/lib/platform-config";
 import type {
   AdminMenuNode,
+  MatchmakerStaffDetail,
   MatchmakerStaffItem,
   MatchmakerTutorial,
   MatchmakerUserCandidate,
@@ -589,6 +590,7 @@ function AddMatchmakerDrawer({
 
   const [avatar, setAvatar] = useState<string | null>(null);
   const [wechatQr, setWechatQr] = useState<string | null>(null);
+  const [detail, setDetail] = useState<MatchmakerStaffDetail | null>(null);
 
   const [displayName, setDisplayName] = useState("");
   const [description, setDescription] = useState("");
@@ -630,6 +632,12 @@ function AddMatchmakerDrawer({
       setTimedLock(!!editRow.lock_at);
       setLockAt(editRow.lock_at ?? "");
       setSort(editRow.sort != null ? String(editRow.sort) : "");
+      void adminEndpoints.matchmakerStaff(editRow.id).then((d) => {
+        setDetail(d);
+        setWechatQr(d.wechat_qr ?? null);
+      }).catch(() => setDetail(null));
+    } else {
+      setDetail(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editRow]);
@@ -670,6 +678,7 @@ function AddMatchmakerDrawer({
       if (isEdit && editRow) {
         const body: Record<string, unknown> = {};
         if (avatar) body.avatar = avatar;
+        if (wechatQr) body.wechat_qr = wechatQr;
         body.display_name = displayName.trim();
         body.phone = phone.trim();
         if (wechat.trim()) body.wechat = wechat.trim();
@@ -690,6 +699,7 @@ function AddMatchmakerDrawer({
           contact_editable: contactEditable,
         };
         if (avatar) body.avatar = avatar;
+        if (wechatQr) body.wechat_qr = wechatQr;
         if (wechat.trim()) body.wechat = wechat.trim();
         if (description.trim()) body.description = description.trim();
         if (commissionLevelId) body.commission_level_id = Number(commissionLevelId);
@@ -829,7 +839,7 @@ function AddMatchmakerDrawer({
                   </button>
                 </div>
               </div>
-              <div className="bm-info">微信二维码仅在前端展示，不提交到后端。</div>
+              <div className="bm-info">微信二维码将随表单一并提交到后端，并在红娘平台展示。</div>
             </div>
           </div>
 
