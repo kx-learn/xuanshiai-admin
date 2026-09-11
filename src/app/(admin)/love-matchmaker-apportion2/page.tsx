@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
+import type {
+  ApportionConfig,
+  ApportionScope,
+  ApportionStrategy,
+  MatchmakerStaffItem,
+} from "@/lib/admin-endpoints";
 
 const breadcrumb = getBreadcrumb("总店红娘", "分派配置");
 
 const SCOPES = [
-  { key: "member-crm", label: "会员CRM" },
-  { key: "customer-lead", label: "客源线索" },
+  { key: "member-crm", label: "会员CRM", scope: "member_crm" as ApportionScope },
+  { key: "customer-lead", label: "客源线索", scope: "customer_lead" as ApportionScope },
 ];
 
 const ASSIGN_OPTIONS = [
@@ -20,6 +28,16 @@ const ASSIGN_OPTIONS = [
   { value: "by-partner", label: "按合伙红娘进行分派" },
   { value: "none", label: "不分派" },
 ];
+
+// UI 选项值 -> 后端枚举（by-partner 后端暂不支持）
+const STRATEGY_MAP: Record<string, ApportionStrategy | null> = {
+  designated: "designated",
+  "round-robin": "round_robin_random",
+  "by-region": "by_region",
+  "by-promoter": "by_promoter",
+  "by-partner": null,
+  none: "none",
+};
 
 const ABANDON_OPTIONS = [
   { value: "off", label: "不启用" },
@@ -32,8 +50,6 @@ const ABANDON_OPTIONS = [
   { value: "90", label: "超90天未跟进" },
 ];
 
-const SERVICE_MATCHMAKERS = ["齐老师", "王老师", "李老师", "赵老师"];
-
 function Hint({ children }: { children: React.ReactNode }) {
   return (
     <div className="appo-hint">
@@ -44,18 +60,125 @@ function Hint({ children }: { children: React.ReactNode }) {
 }
 
 export default function Page() {
-  const [activeScope, setActiveScope] = useState("member-crm");
+  const [activeScopeKey, setActiveScopeKey] = useState("member-crm");
+  const activeScope = SCOPES.find((s) => s.key === activeScopeKey)?.scope ?? "member_crm";
+
+  const [configs, setConfigs] = useState<ApportionConfig[]>([]);
+  const [serviceMatchmakers, setServiceMatchmakers] = useState<MatchmakerStaffItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [assignStrategy, setAssignStrategy] = useState("designated");
-  const [serviceMatchmaker, setServiceMatchmaker] = useState("齐老师");
+  const [serviceMatchmaker, setServiceMatchmaker] = useState("");
   const [abandonMode, setAbandonMode] = useState("off");
   const [pickupLimit, setPickupLimit] = useState("0");
   const [showAdminAbandoned, setShowAdminAbandoned] = useState("show");
   const [showStoreAbandoned, setShowStoreAbandoned] = useState("show");
   const [saved, setSaved] = useState("");
 
-  const handleSubmit = (key: string) => {
-    setSaved(key);
-    window.setTimeout(() => setSaved(""), 1800);
+  const [savingAssign, setSavingAssign] = useState(false);
+  const [savingAbandon, setSavingAbandon] = useState(false);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [cfg, staff] = await Promise.all([
+        adminEndpoints.apportionConfigs(),
+        adminEndpoints.matchmakerStaffList({ page: 1, page_size: 200 }),
+      ]);
+      setConfigs(cfg ?? []);
+      setServiceMatchmakers(staff.items ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  // 切换 Tab 时按 scope + config_type 取用已加载的配置
+  useEffect(() => {
+    const assign = configs.find((c) => c.scope === activeScope && c.config_type === "assign");
+    const abandon = configs.find((c) => c.scope === activeScope && c.config_type === "abandon");
+    if (assign) {
+      const uiValue = (Object.keys(STRATEGY_MAP) as string[]).find(
+        (k) => STRATEGY_MAP[k] === assign.strategy,
+      );
+      setAssignStrategy(uiValue ?? "none");
+      setServiceMatchmaker(assign.target_matchmaker_id != null ? String(assign.target_matchmaker_id) : "");
+    } else {
+      setAssignStrategy("designated");
+      setServiceMatchmaker("");
+    }
+    if (abandon) {
+      const days = abandon.auto_abandon_days != null ? String(abandon.auto_abandon_days) : "off";
+      setAbandonMode(days === "0" ? "off" : days);
+      setPickupLimit(abandon.daily_pickup_limit != null ? String(abandon.daily_pickup_limit) : "0");
+      setShowAdminAbandoned(abandon.show_admin_abandoned_in_pool ? "show" : "hide");
+      setShowStoreAbandoned(abandon.show_store_abandoned_in_pool ? "show" : "hide");
+    } else {
+      setAbandonMode("off");
+      setPickupLimit("0");
+      setShowAdminAbandoned("show");
+      setShowStoreAbandoned("show");
+    }
+    setSaved("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScopeKey, configs]);
+
+  const submitAssign = async () => {
+    if (assignStrategy === "by-partner") {
+      showConfigToast("该策略后端暂不支持", "error");
+      return;
+    }
+    const strategy = STRATEGY_MAP[assignStrategy];
+    if (!strategy) return;
+    setSavingAssign(true);
+    try {
+      const body: Record<string, unknown> = { strategy };
+      if (strategy === "designated") {
+        if (!serviceMatchmaker) {
+          showConfigToast("请选择服务红娘", "error");
+          setSavingAssign(false);
+          return;
+        }
+        body.target_matchmaker_id = Number(serviceMatchmaker);
+      }
+      await adminEndpoints.upsertApportionAssign(activeScope, body);
+      showConfigToast("已提交");
+      setSaved("assign");
+      void reload();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+      setSaved("assign-fail");
+    } finally {
+      setSavingAssign(false);
+    }
+  };
+
+  const submitAbandon = async () => {
+    setSavingAbandon(true);
+    try {
+      const body = {
+        auto_abandon_days: Number(abandonMode),
+        daily_pickup_limit: Number(pickupLimit) || 0,
+        show_admin_abandoned_in_pool: showAdminAbandoned === "show",
+        show_store_abandoned_in_pool: showStoreAbandoned === "show",
+      };
+      await adminEndpoints.upsertApportionAbandon(activeScope, body);
+      showConfigToast("已提交");
+      setSaved("abandon");
+      void reload();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+      setSaved("abandon-fail");
+    } finally {
+      setSavingAbandon(false);
+    }
   };
 
   return (
@@ -73,14 +196,17 @@ export default function Page() {
         <p>客源线索、注册会员可独立设置自动分派规则，您可以在会员管理、客源线索中对应每位会员和客源的跟进红娘进行变更</p>
       </div>
 
+      {loading && <div className="appo-loading">加载中…</div>}
+      {!loading && error && <div className="appo-error">{error}</div>}
+
       {/* Tab */}
       <div className="appo-tabs">
         {SCOPES.map((scope) => (
           <button
             key={scope.key}
             type="button"
-            className={`appo-tab${activeScope === scope.key ? " active" : ""}`}
-            onClick={() => setActiveScope(scope.key)}
+            className={`appo-tab${activeScopeKey === scope.key ? " active" : ""}`}
+            onClick={() => setActiveScopeKey(scope.key)}
           >
             {scope.label}
           </button>
@@ -108,11 +234,14 @@ export default function Page() {
         {assignStrategy === "designated" && (
           <div className="appo-select-wrap">
             <div className="appo-select">
-              <select value={serviceMatchmaker} onChange={(e) => setServiceMatchmaker(e.target.value)}>
+              <select
+                value={serviceMatchmaker}
+                onChange={(e) => setServiceMatchmaker(e.target.value)}
+              >
                 <option value="">请选择服务红娘</option>
-                {SERVICE_MATCHMAKERS.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
+                {serviceMatchmakers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
                   </option>
                 ))}
               </select>
@@ -121,8 +250,8 @@ export default function Page() {
           </div>
         )}
 
-        <button type="button" className="appo-submit" onClick={() => handleSubmit("assign")}>
-          {saved === "assign" ? "已提交" : "确定提交"}
+        <button type="button" className="appo-submit" onClick={submitAssign} disabled={savingAssign}>
+          {saved === "assign" ? "已提交" : saved === "assign-fail" ? "保存失败" : savingAssign ? "提交中…" : "确定提交"}
         </button>
       </section>
 
@@ -215,8 +344,8 @@ export default function Page() {
           </div>
         </div>
 
-        <button type="button" className="appo-submit" onClick={() => handleSubmit("abandon")}>
-          {saved === "abandon" ? "已提交" : "确定提交"}
+        <button type="button" className="appo-submit" onClick={submitAbandon} disabled={savingAbandon}>
+          {saved === "abandon" ? "已提交" : saved === "abandon-fail" ? "保存失败" : savingAbandon ? "提交中…" : "确定提交"}
         </button>
       </section>
     </div>

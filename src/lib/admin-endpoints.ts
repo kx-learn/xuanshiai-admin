@@ -216,32 +216,209 @@ export type ApportionScope = "member_crm" | "customer_lead";
 export type ApportionConfigType = "assign" | "abandon";
 export type ApportionStrategy = "designated" | "round_robin_random" | "by_region" | "by_promoter" | "none";
 
-export interface ApportionAssignFields {
-  strategy: ApportionStrategy;
-  target_matchmaker_id: number | null;
-  target_matchmaker_name: string | null;
-  round_robin_pool_size: number | null;
-  region_strategy: string | null;
-  promoter_follow_enabled: boolean;
-  remark: string | null;
-  updated_at: string;
-}
-export interface ApportionAbandonFields {
-  auto_abandon_days: number;
-  daily_pickup_limit: number;
-  show_admin_abandoned_in_pool: boolean;
-  show_store_abandoned_in_pool: boolean;
-  remark: string | null;
-  updated_at: string;
-}
-export interface ApportionConfigPayload {
+export interface ApportionConfig {
+  id: number;
   scope: ApportionScope;
   config_type: ApportionConfigType;
-  enabled: boolean;
-  updated_at: string;
+  strategy: ApportionStrategy | null;
+  target_matchmaker_id: number | null;
+  target_matchmaker_name: string | null;
+  auto_abandon_days: number | null;
+  daily_pickup_limit: number | null;
+  show_admin_abandoned_in_pool: boolean;
+  show_store_abandoned_in_pool: boolean;
+  is_enabled: boolean;
+  updated_by: number | null;
   remark: string | null;
-  assign?: ApportionAssignFields;
-  abandon?: ApportionAbandonFields;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+// ─── 服务红娘管理（总店）类型 ────────────────────────────────
+export type MatchmakerRoleTag = "super" | "normal";
+
+export interface MatchmakerStaffItem {
+  id: number;
+  avatar: string | null;
+  display_name: string;
+  username: string | null;
+  store_id: number | null;
+  store_name: string | null;
+  role_tag: MatchmakerRoleTag;
+  role_label: string;
+  phone: string | null;
+  wechat: string | null;
+  commission_level_id: number | null;
+  commission_level_name: string | null;
+  commission_rate: string | null;
+  success_count: number;
+  commission_amount: string;
+  locked: boolean;
+  visible: boolean;
+  description: string | null;
+  /** 以下 4 个字段由后端同事同步添加，目前可能尚未返回 */
+  slogan: string | null;
+  sort: number | null;
+  contact_editable: boolean | null;
+  lock_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface MatchmakerStaffDetail extends MatchmakerStaffItem {
+  account_id: number | null;
+  data_scope: "SELF" | "STORE" | "ORGANIZATION" | "ALL" | null;
+  intro: string | null;
+}
+
+export interface MatchmakerStaffPage {
+  items: MatchmakerStaffItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface MatchmakerUserCandidate {
+  id: number;
+  nickname: string | null;
+  phone: string | null;
+  avatar: string | null;
+}
+
+export type MatchmakerStaffListQuery = {
+  page?: number;
+  page_size?: number;
+  keyword?: string;
+  store_id?: number;
+  commission_level_id?: number;
+  locked?: boolean;
+};
+
+export type MatchmakerStaffCreatePayload = {
+  user_id?: number;
+  lookup?: string;
+  lookup_by?: "nickname" | "phone";
+  avatar?: string | null;
+  display_name: string;
+  phone: string;
+  wechat?: string | null;
+  store_id?: number;
+  commission_level_id?: number;
+  role_tag?: MatchmakerRoleTag;
+  description?: string | null;
+  visible?: boolean;
+  slogan?: string | null;
+  sort?: number;
+  contact_editable?: boolean;
+  lock_at?: string | null;
+};
+
+export type MatchmakerStaffUpdatePayload = Partial<{
+  user_id: number;
+  lookup: string;
+  lookup_by: "nickname" | "phone";
+  avatar: string | null;
+  display_name: string;
+  phone: string;
+  wechat: string | null;
+  store_id: number;
+  commission_level_id: number;
+  role_tag: MatchmakerRoleTag;
+  description: string | null;
+  password: string;
+  visible: boolean;
+  slogan: string | null;
+  sort: number;
+  contact_editable: boolean;
+  lock_at: string | null;
+}>;
+
+export interface MatchmakerTutorial {
+  title: string;
+  content: string;
+  link_url: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminMenuNode {
+  id: number;
+  parent_id: number | null;
+  name: string;
+  path: string | null;
+  menu_type: "directory" | "menu" | "button";
+  permission_code: string | null;
+  icon: string | null;
+  sort: number;
+  children: AdminMenuNode[];
+}
+
+export interface MatchmakerPermissions {
+  matchmaker_id: number;
+  menuIds: number[];
+}
+
+export type MatchmakerPermissionsUpdatePayload = { menuIds: number[] };
+
+export interface CommissionLevelDictItem {
+  id: number;
+  code: string;
+  name: string;
+  rate_percent: string;
+  sort: number;
+  status: 1 | 2;
+}
+
+export interface StoreDictItem {
+  id: number;
+  code: string;
+  name: string;
+  display_name: string | null;
+  status: 1 | 2 | 3;
+}
+
+export interface MatchmakerPosterResponse {
+  matchmaker_id: number;
+  url: string;
+  qr_content: string;
+}
+
+export interface MatchmakerPlatformTokenResponse {
+  matchmaker_id: number;
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  jump_url: string;
+}
+
+export interface MatchmakerWorkReport {
+  matchmaker_id: number;
+  from_date: string;
+  to_date: string;
+  new_lead_count: number;
+  new_member_count: number;
+  lead_follow_up_count: number;
+  matchmaking_count: number;
+  success_count: number;
+  follow_up_count: number;
+  meeting_request_count: number;
+  meeting_arranged_count: number;
+  commission_amount: string;
+  offline_income: string;
+  assigned_member_count: number;
+}
+
+export interface MatchmakerDetailReport {
+  matchmaker_id: number;
+  from_date: string;
+  to_date: string;
+  work_report: MatchmakerWorkReport;
+  funnel: { stage: string; label: string; count: number }[];
+  monthly_trends: unknown[];
+  success_rate: string;
+  platform_success_rate: string;
+  export_url: string | null;
 }
 
 // ─── 管理端首页（admin/dashboard、公告、学苑栏目） ─────────────────
@@ -501,14 +678,14 @@ export const adminEndpoints = {
   releaseCommissionEntry: (entryId: number | string, body: Record<string, unknown> = {}) => adminApi(`admin/finance/commission-entries/${entryId}/release`, { method: "POST", body }),
   reviewWithdrawal: (withdrawalId: number | string, body: Record<string, unknown>) => adminApi(`admin/finance/withdrawals/${withdrawalId}`, { method: "PATCH", body }),
   // ─── 分派配置（总店红娘后台） ─────────────────────────────────────
-  apportionConfigs: () => adminApi<ApportionConfigPayload[]>("admin/matchmaker/apportion-config"),
+  apportionConfigs: () => adminApi<ApportionConfig[]>("admin/matchmaker/apportion-config"),
   apportionConfig: (scope: ApportionScope, configType: ApportionConfigType) =>
-    adminApi<ApportionConfigPayload>(`admin/matchmaker/apportion-config/${scope}/${configType}`),
+    adminApi<ApportionConfig>(`admin/matchmaker/apportion-config/${scope}/${configType}`),
   upsertApportionAssign: (scope: ApportionScope, body: Record<string, unknown>) =>
     adminApi(`admin/matchmaker/apportion-config/${scope}/assign`, { method: "PUT", body }),
   upsertApportionAbandon: (scope: ApportionScope, body: Record<string, unknown>) =>
     adminApi(`admin/matchmaker/apportion-config/${scope}/abandon`, { method: "PUT", body }),
-  toggleApportionConfig: (scope: ApportionScope, configType: ApportionConfigType, body: { enabled: boolean }) =>
+  toggleApportionConfig: (scope: ApportionScope, configType: ApportionConfigType, body: { is_enabled: boolean; remark?: string }) =>
     adminApi(`admin/matchmaker/apportion-config/${scope}/${configType}/toggle`, { method: "PATCH", body }),
   apportionAuditLogs: (query: PageQuery & { scope?: ApportionScope; config_type?: ApportionConfigType } = {}) =>
     adminApi("admin/matchmaker/apportion-config/audit-log", { method: "GET", query }),
@@ -547,4 +724,43 @@ export const adminEndpoints = {
     adminApi<PromoterLevelItem>(`admin/promoter-levels/${levelId}`),
   updatePromoterLevel: (levelId: 1 | 2 | 3 | 4, body: PromoterLevelUpdatePayload) =>
     adminApi<PromoterLevelItem>(`admin/promoter-levels/${levelId}`, { method: "PUT", body }),
+
+  // ─── 服务红娘管理（总店） ─────────────────────────────────────
+  matchmakerStaffList: (query: MatchmakerStaffListQuery = {}) =>
+    adminApi<MatchmakerStaffPage>("admin/matchmakers", { method: "GET", query: query as Record<string, string | number | undefined> }),
+  matchmakerStaff: (id: number | string) =>
+    adminApi<MatchmakerStaffDetail>(`admin/matchmakers/${id}`),
+  matchmakerUserCandidates: (keyword: string) =>
+    adminApi<MatchmakerUserCandidate[]>("admin/matchmakers/user-candidates", { method: "GET", query: { keyword } }),
+  createMatchmakerStaff: (body: MatchmakerStaffCreatePayload) =>
+    adminApi<MatchmakerStaffDetail>("admin/matchmakers", { method: "POST", body }),
+  // 后端该端点为 PUT（非 PATCH），故不使用文件内的 update 辅助函数
+  updateMatchmakerStaff: (id: number | string, body: MatchmakerStaffUpdatePayload) =>
+    adminApi<MatchmakerStaffDetail>(`admin/matchmakers/${id}`, { method: "PUT", body }),
+  deleteMatchmakerStaff: (id: number | string) =>
+    adminApi<{ id: number; deleted: boolean }>(`admin/matchmakers/${id}`, { method: "DELETE" }),
+  updateMatchmakerLock: (id: number | string, body: { locked: boolean }) =>
+    adminApi<MatchmakerStaffDetail>(`admin/matchmakers/${id}/lock`, { method: "PATCH", body }),
+  updateMatchmakerVisibility: (id: number | string, body: { visible: boolean }) =>
+    adminApi<MatchmakerStaffDetail>(`admin/matchmakers/${id}/visibility`, { method: "PATCH", body }),
+  matchmakerTutorial: () =>
+    adminApi<MatchmakerTutorial>("admin/matchmakers/tutorial"),
+  adminMenuTree: () =>
+    adminApi<AdminMenuNode[]>("admin/menus/tree"),
+  matchmakerPermissions: (id: number | string) =>
+    adminApi<MatchmakerPermissions>(`admin/matchmakers/${id}/permissions`),
+  updateMatchmakerPermissions: (id: number | string, body: MatchmakerPermissionsUpdatePayload) =>
+    adminApi<MatchmakerPermissions>(`admin/matchmakers/${id}/permissions`, { method: "PUT", body }),
+  matchmakerWorkReport: (id: number | string, query: { from?: string; to?: string } = {}) =>
+    adminApi<MatchmakerWorkReport>(`admin/matchmakers/${id}/work-report`, { method: "GET", query }),
+  matchmakerDetailReport: (id: number | string, query: { from?: string; to?: string } = {}) =>
+    adminApi<MatchmakerDetailReport>(`admin/matchmakers/${id}/report`, { method: "GET", query }),
+  matchmakerPoster: (id: number | string) =>
+    adminApi<MatchmakerPosterResponse>(`admin/matchmakers/${id}/poster`, { method: "POST" }),
+  matchmakerPlatformToken: (id: number | string) =>
+    adminApi<MatchmakerPlatformTokenResponse>(`admin/matchmakers/${id}/platform-token`, { method: "POST" }),
+  dictCommissionLevels: () =>
+    adminApi<CommissionLevelDictItem[]>("admin/dict/commission-levels"),
+  dictStores: () =>
+    adminApi<StoreDictItem[]>("admin/dict/stores"),
 };

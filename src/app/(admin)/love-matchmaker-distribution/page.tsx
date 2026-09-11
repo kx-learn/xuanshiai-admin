@@ -1,76 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
+import type { CommissionLevel, CommissionLevelMode, CommissionLevelUpdatePayload } from "@/lib/admin-endpoints";
 
 const breadcrumb = getBreadcrumb("总店红娘", "分成配置");
 
-interface LevelRow {
-  id: number;
-  code: string;
-  name: string;
-  mode: string;
-  condition: string;
-  extra: string;
-  matchmaker: string;
-}
-
-const LEVELS: LevelRow[] = [
-  { id: 1, code: "级别1", name: "初级分成", mode: "自定义固定金额", condition: "默认", extra: "5元", matchmaker: "" },
-  { id: 2, code: "级别2", name: "中级分成", mode: "自定义固定金额", condition: "牵线成功累积>=10次", extra: "1000元", matchmaker: "芸希老师" },
-  { id: 3, code: "级别3", name: "高级分成", mode: "自定义固定金额", condition: "牵线成功累积>=100次", extra: "1000元", matchmaker: "" },
-  { id: 4, code: "级别4", name: "合伙分成", mode: "自定义固定金额", condition: "牵线成功累积>=300次", extra: "5000元", matchmaker: "" },
-];
-
 const CONDITION_TYPES = ["累积>", "累积>=", "等于"];
 
-const AMOUNT_ITEMS = [
-  "资料审核费",
-  "推广展示",
-  "资料置顶套餐1",
-  "资料置顶套餐2",
-  "资料置顶套餐3",
-  "资料置顶套餐4",
-  "资料置顶套餐5",
-  "资料置顶套餐6",
-  "牵线套餐1",
-  "牵线套餐2",
-  "牵线套餐3",
-  "牵线套餐4",
-  "单次牵线服务",
-  "爆灯",
-  "新人专享",
-  "心动专享",
-  "臻爱专享",
-  "牵线套餐6",
-  "牵线套餐7",
-  "牵线套餐9",
-  "牵线套餐10",
-];
-
 export default function Page() {
-  const [editing, setEditing] = useState<LevelRow | null>(null);
+  const [levels, setLevels] = useState<CommissionLevel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editing, setEditing] = useState<CommissionLevel | null>(null);
+  const [saving, setSaving] = useState(false);
   const [levelName, setLevelName] = useState("");
   const [conditionType, setConditionType] = useState("累积>");
   const [conditionValue, setConditionValue] = useState("100");
   const [extraAmount, setExtraAmount] = useState("1000.00");
   const [payMethod, setPayMethod] = useState("manual");
-  const [mode, setMode] = useState("fixed");
-  const [amounts, setAmounts] = useState<Record<string, string>>(() =>
-    AMOUNT_ITEMS.reduce<Record<string, string>>((acc, item) => ({ ...acc, [item]: "0.00" }), {})
-  );
+  const [mode, setMode] = useState<CommissionLevelMode>("fixed");
+  const [ratePercent, setRatePercent] = useState("");
+  const [fixedAmount, setFixedAmount] = useState("");
 
-  const openEditor = (row: LevelRow) => {
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminEndpoints.commissionLevels();
+      setLevels(data ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加载失败");
+      setLevels([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const openEditor = async (row: CommissionLevel) => {
     setEditing(row);
     setLevelName(row.name);
-    setExtraAmount(row.extra.replace("元", ""));
+    setExtraAmount(row.platform_extra_amount ?? "");
+    setMode(row.mode);
+    setRatePercent(row.rate_percent ?? "");
+    setFixedAmount(row.fixed_amount ?? "");
+    setConditionType("累积>");
+    setConditionValue(row.promotion_condition ?? "");
     setPayMethod("manual");
-    setMode("fixed");
+    try {
+      const detail = await adminEndpoints.commissionLevel(row.id);
+      setLevelName(detail.name);
+      setExtraAmount(detail.platform_extra_amount ?? "");
+      setMode(detail.mode);
+      setRatePercent(detail.rate_percent ?? "");
+      setFixedAmount(detail.fixed_amount ?? "");
+      setConditionValue(detail.promotion_condition ?? "");
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载详情失败", "error");
+    }
   };
 
   const closeEditor = () => setEditing(null);
+
+  const submit = async () => {
+    if (!editing) return;
+    if (!levelName.trim()) {
+      showConfigToast("请填写级别名称", "error");
+      return;
+    }
+    const body: CommissionLevelUpdatePayload = { name: levelName.trim(), mode };
+    if (mode === "fixed") {
+      if (!fixedAmount.trim()) {
+        showConfigToast("固定金额模式必须填写固定金额", "error");
+        return;
+      }
+      body.fixed_amount = fixedAmount.trim();
+      body.rate_percent = "0";
+    } else {
+      if (!ratePercent.trim()) {
+        showConfigToast("按比例模式必须填写比例", "error");
+        return;
+      }
+      body.rate_percent = ratePercent.trim();
+      body.fixed_amount = null;
+    }
+    if (extraAmount.trim()) body.platform_extra_amount = extraAmount.trim();
+    const cond = `${conditionType}${conditionValue}`.trim();
+    if (cond) body.promotion_condition = cond.length > 255 ? cond.slice(0, 255) : cond;
+
+    setSaving(true);
+    try {
+      await adminEndpoints.updateCommissionLevel(editing.id, body);
+      showConfigToast("已保存");
+      setEditing(null);
+      void reload();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-w-0">
@@ -106,22 +144,43 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {LEVELS.map((row) => (
-                <tr key={row.id}>
-                  <td className="cd-td-id">{row.id}</td>
-                  <td className="cd-td-strong">{row.code}</td>
-                  <td className="cd-td-strong">{row.name}</td>
-                  <td className="cd-td-text">{row.mode}</td>
-                  <td className="cd-td-text">{row.condition}</td>
-                  <td className="cd-td-reward">{row.extra}</td>
-                  <td className="cd-td-text">{row.matchmaker || ""}</td>
-                  <td>
-                    <button type="button" className="cd-link" onClick={() => openEditor(row)}>
-                      编辑配置
-                    </button>
-                  </td>
+              {loading && (
+                <tr>
+                  <td className="cd-td-text" colSpan={8}>加载中…</td>
                 </tr>
-              ))}
+              )}
+              {!loading && error && (
+                <tr>
+                  <td className="cd-td-text" colSpan={8}>{error}</td>
+                </tr>
+              )}
+              {!loading && !error && levels.length === 0 && (
+                <tr>
+                  <td className="cd-td-text" colSpan={8}>暂无数据</td>
+                </tr>
+              )}
+              {!loading &&
+                !error &&
+                levels.map((row) => (
+                  <tr key={row.id}>
+                    <td className="cd-td-id">{row.id}</td>
+                    <td className="cd-td-strong">{row.code}</td>
+                    <td className="cd-td-strong">{row.name}</td>
+                    <td className="cd-td-text">
+                      {row.mode === "rate"
+                        ? `按比例 ${row.rate_percent}%`
+                        : `固定金额 ¥${row.fixed_amount ?? "0"}`}
+                    </td>
+                    <td className="cd-td-text">{row.promotion_condition || "-"}</td>
+                    <td className="cd-td-reward">¥{row.platform_extra_amount ?? "0"}</td>
+                    <td className="cd-td-text">{row.applicable_matchmaker_count} 人</td>
+                    <td>
+                      <button type="button" className="cd-link" onClick={() => void openEditor(row)}>
+                        编辑配置
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -136,11 +195,11 @@ export default function Page() {
               </button>
               <h2 className="cd-panel-title">编辑配置</h2>
               <div className="cd-panel-actions">
-                <button type="button" className="cd-btn" onClick={closeEditor}>
+                <button type="button" className="cd-btn" onClick={closeEditor} disabled={saving}>
                   关闭
                 </button>
-                <button type="button" className="cd-btn primary" onClick={closeEditor}>
-                  确定提交
+                <button type="button" className="cd-btn primary" onClick={() => void submit()} disabled={saving}>
+                  {saving ? "提交中…" : "确定提交"}
                 </button>
               </div>
             </header>
@@ -280,23 +339,42 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* 分成金额 */}
+              {/* 分成金额（按模式互斥显示） */}
               <div className="cd-field">
                 <label className="cd-field-label">分成金额</label>
                 <div className="cd-field-body">
-                  <div className="cd-amount-grid">
-                    {AMOUNT_ITEMS.map((item) => (
-                      <div key={item} className="cd-amount-item">
-                        <span className="cd-amount-name">{item}</span>
+                  <div className="cd-inline">
+                    {mode === "rate" ? (
+                      <>
                         <input
                           type="text"
-                          className="cd-amount-input"
-                          value={amounts[item]}
-                          onChange={(e) => setAmounts((prev) => ({ ...prev, [item]: e.target.value }))}
+                          className="cd-input short"
+                          value={ratePercent}
+                          placeholder="0-100"
+                          onChange={(e) => setRatePercent(e.target.value)}
                         />
-                        <span className="cd-amount-unit">元</span>
-                      </div>
-                    ))}
+                        <span className="cd-unit">%</span>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          className="cd-input short"
+                          value={fixedAmount}
+                          placeholder="0.00"
+                          onChange={(e) => setFixedAmount(e.target.value)}
+                        />
+                        <span className="cd-unit">元</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="cd-hint">
+                    <span className="cd-hint-icon">i</span>
+                    <span>
+                      {mode === "rate"
+                        ? "按比例模式：按平台收费配置数值乘以百分比计算，固定金额会被置为 0"
+                        : "固定金额模式：必须填写固定金额，按比例会被置为 0"}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -1,45 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ChevronDown, Plus, X } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
+import { resolveMediaUrl } from "@/lib/admin-api";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import type { CommissionEntryDetailItem, CommissionEntryDetailOptions } from "@/lib/admin-endpoints";
 
 const breadcrumb = getBreadcrumb("总店红娘", "分成明细");
 
-interface DetailRow {
-  id: number;
-  store: string;
-  time: string;
-  matchmaker: string;
-  buyer: string;
-  avatar: string;
-  event: string;
-  amount: string;
-  refunded: boolean;
-  commission: string;
-}
+const PAGE_SIZE = 20;
 
-const ROWS: DetailRow[] = [
-  { id: 74, store: "总店", time: "2026-06-30 20:37:38", matchmaker: "芸希老师", buyer: "乌龙茶6071|朱颖|G714715", avatar: "c", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
-  { id: 73, store: "总店", time: "2026-06-30 11:53:17", matchmaker: "芸希老师", buyer: "是静香本人没槽|潘圣|G858401", avatar: "d", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
-  { id: 72, store: "总店", time: "2026-06-30 11:51:56", matchmaker: "芸希老师", buyer: "是静香本人没槽|潘圣|G858401", avatar: "e", event: "VIP会员", amount: "299元", refunded: true, commission: "99元" },
-  { id: 71, store: "总店", time: "2026-06-28 15:38:00", matchmaker: "琴琴", buyer: "G^n|李会强|B134461", avatar: "a", event: "会员爆灯", amount: "9.9元", refunded: false, commission: "5元" },
-  { id: 70, store: "总店", time: "2026-06-28 15:37:26", matchmaker: "琴琴", buyer: "出现1|张瑞|B241050", avatar: "b", event: "会员爆灯", amount: "9.9元", refunded: false, commission: "5元" },
-  { id: 69, store: "总店", time: "2026-06-28 15:32:38", matchmaker: "琴琴", buyer: "G^n|李会强|B134461", avatar: "a", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
-  { id: 68, store: "总店", time: "2026-06-28 15:14:43", matchmaker: "琴琴", buyer: "G^n|李会强|B134461", avatar: "c", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
-  { id: 67, store: "总店", time: "2026-06-28 15:10:50", matchmaker: "琴琴", buyer: "出现1|张瑞|B241050", avatar: "b", event: "VIP会员", amount: "999元", refunded: true, commission: "300元" },
-  { id: 66, store: "总店", time: "2026-06-20 11:18:42", matchmaker: "芸希老师", buyer: "毛毛|汪苏杭|G765914", avatar: "e", event: "VIP会员", amount: "999元", refunded: false, commission: "300元" },
-  { id: 65, store: "总店", time: "2026-06-14 16:21:59", matchmaker: "芸希老师", buyer: "G^n|李会强|B134461", avatar: "a", event: "VIP会员", amount: "999元", refunded: false, commission: "300元" },
-  { id: 8, store: "总店", time: "2026-06-06 10:12:11", matchmaker: "芸希老师", buyer: "Z|刘佳|G583088", avatar: "d", event: "活动报名", amount: "999元", refunded: false, commission: "300元" },
-  { id: 6, store: "总店", time: "2026-06-04 14:27:48", matchmaker: "芸希老师", buyer: "Z|刘佳|G583088", avatar: "a", event: "VIP会员", amount: "999元", refunded: false, commission: "300元" },
-  { id: 5, store: "总店", time: "2026-06-03 20:09:26", matchmaker: "芸希老师", buyer: "乐乐|潘美玲|G052362", avatar: "b", event: "VIP会员", amount: "399元", refunded: false, commission: "99元" },
-];
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "待结算",
+  AVAILABLE: "可提现",
+  FROZEN: "冻结",
+  REVERSED: "冲正",
+};
 
 const EVENT_OPTIONS = ["请选择消费事件", "会员爆灯", "VIP会员", "活动报名", "推广展示"];
 
 export default function Page() {
+  const [rows, setRows] = useState<CommissionEntryDetailItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [total, setTotal] = useState(0);
+
+  const [matchmakerId, setMatchmakerId] = useState("");
+  const [ruleId, setRuleId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const [options, setOptions] = useState<CommissionEntryDetailOptions>({ matchmakers: [], events: [] });
   const [open, setOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminEndpoints.commissionEntryList({
+        page,
+        page_size: pageSize,
+        matchmaker_id: matchmakerId ? Number(matchmakerId) : undefined,
+        rule_id: ruleId ? Number(ruleId) : undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
+      });
+      setRows(res.items ?? []);
+      setTotal(res.total ?? 0);
+      setPage(res.page ?? page);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加载失败");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, matchmakerId, ruleId, startDate, endDate]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    adminEndpoints
+      .commissionEntryOptions()
+      .then(setOptions)
+      .catch(() => setOptions({ matchmakers: [], events: [] }));
+  }, []);
+
+  const handleSearch = () => {
+    setPage(1);
+    void load();
+  };
 
   return (
     <div className="min-w-0">
@@ -75,18 +111,22 @@ export default function Page() {
             <ChevronDown className="cdd-caret" size={14} />
           </div>
           <div className="cdd-select">
-            <select defaultValue="">
+            <select value={matchmakerId} onChange={(e) => setMatchmakerId(e.target.value)}>
               <option value="">请选择红娘</option>
-              <option value="yunxi">芸希老师</option>
-              <option value="qinqin">琴琴</option>
+              {options.matchmakers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
             </select>
             <ChevronDown className="cdd-caret" size={14} />
           </div>
           <div className="cdd-select">
-            <select defaultValue="">
-              {EVENT_OPTIONS.map((event) => (
-                <option key={event} value={event === EVENT_OPTIONS[0] ? "" : event}>
-                  {event}
+            <select value={ruleId} onChange={(e) => setRuleId(e.target.value)}>
+              <option value="">请选择消费事件</option>
+              {options.events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
                 </option>
               ))}
             </select>
@@ -94,16 +134,16 @@ export default function Page() {
           </div>
           <div className="cdd-daterange">
             <div className="cdd-date">
-              <input placeholder="开始日期" readOnly />
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               <CalendarDays size={14} />
             </div>
             <span className="cdd-arrow">→</span>
             <div className="cdd-date">
-              <input placeholder="结束日期" readOnly />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               <CalendarDays size={14} />
             </div>
           </div>
-          <button type="button" className="cdd-search">
+          <button type="button" className="cdd-search" onClick={handleSearch}>
             搜索
           </button>
         </div>
@@ -134,29 +174,63 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {ROWS.map((row) => (
-                <tr key={row.id}>
-                  <td className="cdd-td-id">{row.id}</td>
-                  <td className="cdd-td-text">{row.store}</td>
-                  <td className="cdd-td-time">{row.time}</td>
-                  <td className="cdd-td-text">{row.matchmaker}</td>
-                  <td>
-                    <span className="cdd-buyer">
-                      <span className={`cdd-avatar cdd-g-${row.avatar}`} />
-                      <span className="cdd-buyer-name">{row.buyer}</span>
-                    </span>
-                  </td>
-                  <td className="cdd-td-text">{row.event}</td>
-                  <td className="cdd-td-amount">
-                    {row.amount}
-                    {row.refunded && <span className="cdd-refunded">已退款</span>}
-                  </td>
-                  <td className="cdd-td-commission">{row.commission}</td>
+              {loading && (
+                <tr>
+                  <td className="cdd-td-text" colSpan={8}>加载中…</td>
                 </tr>
-              ))}
+              )}
+              {!loading && error && (
+                <tr>
+                  <td className="cdd-td-text" colSpan={8}>{error}</td>
+                </tr>
+              )}
+              {!loading && !error && rows.length === 0 && (
+                <tr>
+                  <td className="cdd-td-text" colSpan={8}>暂无数据</td>
+                </tr>
+              )}
+              {!loading &&
+                !error &&
+                rows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="cdd-td-id">{row.id}</td>
+                    <td className="cdd-td-text">{row.store_name}</td>
+                    <td className="cdd-td-time">{row.created_at}</td>
+                    <td className="cdd-td-text">{row.matchmaker_name}</td>
+                    <td>
+                      <span className="cdd-buyer">
+                        {row.consumer_avatar ? (
+                          <img className="cdd-avatar" src={resolveMediaUrl(row.consumer_avatar)} alt="" />
+                        ) : (
+                          <span className="cdd-avatar cdd-g-a" />
+                        )}
+                        <span className="cdd-buyer-name">{row.consumer_name}</span>
+                      </span>
+                    </td>
+                    <td className="cdd-td-text">{row.event_name}</td>
+                    <td className="cdd-td-amount">¥{row.consumer_amount}</td>
+                    <td className="cdd-td-commission">
+                      ¥{row.commission_amount}
+                      <span className="cdd-refunded">{STATUS_LABEL[row.status] ?? row.status}</span>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
+
+        {total > 0 && (
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+        )}
       </section>
 
       {/* 录入一笔分成 Drawer */}

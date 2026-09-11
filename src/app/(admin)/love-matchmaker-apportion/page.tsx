@@ -1,5 +1,7 @@
 "use client";
 
+// 本页为旧入口，功能与 /love-matchmaker-apportion2 一致，统一复用同一组接口
+// （apportionConfigs / upsertApportionAssign / upsertApportionAbandon 等），直接跳转新页面避免重复实现。
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
