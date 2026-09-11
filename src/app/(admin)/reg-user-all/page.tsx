@@ -9,7 +9,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { adminEndpoints, type AdminAccountItem } from "@/lib/admin-endpoints";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
-import { getAdminToken } from "@/lib/admin-api";
 
 type Page = { items: AdminAccountItem[]; page: number; page_size: number; total: number; has_more: boolean };
 type Dialog = "create" | "edit" | "status" | "password" | null;
@@ -18,13 +17,6 @@ type Session = { id: number; ip: string | null; user_agent: string | null; last_
 const initialForm: Form = { username: "", password: "", display_name: "", matchmaker_user_id: "", data_scope: "SELF", organization_id: "", permissions: "" };
 type AddForm = { nickname: string; phone: string; password: string };
 const initialAddForm: AddForm = { nickname: "", phone: "", password: "" };
-const mockAccounts: AdminAccountItem[] = [
-  { id: 787, username: "135****9114", display_name: "~", matchmaker_user_id: null, data_scope: "SELF", organization_id: null, status: 1, failed_count: 0, locked_until: null, last_login_at: "2026-07-23 16:18:51", last_login_ip: "163.125.222.166", permissions: [], created_at: "2026-07-23 16:18:37", updated_at: "2026-07-23 16:18:37" },
-  { id: 786, username: "152****9218", display_name: "闪电", matchmaker_user_id: null, data_scope: "SELF", organization_id: null, status: 1, failed_count: 0, locked_until: null, last_login_at: "2026-07-22 21:32:05", last_login_ip: "112.2.87.113", permissions: [], created_at: "2026-07-22 21:32:05", updated_at: "2026-07-22 21:32:05" },
-  { id: 785, username: "191****2290", display_name: "太洋", matchmaker_user_id: null, data_scope: "SELF", organization_id: null, status: 1, failed_count: 0, locked_until: null, last_login_at: "2026-07-31 16:21:30", last_login_ip: "117.170.54.14", permissions: [], created_at: "2026-07-22 12:58:34", updated_at: "2026-07-22 12:58:34" },
-  { id: 784, username: "198****3073", display_name: "Garfield", matchmaker_user_id: null, data_scope: "SELF", organization_id: null, status: 1, failed_count: 0, locked_until: null, last_login_at: "2026-07-21 01:30:12", last_login_ip: "121.237.160.141", permissions: [], created_at: "2026-07-21 01:30:12", updated_at: "2026-07-21 01:30:12" },
-  { id: 783, username: "197****3654", display_name: "小可爱", matchmaker_user_id: null, data_scope: "SELF", organization_id: null, status: 1, failed_count: 0, locked_until: null, last_login_at: "2026-07-20 14:33:45", last_login_ip: "117.147.79.112", permissions: [], created_at: "2026-07-20 14:33:45", updated_at: "2026-07-20 14:33:45" },
-];
 
 const statusName = (status: number) => status === 1 ? "启用" : status === 2 ? "停用" : "锁定";
 const optionalId = (value: string) => value.trim() ? Number(value) : null;
@@ -52,13 +44,6 @@ export default function RegUserAllPage() {
 
   const load = useCallback(async (page = 1) => {
     setLoading(true); setError("");
-    if (getAdminToken() === "local-demo-token") {
-      const items = mockAccounts.filter((account) => (!query.username || account.username.includes(query.username)) && (!query.display_name || account.display_name.includes(query.display_name)) && (!query.status || account.status === Number(query.status)));
-      const total = items.length;
-      setResult({ items, page, page_size: pageSize, total, has_more: page * pageSize < total });
-      setLoading(false);
-      return;
-    }
     try {
       setResult(await adminEndpoints.adminAccounts({ page, page_size: pageSize, username: query.username.trim() || undefined, display_name: query.display_name.trim() || undefined, status: query.status || undefined }));
     } catch (cause) { setError(cause instanceof Error ? cause.message : "账号列表加载失败"); }

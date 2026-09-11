@@ -1,345 +1,264 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { CalendarDays, ChevronDown, Plus, X } from "lucide-react";
+import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import {
-  adminEndpoints,
-  type CommissionEntryDetailItem,
-  type CommissionEntryDetailOptions,
-  type CommissionEntryEventOption,
-  type CommissionEntryListQuery,
-  type CommissionEntryMatchmakerOption,
-} from "@/lib/admin-endpoints";
-import { clearAdminToken } from "@/lib/admin-api";
 
-const breadcrumb = [
-  { label: "首页", href: "/" },
-  { label: "总店红娘", href: "/love-matchmaker-apportion2" },
-  { label: "分成明细" },
+const breadcrumb = getBreadcrumb("总店红娘", "分成明细");
+
+interface DetailRow {
+  id: number;
+  store: string;
+  time: string;
+  matchmaker: string;
+  buyer: string;
+  avatar: string;
+  event: string;
+  amount: string;
+  refunded: boolean;
+  commission: string;
+}
+
+const ROWS: DetailRow[] = [
+  { id: 74, store: "总店", time: "2026-06-30 20:37:38", matchmaker: "芸希老师", buyer: "乌龙茶6071|朱颖|G714715", avatar: "c", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
+  { id: 73, store: "总店", time: "2026-06-30 11:53:17", matchmaker: "芸希老师", buyer: "是静香本人没槽|潘圣|G858401", avatar: "d", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
+  { id: 72, store: "总店", time: "2026-06-30 11:51:56", matchmaker: "芸希老师", buyer: "是静香本人没槽|潘圣|G858401", avatar: "e", event: "VIP会员", amount: "299元", refunded: true, commission: "99元" },
+  { id: 71, store: "总店", time: "2026-06-28 15:38:00", matchmaker: "琴琴", buyer: "G^n|李会强|B134461", avatar: "a", event: "会员爆灯", amount: "9.9元", refunded: false, commission: "5元" },
+  { id: 70, store: "总店", time: "2026-06-28 15:37:26", matchmaker: "琴琴", buyer: "出现1|张瑞|B241050", avatar: "b", event: "会员爆灯", amount: "9.9元", refunded: false, commission: "5元" },
+  { id: 69, store: "总店", time: "2026-06-28 15:32:38", matchmaker: "琴琴", buyer: "G^n|李会强|B134461", avatar: "a", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
+  { id: 68, store: "总店", time: "2026-06-28 15:14:43", matchmaker: "琴琴", buyer: "G^n|李会强|B134461", avatar: "c", event: "会员爆灯", amount: "9.9元", refunded: true, commission: "5元" },
+  { id: 67, store: "总店", time: "2026-06-28 15:10:50", matchmaker: "琴琴", buyer: "出现1|张瑞|B241050", avatar: "b", event: "VIP会员", amount: "999元", refunded: true, commission: "300元" },
+  { id: 66, store: "总店", time: "2026-06-20 11:18:42", matchmaker: "芸希老师", buyer: "毛毛|汪苏杭|G765914", avatar: "e", event: "VIP会员", amount: "999元", refunded: false, commission: "300元" },
+  { id: 65, store: "总店", time: "2026-06-14 16:21:59", matchmaker: "芸希老师", buyer: "G^n|李会强|B134461", avatar: "a", event: "VIP会员", amount: "999元", refunded: false, commission: "300元" },
+  { id: 8, store: "总店", time: "2026-06-06 10:12:11", matchmaker: "芸希老师", buyer: "Z|刘佳|G583088", avatar: "d", event: "活动报名", amount: "999元", refunded: false, commission: "300元" },
+  { id: 6, store: "总店", time: "2026-06-04 14:27:48", matchmaker: "芸希老师", buyer: "Z|刘佳|G583088", avatar: "a", event: "VIP会员", amount: "999元", refunded: false, commission: "300元" },
+  { id: 5, store: "总店", time: "2026-06-03 20:09:26", matchmaker: "芸希老师", buyer: "乐乐|潘美玲|G052362", avatar: "b", event: "VIP会员", amount: "399元", refunded: false, commission: "99元" },
 ];
 
-const STORE_NAME = "总店";
+const EVENT_OPTIONS = ["请选择消费事件", "会员爆灯", "VIP会员", "活动报名", "推广展示"];
 
-function formatYuan(value: string | number | null | undefined) {
-  if (value === null || value === undefined || value === "") return "-";
-  const num = typeof value === "string" ? Number(value) : value;
-  if (!Number.isFinite(num)) return "-";
-  return `${num.toFixed(2)}元`;
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "-";
-  // 服务端返回 ISO 字符串，截掉秒后的小数；若没有 T 视为已是业务格式 "YYYY-MM-DD HH:MM:SS"
-  const iso = value.includes("T") ? value.replace("T", " ").replace(/\..*$/, "") : value;
-  return iso;
-}
-
-function Avatar({ src, name }: { src: string | null | undefined; name: string }) {
-  if (src) {
-    return <img src={src} alt={name} className="size-6 rounded-full object-cover" />;
-  }
-  const fallback = name?.slice(0, 1) || "?";
-  return (
-    <span className="grid size-6 place-items-center rounded-full bg-[#e6f0ff] text-xs text-[#3658f7]">
-      {fallback}
-    </span>
-  );
-}
-
-interface ListState {
-  rows: CommissionEntryDetailItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-const INITIAL_STATE: ListState = { rows: [], total: 0, page: 1, pageSize: 20 };
-
-export default function LoveMatchmakerDistributionDetailsPage() {
-  const [matchmakerOptions, setMatchmakerOptions] = useState<CommissionEntryMatchmakerOption[]>([]);
-  const [eventOptions, setEventOptions] = useState<CommissionEntryEventOption[]>([]);
-  const [selectedMatchmakerId, setSelectedMatchmakerId] = useState<string>("");
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-  const [state, setState] = useState<ListState>(INITIAL_STATE);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [optionsError, setOptionsError] = useState<string | null>(null);
-
-  // 加载下拉（页面挂载时一次性拿到）
-  useEffect(() => {
-    let cancelled = false;
-    setOptionsError(null);
-    adminEndpoints
-      .commissionEntryOptions()
-      .then((options: CommissionEntryDetailOptions) => {
-        if (cancelled) return;
-        setMatchmakerOptions(options.matchmakers);
-        setEventOptions(options.events);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        if (err instanceof Error && /登录/.test(err.message)) {
-          clearAdminToken();
-          if (typeof window !== "undefined" && window.location.pathname !== "/login") window.location.replace("/login");
-          return;
-        }
-        setOptionsError(err instanceof Error ? err.message : "下拉加载失败");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const buildQuery = useCallback(
-    (override: Partial<ListState> = {}): CommissionEntryListQuery => {
-      const page = override.page ?? state.page;
-      const pageSize = override.pageSize ?? state.pageSize;
-      const query: CommissionEntryListQuery = { page, page_size: pageSize };
-      if (selectedMatchmakerId) query.matchmaker_id = Number(selectedMatchmakerId);
-      if (selectedEventId) query.rule_id = Number(selectedEventId);
-      if (startDate) query.start_date = startDate;
-      if (endDate) query.end_date = endDate;
-      return query;
-    },
-    [state.page, state.pageSize, selectedMatchmakerId, selectedEventId, startDate, endDate],
-  );
-
-  const fetchList = useCallback(
-    async (override: Partial<ListState> = {}) => {
-      const targetPage = override.page ?? state.page;
-      const targetPageSize = override.pageSize ?? state.pageSize;
-      setLoading(true);
-      setError(null);
-      try {
-        const page = await adminEndpoints.commissionEntryList(
-          buildQuery({ page: targetPage, pageSize: targetPageSize }),
-        );
-        setState({
-          rows: page.items,
-          total: page.total,
-          page: page.page,
-          pageSize: page.page_size,
-        });
-      } catch (err: unknown) {
-        if (err instanceof Error && /登录/.test(err.message)) {
-          clearAdminToken();
-          if (typeof window !== "undefined" && window.location.pathname !== "/login") window.location.replace("/login");
-          return;
-        }
-        setError(err instanceof Error ? err.message : "列表加载失败");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [buildQuery, state.page, state.pageSize],
-  );
-
-  useEffect(() => {
-    fetchList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(state.total / state.pageSize)),
-    [state.total, state.pageSize],
-  );
-
-  const handleSearch = () => {
-    setState((prev) => ({ ...prev, page: 1 }));
-    fetchList({ page: 1 });
-  };
-
-  const handleReset = () => {
-    setSelectedMatchmakerId("");
-    setSelectedEventId("");
-    setStartDate("");
-    setEndDate("");
-    setState({ ...INITIAL_STATE });
-    // 通过原 buildQuery 走筛选重置，再 fetch
-    setTimeout(() => fetchList({ page: 1, pageSize: INITIAL_STATE.pageSize }), 0);
-  };
-
-  const gotoPage = (next: number) => {
-    if (next < 1 || next > totalPages) return;
-    setState((prev) => ({ ...prev, page: next }));
-    fetchList({ page: next });
-  };
-
-  const onPageSizeChange = (size: number) => {
-    setState({ rows: [], total: 0, page: 1, pageSize: size });
-    fetchList({ page: 1, pageSize: size });
-  };
+export default function Page() {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div>
+    <div className="min-w-0">
       <AdminBreadcrumb items={breadcrumb} />
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-medium text-[#333]">红娘线上分成明细</h2>
-        <Button variant="primary" onClick={() => alert("录入一笔分成入口预留：后续对接人工录入流程")}>
-          + 录入一笔分成
-        </Button>
-      </div>
 
-      <div className="mb-4 rounded-md border border-[#f0f0f0] bg-white px-4 py-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex items-center gap-2">
-            <label className="whitespace-nowrap text-sm text-[#666]">选择门店</label>
-            <select
-              value={STORE_NAME}
-              disabled
-              className="h-8 rounded-md border border-[#d9d9d9] bg-[#fafafa] px-3 text-sm text-[#999]"
-            >
-              <option>{STORE_NAME}</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="whitespace-nowrap text-sm text-[#666]">选择红娘</label>
-            <select
-              value={selectedMatchmakerId}
-              onChange={(e) => setSelectedMatchmakerId(e.target.value)}
-              className="h-8 rounded-md border border-[#d9d9d9] bg-white px-3 text-sm"
-            >
-              <option value="">全部</option>
-              {matchmakerOptions.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="whitespace-nowrap text-sm text-[#666]">选择事件</label>
-            <select
-              value={selectedEventId}
-              onChange={(e) => setSelectedEventId(e.target.value)}
-              className="h-8 rounded-md border border-[#d9d9d9] bg-white px-3 text-sm"
-            >
-              <option value="">全部</option>
-              {eventOptions.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {event.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="whitespace-nowrap text-sm text-[#666]">开始日期</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="h-8 rounded-md border border-[#d9d9d9] px-2 text-sm"
-            />
-            <span className="text-[#999]">~</span>
-            <label className="whitespace-nowrap text-sm text-[#666]">结束日期</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="h-8 rounded-md border border-[#d9d9d9] px-2 text-sm"
-            />
-          </div>
-          <Button size="sm" variant="primary" onClick={handleSearch}>
-            搜索
-          </Button>
-          <Button size="sm" variant="default" onClick={handleReset}>
-            重置
-          </Button>
-          {optionsError && <span className="text-xs text-[#ff4d4f]">{optionsError}</span>}
+      {/* 须知 */}
+      <div className="cdd-notice">
+        <div className="cdd-notice-title">
+          <span className="cdd-notice-icon">i</span>
+          <span>须知</span>
         </div>
+        <p>
+          以下是在平台中进行线上支付后平台与服务红娘之间的分成明细，总店红娘的分成会实时计入到每个红娘的账号余额中，红娘可以实时申请提现，由平台审核后给与支付结算；分店名下红娘是统一按照分店与平台之间达成的分成标准计算分成，分店红娘所产生的分成统一计入到店长的账号余额中，门店可实时向平台申请结算提现。
+        </p>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-[#f0f0f0]">
-        {loading ? (
-          <div className="p-8 text-center text-[#999]">加载中...</div>
-        ) : error ? (
-          <div className="p-8 text-center text-[#ff4d4f]">{error}</div>
-        ) : state.rows.length === 0 ? (
-          <div className="p-8 text-center text-[#999]">暂无数据</div>
-        ) : (
-          <table className="w-full">
+      <section className="cdd-card">
+        <div className="cdd-head">
+          <h2 className="cdd-title">红娘线上分成明细</h2>
+          <button type="button" className="cdd-btn primary" onClick={() => setOpen(true)}>
+            <Plus size={14} />
+            录入一笔分成
+          </button>
+        </div>
+
+        {/* 筛选 */}
+        <div className="cdd-filters">
+          <div className="cdd-select">
+            <select defaultValue="">
+              <option value="">请选择门店</option>
+              <option value="total">总店</option>
+            </select>
+            <ChevronDown className="cdd-caret" size={14} />
+          </div>
+          <div className="cdd-select">
+            <select defaultValue="">
+              <option value="">请选择红娘</option>
+              <option value="yunxi">芸希老师</option>
+              <option value="qinqin">琴琴</option>
+            </select>
+            <ChevronDown className="cdd-caret" size={14} />
+          </div>
+          <div className="cdd-select">
+            <select defaultValue="">
+              {EVENT_OPTIONS.map((event) => (
+                <option key={event} value={event === EVENT_OPTIONS[0] ? "" : event}>
+                  {event}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="cdd-caret" size={14} />
+          </div>
+          <div className="cdd-daterange">
+            <div className="cdd-date">
+              <input placeholder="开始日期" readOnly />
+              <CalendarDays size={14} />
+            </div>
+            <span className="cdd-arrow">→</span>
+            <div className="cdd-date">
+              <input placeholder="结束日期" readOnly />
+              <CalendarDays size={14} />
+            </div>
+          </div>
+          <button type="button" className="cdd-search">
+            搜索
+          </button>
+        </div>
+
+        {/* 表格 */}
+        <div className="cdd-table-wrap">
+          <table className="cdd-table">
+            <colgroup>
+              <col style={{ width: 70 }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 180 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 230 }} />
+              <col style={{ width: 160 }} />
+              <col style={{ width: 160 }} />
+              <col style={{ width: 140 }} />
+            </colgroup>
             <thead>
               <tr>
-                {["ID", "门店", "时间", "红娘", "消费会员", "分成/奖励事件", "消费金额", "分成金额"].map((title) => (
-                  <th
-                    key={title}
-                    className="whitespace-nowrap border-b border-[#f0f0f0] bg-[#fafafa] p-3 text-left text-sm font-medium"
-                  >
-                    {title}
-                  </th>
-                ))}
+                <th>ID</th>
+                <th>门店</th>
+                <th>时间</th>
+                <th>红娘</th>
+                <th>消费会员</th>
+                <th>分成/奖励事件</th>
+                <th>消费金额</th>
+                <th>分成金额</th>
               </tr>
             </thead>
             <tbody>
-              {state.rows.map((row) => (
-                <tr key={row.id} className="hover:bg-[#fafafa]">
-                  <td className="border-b border-[#f0f0f0] p-3 text-center text-sm">{row.id}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">{row.store_name}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">{formatDateTime(row.created_at)}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Avatar src={row.matchmaker_avatar} name={row.matchmaker_name} />
-                      <span>{row.matchmaker_name}</span>
-                    </div>
+              {ROWS.map((row) => (
+                <tr key={row.id}>
+                  <td className="cdd-td-id">{row.id}</td>
+                  <td className="cdd-td-text">{row.store}</td>
+                  <td className="cdd-td-time">{row.time}</td>
+                  <td className="cdd-td-text">{row.matchmaker}</td>
+                  <td>
+                    <span className="cdd-buyer">
+                      <span className={`cdd-avatar cdd-g-${row.avatar}`} />
+                      <span className="cdd-buyer-name">{row.buyer}</span>
+                    </span>
                   </td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Avatar src={row.consumer_avatar} name={row.consumer_name} />
-                      <span>{row.consumer_name}</span>
-                      {row.consumer_phone && <span className="text-[#999]">| {row.consumer_phone}</span>}
-                    </div>
+                  <td className="cdd-td-text">{row.event}</td>
+                  <td className="cdd-td-amount">
+                    {row.amount}
+                    {row.refunded && <span className="cdd-refunded">已退款</span>}
                   </td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-sm">{row.event_name}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-right text-sm">{formatYuan(row.consumer_amount)}</td>
-                  <td className="border-b border-[#f0f0f0] p-3 text-right text-sm">{formatYuan(row.commission_amount)}</td>
+                  <td className="cdd-td-commission">{row.commission}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
-        <div className="flex items-center justify-between px-4 py-4 text-sm text-[#999]">
-          <span>共 {state.total} 条</span>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="上一页"
-              disabled={state.page <= 1}
-              onClick={() => gotoPage(state.page - 1)}
-              className="grid size-7 place-items-center border disabled:text-[#d9d9d9]"
-            >
-              <span className="size-1.5 rotate-45 border-b border-l border-current" />
-            </button>
-            <span className="px-2">
-              {state.page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              aria-label="下一页"
-              disabled={state.page >= totalPages}
-              onClick={() => gotoPage(state.page + 1)}
-              className="grid size-7 place-items-center border disabled:text-[#d9d9d9]"
-            >
-              <span className="size-1.5 -rotate-45 border-r border-t border-current" />
-            </button>
-            <label className="relative ml-2">
-              <select
-                aria-label="每页条数"
-                value={state.pageSize}
-                onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                className="h-7 appearance-none border bg-white py-0 pl-2 pr-7 text-xs"
-              >
-                <option value={20}>20 条/页</option>
-                <option value={50}>50 条/页</option>
-                <option value={100}>100 条/页</option>
-              </select>
-              <span className="pointer-events-none absolute right-2 top-2 size-1.5 rotate-45 border-b border-r" />
-            </label>
+        </div>
+      </section>
+
+      {/* 录入一笔分成 Drawer */}
+      {open && (
+        <div className="cdd-mask" onClick={() => setOpen(false)}>
+          <div className="cdd-panel" onClick={(e) => e.stopPropagation()}>
+            <header className="cdd-panel-head">
+              <button type="button" className="cdd-panel-close-icon" onClick={() => setOpen(false)} aria-label="关闭">
+                <X size={18} />
+              </button>
+              <h2 className="cdd-panel-title">录入一笔分成</h2>
+            </header>
+
+            <div className="cdd-panel-body">
+              <div className="cdd-hint">
+                <span className="cdd-hint-icon">i</span>
+                <span>添加记录后会自动生成分成明细、余额明细，分成金额会计入到红娘账号余额中</span>
+              </div>
+
+              <div className="cdd-field">
+                <label className="cdd-field-label">
+                  <span className="req">*</span>服务红娘
+                </label>
+                <input type="text" className="cdd-input" placeholder="请输入服务红娘账号昵称" />
+              </div>
+
+              <div className="cdd-field">
+                <label className="cdd-field-label">
+                  <span className="req">*</span>购买账号
+                </label>
+                <input type="text" className="cdd-input" placeholder="请输入购买账号昵称" />
+              </div>
+
+              <div className="cdd-field">
+                <label className="cdd-field-label">
+                  <span className="req">*</span>分成事件
+                </label>
+                <div className="cdd-select block">
+                  <select defaultValue="">
+                    <option value="">请选择消费事件</option>
+                    {EVENT_OPTIONS.slice(1).map((event) => (
+                      <option key={event} value={event}>
+                        {event}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="cdd-caret" size={14} />
+                </div>
+              </div>
+
+              <div className="cdd-field">
+                <label className="cdd-field-label">
+                  <span className="req">*</span>消费事件
+                </label>
+                <div className="cdd-select block">
+                  <select defaultValue="">
+                    <option value="">请选择消费事件</option>
+                    {EVENT_OPTIONS.slice(1).map((event) => (
+                      <option key={event} value={event}>
+                        {event}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="cdd-caret" size={14} />
+                </div>
+              </div>
+
+              <div className="cdd-field">
+                <label className="cdd-field-label">
+                  <span className="req">*</span>分成金额
+                </label>
+                <div className="cdd-inline">
+                  <input type="text" className="cdd-input short" placeholder="" />
+                  <span className="cdd-unit">元</span>
+                </div>
+              </div>
+
+              <div className="cdd-field">
+                <label className="cdd-field-label">
+                  <span className="req">*</span>短信验证码
+                </label>
+                <div className="cdd-field-body">
+                  <div className="cdd-inline">
+                    <input type="text" className="cdd-input" placeholder="请输入短信验证码" />
+                    <button type="button" className="cdd-code-btn">
+                      获取验证码
+                    </button>
+                  </div>
+                  <div className="cdd-hint">
+                    <span className="cdd-hint-icon">i</span>
+                    <span>短信将发送到admin绑定的手机号</span>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" className="cdd-submit">
+                确定提交
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

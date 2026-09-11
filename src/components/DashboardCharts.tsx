@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -15,6 +15,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { useSweepAngle } from "@/hooks/useSweepAngle";
 
 type MemberTab = "member" | "lead";
 type IncomeTab = "online" | "offline";
@@ -43,6 +44,11 @@ function revenue(value: unknown) {
 export default function DashboardCharts({ stats }: { stats: Record<string, unknown> }) {
   const [memberTab, setMemberTab] = useState<MemberTab>("member");
   const [incomeTab, setIncomeTab] = useState<IncomeTab>("online");
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReady(true), 80);
+    return () => window.clearTimeout(timer);
+  }, []);
   const memberTrendData = trend(stats.member_trends, "count");
   const leadTrendData = trend(stats.lead_trends, "count");
   const incomeTrendData = trend(stats.online_income_trends, "amount");
@@ -58,6 +64,9 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
 
   const memberData = memberTab === "member" ? memberTrendData : leadTrendData;
   const incomeData = incomeTab === "online" ? incomeTrendData : offlineIncomeData;
+
+  /* 环形图：从 12 点位置顺时针扫一圈形成完整圆环（依赖 ready 后再开启） */
+  const ringSweep = useSweepAngle(ready);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
@@ -87,7 +96,7 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
             </button>
           </div>
         </div>
-        <div className="admin-card-body">
+        <div className="admin-card-body ustat-chart">
           <div className="text-xs text-[#999] mb-2">单位：人</div>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={memberData}>
@@ -122,6 +131,7 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
                 stroke="#3658f7"
                 strokeWidth={2}
                 fill="url(#memberGradient)"
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -133,7 +143,7 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
         <div className="admin-card-header">
           <span className="font-medium text-base">男女会员占比</span>
         </div>
-        <div className="admin-card-body flex flex-col items-center">
+        <div className="admin-card-body ustat-donut-ring flex flex-col items-center">
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -144,6 +154,9 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
                 outerRadius={85}
                 paddingAngle={2}
                 dataKey="value"
+                startAngle={90}
+                endAngle={90 - 360 * ringSweep}
+                isAnimationActive={false}
               >
                 {genderData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -200,7 +213,7 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
             </button>
           </div>
         </div>
-        <div className="admin-card-body">
+        <div className="admin-card-body ustat-chart">
           <div className="text-xs text-[#999] mb-2">单位：元</div>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={incomeData}>
@@ -235,6 +248,7 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
                 stroke="#3658f7"
                 strokeWidth={2}
                 fill="url(#incomeGradient)"
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -262,7 +276,7 @@ export default function DashboardCharts({ stats }: { stats: Record<string, unkno
                 tickLine={false}
                 width={70}
               />
-              <Bar dataKey="percent" radius={[0, 4, 4, 0]} barSize={20}>
+              <Bar dataKey="percent" radius={[0, 4, 4, 0]} barSize={20} className="ustat-bar-fill" isAnimationActive={false}>
                 {revenueShareData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
