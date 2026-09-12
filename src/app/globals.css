@@ -6020,6 +6020,33 @@
 .bm-input-num { width: 100px; height: 34px; border: 1px solid #d9dde6; border-radius: 6px; padding: 0 10px; font-size: 13px; color: #25272d; background: #fff; outline: none; }
 .bm-acct-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
 .bm-acct-row .bm-input-wide { flex: 1; min-width: 200px; }
+.bm-acct-row .bm-search-wrap { flex: 1; min-width: 200px; }
+/* 账号搜索下拉：候选用户列表 */
+.bm-search-wrap { position: relative; }
+.bm-candidate-list {
+  position: absolute; z-index: 40; top: 38px; left: 0; right: 0;
+  max-height: 248px; overflow-y: auto; background: #fff;
+  border: 1px solid #e6e9f0; border-radius: 6px; padding: 4px;
+  box-shadow: 0 8px 24px rgba(23, 28, 38, 0.12);
+}
+.bm-candidate {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: none; border-radius: 6px; background: transparent;
+  font-size: 13px; color: #25272d; text-align: left; cursor: pointer;
+}
+.bm-candidate:hover { background: #f2f5ff; }
+.bm-candidate.is-disabled { cursor: not-allowed; opacity: 0.55; }
+.bm-candidate.is-disabled:hover { background: transparent; }
+.bm-candidate-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.bm-candidate-avatar.bm-candidate-ph { background: #eef0f5; }
+.bm-candidate-name { font-weight: 600; }
+.bm-candidate-id { color: #9aa3b2; font-size: 12px; }
+.bm-candidate-phone { color: #545a69; flex: 1; }
+.bm-candidate-tag {
+  font-size: 11px; padding: 1px 6px; border-radius: 4px;
+  background: #fff1f0; color: #d4380d; white-space: nowrap;
+}
+.bm-candidate-empty { padding: 12px 10px; font-size: 12px; color: #9aa3b2; text-align: center; }
 .bm-radio { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #545a69; cursor: pointer; }
 .bm-radio input { width: 14px; height: 14px; accent-color: #3658f7; cursor: pointer; }
 .bm-info {

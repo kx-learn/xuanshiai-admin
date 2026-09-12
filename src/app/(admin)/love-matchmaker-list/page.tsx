@@ -14,6 +14,7 @@ import {
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -585,8 +586,6 @@ function AddMatchmakerDrawer({
   const [lookupBy, setLookupBy] = useState<"nickname" | "phone">("nickname");
   const [lookup, setLookup] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [candidates, setCandidates] = useState<MatchmakerUserCandidate[]>([]);
-  const [candidateOpen, setCandidateOpen] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(null);
   const [wechatQr, setWechatQr] = useState<string | null>(null);
@@ -642,24 +641,15 @@ function AddMatchmakerDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editRow]);
 
-  const onLookupChange = (value: string) => {
+  const onLookupChange = (value: string, pickedId: number | null) => {
     setLookup(value);
-    setSelectedUserId(null);
-    if (value.trim().length >= 2) {
-      adminEndpoints
-        .matchmakerUserCandidates(value.trim())
-        .then((list) => {
-          setCandidates(list);
-          setCandidateOpen(true);
-        })
-        .catch(() => {
-          setCandidates([]);
-          setCandidateOpen(false);
-        });
-    } else {
-      setCandidates([]);
-      setCandidateOpen(false);
-    }
+    setSelectedUserId(pickedId);
+  };
+
+  // 选中候选账号后顺带回填可以推断出来的资料
+  const onPickCandidate = (c: MatchmakerUserCandidate) => {
+    if (!displayName.trim()) setDisplayName(c.real_name ?? c.nickname ?? "");
+    if (!phone.trim() && c.phone) setPhone(c.phone);
   };
 
   const sloganValue = customSlogan ? sloganCustom.trim() : sloganSelect;
@@ -751,12 +741,13 @@ function AddMatchmakerDrawer({
             </span>
             <div className="bm-content">
               <div className="bm-acct-row">
-                <input
-                  className="bm-input-wide"
-                  placeholder="请输入已注册账号的昵称"
+                <UserCandidatePicker
                   value={lookup}
+                  onChange={onLookupChange}
+                  onSelect={onPickCandidate}
+                  search={(kw) => adminEndpoints.matchmakerUserCandidates(kw)}
                   disabled={isEdit}
-                  onChange={(e) => onLookupChange(e.target.value)}
+                  placeholder="输入昵称 / 手机号 / 用户ID / 姓名搜索已注册用户"
                 />
                 {["按昵称", "按手机"].map((o) => {
                   const value = o === "按昵称" ? "nickname" : "phone";
@@ -775,29 +766,12 @@ function AddMatchmakerDrawer({
                   );
                 })}
               </div>
-              {candidateOpen && candidates.length > 0 && (
-                <div className="bm-candidate-list">
-                  {candidates.map((c) => (
-                    <button
-                      type="button"
-                      key={c.id}
-                      className="bm-candidate"
-                      onClick={() => {
-                        setSelectedUserId(c.id);
-                        setLookup(c.nickname ?? c.phone ?? String(c.id));
-                        setCandidateOpen(false);
-                      }}
-                    >
-                      {c.avatar ? <img className="bm-candidate-avatar" src={resolveMediaUrl(c.avatar)} alt="" /> : <span className="bm-candidate-avatar bm-candidate-ph" />}
-                      <span className="bm-candidate-name">{c.nickname ?? "-"}</span>
-                      <span className="bm-candidate-phone">{c.phone ?? "-"}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="bm-info">
-                ① 如果查询不到账号，请先让红娘使用微信在平台中登录注册；一个账号只能绑定一个红娘。
+                ① 支持按用户ID / 手机号 / 昵称 / 姓名搜索（输入 1 个字即开始搜索，无需点按钮）。
                 {selectedUserId ? `（已选择账号 ID：${selectedUserId}）` : ""}
+              </div>
+              <div className="bm-info">
+                ② 如果查询不到账号，请先让红娘使用微信在平台中登录注册；一个账号只能绑定一个红娘。
               </div>
             </div>
           </div>

@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
-import type { AdminMenuNode, MatchmakerStaffItem, StoreDictItem } from "@/lib/admin-endpoints";
+import type { AdminMenuNode, MatchmakerStaffItem, MatchmakerUserCandidate, StoreDictItem } from "@/lib/admin-endpoints";
 import { pickAndUploadImage } from "@/lib/platform-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 
@@ -226,6 +227,7 @@ function AddMatchmakerDrawer({
   const editing = row !== null;
   const [accountMode, setAccountMode] = useState<"按昵称" | "按手机">("按昵称");
   const [lookup, setLookup] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [commission, setCommission] = useState("不参与");
   const [editContact, setEditContact] = useState("不允许");
   const [timedLock, setTimedLock] = useState(false);
@@ -253,6 +255,17 @@ function AddMatchmakerDrawer({
     }
   }, [row]);
 
+  const onLookupChange = (value: string, pickedId: number | null) => {
+    setLookup(value);
+    setSelectedUserId(pickedId);
+  };
+
+  // 选中候选账号后顺带回填可以推断出来的资料
+  const onPickCandidate = (c: MatchmakerUserCandidate) => {
+    if (!displayName.trim()) setDisplayName(c.real_name ?? c.nickname ?? "");
+    if (!phone.trim() && c.phone) setPhone(c.phone);
+  };
+
   const submit = async () => {
     if (!displayName.trim()) { setError("请填写红娘称呼"); return; }
     if (!phone.trim() || !/^\d{11,20}$/.test(phone.trim())) { setError("请填写正确的手机号"); return; }
@@ -277,7 +290,7 @@ function AddMatchmakerDrawer({
         });
       } else {
         await adminEndpoints.createMatchmakerStaff({
-          lookup: lookup.trim(),
+          ...(selectedUserId ? { user_id: selectedUserId } : { lookup: lookup.trim() }),
           lookup_by: accountMode === "按手机" ? "phone" : "nickname",
           display_name: displayName.trim(),
           phone: phone.trim(),
@@ -324,11 +337,12 @@ function AddMatchmakerDrawer({
               <span className="bm-label">＊账号绑定</span>
               <div className="bm-content">
                 <div className="bm-acct-row">
-                  <input
-                    className="bm-input-wide"
-                    placeholder={accountMode === "按手机" ? "请输入已注册用户的手机号" : "请输入已注册用户的昵称"}
+                  <UserCandidatePicker
                     value={lookup}
-                    onChange={(e) => setLookup(e.target.value)}
+                    onChange={onLookupChange}
+                    onSelect={onPickCandidate}
+                    search={(kw) => adminEndpoints.matchmakerUserCandidates(kw)}
+                    placeholder="输入昵称 / 手机号 / 用户ID / 姓名搜索已注册用户"
                   />
                   {(["按昵称", "按手机"] as const).map((o) => (
                     <label key={o} className={`bm-radio ${accountMode === o ? "active" : ""}`}>
@@ -337,7 +351,8 @@ function AddMatchmakerDrawer({
                     </label>
                   ))}
                 </div>
-                <div className="bm-info">① 如果查询不到账号，请先让红娘使用微信在平台上登录注册；一个账号只能绑定一个红娘。</div>
+                <div className="bm-info">① 支持按用户ID / 手机号 / 昵称 / 姓名搜索（输入 1 个字即开始搜索，无需点按钮）。</div>
+                <div className="bm-info">② 如果查询不到账号，请先让红娘使用微信在平台上登录注册；一个账号只能绑定一个红娘。</div>
               </div>
             </div>
           )}

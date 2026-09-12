@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { PartnerCommissionEntryItem, PartnerCommissionOptions, PartnerUserCandidate } from "@/lib/admin-endpoints";
@@ -181,7 +182,7 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
   const [consumeEvent, setConsumeEvent] = useState("");
   const [amount, setAmount] = useState("");
   const [code, setCode] = useState("");
-  const [consumers, setConsumers] = useState<PartnerUserCandidate[]>([]);
+  const [consumerId, setConsumerId] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -189,26 +190,10 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
     () => options.partners.find((item) => item.name === partnerName.trim())?.id,
     [partnerName, options.partners],
   );
-  const consumerId = useMemo(() => {
-    const keyword = consumerName.trim();
-    if (!keyword) return undefined;
-    return consumers.find((item) => (item.nickname ?? "") === keyword)?.id
-      ?? (consumers.length === 1 ? consumers[0].id : undefined);
-  }, [consumerName, consumers]);
-
-  // 购买账号候选：走 datalist，不新增可见 DOM
-  useEffect(() => {
-    const keyword = consumerName.trim();
-    if (keyword.length < 1) { setConsumers([]); return; }
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      adminEndpoints
-        .partnerUserCandidates(keyword)
-        .then((list) => { if (!cancelled) setConsumers(list); })
-        .catch(() => { if (!cancelled) setConsumers([]); });
-    }, 300);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [consumerName]);
+  const onConsumerChange = (value: string, pickedId: number | null) => {
+    setConsumerName(value);
+    setConsumerId(pickedId ?? undefined);
+  };
 
   const submit = async () => {
     if (!partnerId) { setMessage("请从候选中选择合伙人红娘"); return; }
@@ -275,20 +260,13 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
           {/* 购买账号 */}
           <div className="lpbd-row">
             <span className="lpbd-label">＊购买账号</span>
-            <input
-              className="lpbd-input-wide"
-              placeholder="请输入购买账号昵称"
+            <UserCandidatePicker
               value={consumerName}
-              list="lpbd-consumer-options"
-              onChange={(e) => setConsumerName(e.target.value)}
+              onChange={onConsumerChange}
+              search={(kw) => adminEndpoints.partnerUserCandidates(kw)}
+              className="lpbd-input-wide"
+              placeholder="输入昵称 / 手机号 / 用户ID / 姓名搜索购买账号"
             />
-            <datalist id="lpbd-consumer-options">
-              {consumers.map((item) => (
-                <option key={item.id} value={item.nickname ?? ""}>
-                  {item.phone ?? ""}
-                </option>
-              ))}
-            </datalist>
           </div>
 
           {/* 分成事件 */}

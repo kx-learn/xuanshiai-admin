@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { PartnerLevelId, PartnerStaffItem, PartnerUserCandidate } from "@/lib/admin-endpoints";
@@ -185,31 +186,19 @@ function AddPartnerDrawer({ partner, onClose, onSaved }: {
   const [account, setAccount] = useState(partner?.account ?? "");
   const [teamName, setTeamName] = useState(partner?.team_name ?? "");
   const [level, setLevel] = useState<string>(partner ? (partner.level_name || "初级合伙人") : "初级合伙人");
-  const [candidates, setCandidates] = useState<PartnerUserCandidate[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // 已注册用户候选：走 datalist，不新增可见 DOM
-  useEffect(() => {
-    if (partner) return;
-    const keyword = account.trim();
-    if (keyword.length < 1) { setCandidates([]); return; }
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      adminEndpoints
-        .partnerUserCandidates(keyword)
-        .then((list) => { if (!cancelled) setCandidates(list); })
-        .catch(() => { if (!cancelled) setCandidates([]); });
-    }, 300);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [account, partner]);
+  const onAccountChange = (value: string, pickedId: number | null) => {
+    setAccount(value);
+    setSelectedUserId(pickedId);
+  };
 
-  const matchedId = useMemo(() => {
-    const keyword = account.trim();
-    if (!keyword) return null;
-    const exact = candidates.find((item) => (item.nickname ?? "") === keyword);
-    return exact?.id ?? (candidates.length === 1 ? candidates[0].id : null);
-  }, [account, candidates]);
+  // 选中候选账号后，若未填团队名则先用昵称兜底
+  const onPickCandidate = (c: PartnerUserCandidate) => {
+    if (!teamName.trim()) setTeamName(c.nickname ?? "");
+  };
 
   const submit = async () => {
     if (!partner && !account.trim()) { setMessage("请输入账号昵称"); return; }
@@ -224,9 +213,7 @@ function AddPartnerDrawer({ partner, onClose, onSaved }: {
         });
       } else {
         await adminEndpoints.createPartner({
-          user_id: matchedId ?? undefined,
-          lookup: matchedId ? undefined : account.trim(),
-          lookup_by: "nickname",
+          ...(selectedUserId ? { user_id: selectedUserId } : { lookup: account.trim(), lookup_by: "nickname" as const }),
           team_name: teamName.trim(),
           level_id: (LEVEL_OPTIONS.find((o) => o.label === level)?.id ?? 1) as PartnerLevelId,
         });
@@ -276,27 +263,22 @@ function AddPartnerDrawer({ partner, onClose, onSaved }: {
           <div className="lpl-row">
             <span className="lpl-label">＊用户账号</span>
             <div className="lpl-content">
-              <input
-                className="lpl-input-wide"
-                placeholder="请输入账号昵称"
-                value={account}
-                list={partner ? undefined : "lpl-user-candidates"}
-                readOnly={Boolean(partner)}
-                onChange={(e) => setAccount(e.target.value)}
-              />
-              {!partner && (
-                <datalist id="lpl-user-candidates">
-                  {candidates.map((item) => (
-                    <option key={item.id} value={item.nickname ?? ""}>
-                      {`${item.nickname ?? ""}${item.phone ? ` · ${item.phone}` : ""}${item.is_promoter ? " · 推广红娘" : ""}${item.has_team ? " · 已是合伙人" : ""}`}
-                    </option>
-                  ))}
-                </datalist>
+              {partner ? (
+                <input className="lpl-input-wide" value={account} readOnly onChange={(e) => setAccount(e.target.value)} />
+              ) : (
+                <UserCandidatePicker
+                  value={account}
+                  onChange={onAccountChange}
+                  onSelect={onPickCandidate}
+                  search={(kw) => adminEndpoints.partnerUserCandidates(kw)}
+                  className="lpl-input-wide"
+                  placeholder="输入昵称 / 手机号 / 用户ID / 姓名搜索已注册用户"
+                />
               )}
               <div className="lpl-info">
-                ① 服务红娘不能成为合伙人
+                ① 服务红娘不能成为合伙人；支持按用户ID / 手机号 / 昵称 / 姓名搜索
                 {!partner && account.trim() && (
-                  matchedId ? `（已匹配：${account.trim()}）` : "（未匹配到用户，请从候选列表中选择）"
+                  selectedUserId ? `（已选择账号 ID：${selectedUserId}）` : "（未选择用户，请从候选列表中选择）"
                 )}
               </div>
             </div>

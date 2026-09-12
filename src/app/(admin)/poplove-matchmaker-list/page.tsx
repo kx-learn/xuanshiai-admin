@@ -13,6 +13,7 @@ import {
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints, PROMOTER_LEVELS } from "@/lib/admin-endpoints";
@@ -24,10 +25,7 @@ import type {
   PromoterUpdatePayload,
   PromoterUserCandidate,
 } from "@/lib/admin-endpoints";
-import {
-  pickAndUploadImage,
-  showConfigToast,
-} from "@/lib/platform-config";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("推广红娘", "红娘管理");
 
@@ -557,8 +555,15 @@ function AddPromoterDrawer({
 
   const [lookup, setLookup] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [candidates, setCandidates] = useState<PromoterUserCandidate[]>([]);
-  const [candidateOpen, setCandidateOpen] = useState(false);
+
+  const onLookupChange = (value: string, pickedId: number | null) => {
+    setLookup(value);
+    setSelectedUserId(pickedId);
+  };
+
+  const onPickCandidate = (c: PromoterUserCandidate) => {
+    if (!displayName.trim()) setDisplayName(c.nickname ?? c.real_name ?? "");
+  };
 
   const [displayName, setDisplayName] = useState("");
 
@@ -573,8 +578,6 @@ function AddPromoterDrawer({
     setCrmView("不允许");
     setLookup("");
     setSelectedUserId(null);
-    setCandidates([]);
-    setCandidateOpen(false);
     setDisplayName("");
     if (row) {
       setType(row.matchmaker_type === "full_time" ? "全职" : "兼职");
@@ -583,26 +586,6 @@ function AddPromoterDrawer({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row]);
-
-  const onLookupChange = (value: string) => {
-    setLookup(value);
-    setSelectedUserId(null);
-    if (value.trim().length >= 2) {
-      adminEndpoints
-        .promoterUserCandidates(value.trim())
-        .then((list) => {
-          setCandidates(list);
-          setCandidateOpen(true);
-        })
-        .catch(() => {
-          setCandidates([]);
-          setCandidateOpen(false);
-        });
-    } else {
-      setCandidates([]);
-      setCandidateOpen(false);
-    }
-  };
 
   const sloganValue = customSlogan ? sloganCustom.trim() : sloganSelect;
 
@@ -693,33 +676,14 @@ function AddPromoterDrawer({
               <b className="hm-req">*</b>账号绑定
             </span>
             <div className="bm-content">
-              <input
-                className="bm-input-wide"
-                placeholder="请输入账号昵称"
+              <UserCandidatePicker
                 value={lookup}
+                onChange={onLookupChange}
+                onSelect={onPickCandidate}
+                search={(kw) => adminEndpoints.promoterUserCandidates(kw)}
                 disabled={isEdit}
-                onChange={(e) => onLookupChange(e.target.value)}
+                placeholder="输入昵称 / 手机号 / 用户ID / 姓名搜索已注册用户"
               />
-              {candidateOpen && candidates.length > 0 && (
-                <div className="bm-candidate-list">
-                  {candidates.map((c) => (
-                    <button
-                      type="button"
-                      key={c.id}
-                      className="bm-candidate"
-                      onClick={() => {
-                        setSelectedUserId(c.id);
-                        setLookup(c.nickname ?? c.phone ?? String(c.id));
-                        setCandidateOpen(false);
-                      }}
-                    >
-                      {c.avatar ? <img className="bm-candidate-avatar" src={resolveMediaUrl(c.avatar)} alt="" /> : <span className="bm-candidate-avatar bm-candidate-ph" />}
-                      <span className="bm-candidate-name">{c.nickname ?? "-"}</span>
-                      <span className="bm-candidate-phone">{c.phone ?? "-"}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="bm-info">必须是网站已注册用户且绑定了微信，且非服务红娘{isEdit ? "（编辑时不可变更）" : ""}</div>
             </div>
           </div>
