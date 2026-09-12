@@ -1,4 +1,4 @@
-export type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; query?: Record<string, string | number | undefined> };
+export type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; query?: Record<string, string | number | boolean | undefined> };
 const ADMIN_TOKEN_KEY = "xuanshiai_admin_access_token";
 
 export function getAdminToken() {
@@ -25,7 +25,7 @@ export function resolveMediaUrl(value?: string | null) {
 export async function downloadAdminFile(
   path: string,
   filename: string,
-  query?: Record<string, string | number | undefined>,
+  query?: Record<string, string | number | boolean | undefined>,
 ): Promise<void> {
   const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
   const search = query

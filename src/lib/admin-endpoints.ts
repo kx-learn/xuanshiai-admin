@@ -1628,6 +1628,521 @@ export interface MemberStatisticsReport {
   metrics: MemberStatMetrics;
 }
 
+// ─── M7 活动报名 / 商家联盟 / 短视频类型 ───────────────────────────
+export type ActivityAuditStatus = "pending" | "approved" | "rejected";
+export interface ActivityItem {
+  id: number;
+  title: string;
+  cover: string | null;
+  type: string | null;
+  city: string | null;
+  address: string | null;
+  start_time: string;
+  end_time: string;
+  signup_deadline: string | null;
+  max_people: number;
+  current_people: number;
+  price: number;
+  status: number;
+  description: string | null;
+  created_by: number | null;
+  created_at: string;
+  organizer: string | null;
+  time_text: string | null;
+  cover_small: string | null;
+  fee_name: string;
+  price_male: number;
+  price_female: number;
+  signup_mode: string;
+  require_realname: boolean;
+  limit_mode: string;
+  max_male: number;
+  max_female: number;
+  virtual_people: number;
+  virtual_female: number;
+  hide_signup_count: boolean;
+  reward_promoter: number;
+  reward_service: number;
+  reward_partner: number;
+  reminder_html: string | null;
+  service_wechat: string | null;
+  service_qr: string | null;
+  virtual_views: number;
+  sort_order: number;
+  custom_share: boolean;
+  manager_ids: string | null;
+  notify_phones: string | null;
+  online: boolean;
+  audit_status: ActivityAuditStatus;
+  male_count: number;
+  female_count: number;
+  link_url: string | null;
+}
+export interface ActivityPage {
+  items: ActivityItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export type ActivityCreatePayload = {
+  title: string;
+  start_time: string;
+  end_time: string;
+  signup_deadline?: string | null;
+  cover?: string | null;
+  cover_small?: string | null;
+  type?: string | null;
+  organizer?: string | null;
+  time_text?: string | null;
+  city?: string | null;
+  address?: string | null;
+  fee_name?: string;
+  price?: number;
+  price_male?: number;
+  price_female?: number;
+  max_people?: number;
+  max_male?: number;
+  max_female?: number;
+  limit_mode?: "gender" | "total";
+  signup_mode?: "anyone" | "member";
+  require_realname?: boolean;
+  virtual_people?: number;
+  virtual_female?: number;
+  hide_signup_count?: boolean;
+  reward_promoter?: number;
+  reward_service?: number;
+  reward_partner?: number;
+  description?: string | null;
+  reminder_html?: string | null;
+  service_wechat?: string | null;
+  service_qr?: string | null;
+  virtual_views?: number;
+  sort_order?: number;
+  custom_share?: boolean;
+  manager_ids?: string | null;
+  notify_phones?: string | null;
+};
+export type ActivityUpdatePayload = Partial<ActivityCreatePayload> & {
+  online?: boolean;
+  audit_status?: ActivityAuditStatus;
+};
+export interface ActivityOption {
+  id: number;
+  title: string;
+}
+export interface ActivityLinkInfo {
+  link_url: string;
+  qr_code: string | null;
+}
+export interface ActivitySignupItem {
+  id: number;
+  activity_id: number;
+  activity_title: string | null;
+  user_id: number;
+  nickname: string | null;
+  real_name: string | null;
+  phone: string | null;
+  remark: string | null;
+  status: number;
+  cancel_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  gender: string | null;
+  age: number | null;
+  height: number | null;
+  education: string | null;
+  income: string | null;
+  marriage_status: string | null;
+  company: string | null;
+  avatar: string | null;
+  id_card: string | null;
+  is_member: boolean;
+  is_realname: boolean;
+  signup_times: number;
+  pay_status: string;
+  pay_amount: number;
+  checked_in: boolean;
+  in_crm: boolean;
+  promoter_id: number | null;
+  promoter_name: string | null;
+}
+export interface ActivitySignupPage {
+  items: ActivitySignupItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface ActivitySignupStatistics {
+  total: number;
+  first_signup: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  fee_amount: string;
+  not_checked_in: number;
+  checked_in: number;
+  in_crm: number;
+}
+export type ActivitySignupUpdatePayload = {
+  real_name?: string;
+  phone?: string;
+  gender?: string;
+  age?: number;
+  height?: number;
+  education?: string;
+  income?: string;
+  marriage_status?: string;
+  company?: string;
+  avatar?: string;
+  id_card?: string;
+  remark?: string;
+  status?: number;
+  pay_status?: "free" | "paid" | "unpaid";
+  pay_amount?: number;
+  checked_in?: boolean;
+  in_crm?: boolean;
+  promoter_id?: number;
+};
+
+export interface MutualActivityItem {
+  id: number;
+  title: string;
+  cover: string | null;
+  start_time: string;
+  end_time: string;
+  pick_limit: number;
+  virtual_signup: number;
+  price_male: number;
+  price_female: number;
+  price_vip: number;
+  reward_promoter: number;
+  reward_service: number;
+  require_realname: boolean;
+  require_avatar: boolean;
+  require_three_photo: boolean;
+  intro: string | null;
+  share_title: string | null;
+  share_desc: string | null;
+  share_icon: string | null;
+  success_mode: "show_wechat" | "contact_matchmaker";
+  notice_html: string | null;
+  success_notice: string | null;
+  status: number;
+  visible: boolean;
+  sort: number;
+  male_count: number;
+  female_count: number;
+  participant_count: number;
+  created_at: string | null;
+  link_url: string | null;
+}
+export interface MutualActivityPage {
+  items: MutualActivityItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface MutualParticipant {
+  signup_id: number | null;
+  user_id: number;
+  nickname: string | null;
+  gender: string | null;
+  avatar: string | null;
+  created_at: string | null;
+}
+export interface MutualRecordItem {
+  id: number;
+  activity_id: number;
+  activity_title: string | null;
+  from_user_id: number;
+  from_nickname: string | null;
+  action: string;
+  action_label: string;
+  to_user_id: number;
+  to_nickname: string | null;
+  is_success: boolean;
+  result: string;
+  result_label: string;
+  created_at: string | null;
+}
+export interface MutualRecordPage {
+  items: MutualRecordItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface MutualOption {
+  id: number;
+  label: string;
+}
+export interface MutualOptions {
+  activities: MutualOption[];
+  actors: MutualOption[];
+}
+
+export interface MerchantCategoryItem {
+  id: number;
+  name: string;
+  icon_url: string | null;
+  sort: number;
+  status: number;
+  merchant_count: number;
+}
+export interface MerchantItem {
+  id: number;
+  name: string;
+  cover: string | null;
+  gallery: string[];
+  category_id: number | null;
+  category_name: string | null;
+  tags: string[];
+  province: string | null;
+  city: string | null;
+  address: string | null;
+  contact_phone: string | null;
+  business_hours: string | null;
+  intro: string | null;
+  admin_user_id: number | null;
+  admin_user_nickname: string | null;
+  verify_staff: string | null;
+  sort: number;
+  visible: boolean;
+  product_total: number;
+  product_online: number;
+  sales_amount: string;
+  created_at: string | null;
+  link_url: string | null;
+  qr_code: string | null;
+}
+export interface MerchantPage {
+  items: MerchantItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface MerchantProductItem {
+  id: number;
+  merchant_id: number;
+  merchant_name: string | null;
+  name: string;
+  cover: string | null;
+  original_price: number;
+  sale_price: number;
+  settle_amount: number;
+  promote_split_mode: "fixed" | "by_level";
+  promote_amount: number;
+  partner_split_mode: "fixed" | "by_level";
+  partner_amount: number;
+  service_amount: number;
+  buy_limit_mode: "account" | "order";
+  account_limit: number;
+  order_limit: number;
+  notice_mode: "default" | "custom";
+  notice_text: string | null;
+  intro: string | null;
+  status: number;
+  sort: number;
+  sales_count: number;
+  sales_amount: string;
+  create_time: string | null;
+  created_at: string | null;
+  link_url: string | null;
+  qr_code: string | null;
+}
+export interface MerchantProductPage {
+  items: MerchantProductItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface MerchantOrderItem {
+  id: number;
+  order_no: string;
+  product_id: number;
+  product_name: string | null;
+  product_cover: string | null;
+  merchant_id: number;
+  merchant_name: string | null;
+  buyer_user_id: number;
+  buyer_nickname: string | null;
+  buyer_phone: string | null;
+  quantity: number;
+  amount: string;
+  pay_status: string;
+  pay_method: string | null;
+  paid_at: string | null;
+  verify_status: string;
+  verify_code: string | null;
+  verified_at: string | null;
+  status: string;
+  remark: string | null;
+  created_at: string | null;
+}
+export interface MerchantOrderPage {
+  items: MerchantOrderItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface MerchantOption {
+  id: number;
+  label: string;
+}
+
+export interface VideoCategoryItem {
+  id: number;
+  name: string;
+  sort: number;
+  status: number;
+  video_count: number;
+}
+export interface ShortVideoItem {
+  id: number;
+  publisher_user_id: number;
+  publisher_nickname: string | null;
+  cover: string | null;
+  cover_mode: string;
+  description: string | null;
+  category_id: number | null;
+  category_name: string | null;
+  duration_seconds: number;
+  duration_label: string;
+  video_url: string | null;
+  link_type: string;
+  link_label: string;
+  link_value: string | null;
+  view_permission: string;
+  view_permission_label: string;
+  sort: number;
+  virtual_views: number;
+  comment_enabled: boolean;
+  tip_enabled: boolean;
+  visible: boolean;
+  audit_status: string;
+  audit_label: string;
+  is_top: boolean;
+  is_recommend: boolean;
+  is_hot: boolean;
+  has_red_packet: boolean;
+  view_count: number;
+  comment_count: number;
+  like_count: number;
+  tip_amount: string;
+  published_at: string | null;
+  created_at: string | null;
+}
+export interface ShortVideoPage {
+  items: ShortVideoItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface VideoBrushResult {
+  brush_type: string;
+  affected: number;
+}
+export interface VideoCommentItem {
+  id: number;
+  video_id: number;
+  video_description: string | null;
+  user_id: number;
+  nickname: string | null;
+  content: string;
+  like_count: number;
+  ip: string | null;
+  audit_status: string;
+  created_at: string | null;
+}
+export interface VideoCommentPage {
+  items: VideoCommentItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface VideoTipItem {
+  id: number;
+  video_id: number;
+  video_description: string | null;
+  tipper_user_id: number;
+  tipper_nickname: string | null;
+  receiver_user_id: number;
+  receiver_nickname: string | null;
+  message: string | null;
+  tip_form: string;
+  tip_form_label: string;
+  amount: string;
+  pay_method: string | null;
+  order_no: string | null;
+  status: string;
+  created_at: string | null;
+}
+export interface VideoTipPage {
+  items: VideoTipItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+  total_amount: string;
+}
+export interface RedPacketItem {
+  id: number;
+  video_id: number;
+  video_description: string | null;
+  sender_label: string;
+  amount: string;
+  total_parts: number;
+  is_equal: boolean;
+  remain_parts: number;
+  remain_amount: string;
+  pay_status: string;
+  claim_status: string;
+  created_at: string | null;
+}
+export interface RedPacketPage {
+  items: RedPacketItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface RedPacketClaimItem {
+  id: number;
+  packet_id: number;
+  user_id: number;
+  nickname: string | null;
+  amount: string;
+  created_at: string | null;
+}
+export interface VideoHomepageItem {
+  id: number;
+  nickname: string | null;
+  wechat: string | null;
+  bio: string | null;
+  video_count: number;
+  view_count: number;
+  follower_count: number;
+  like_count: number;
+  tip_amount: string;
+  certified: boolean;
+  created_at: string | null;
+}
+export interface VideoHomepagePage {
+  items: VideoHomepageItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
 export const adminEndpoints = {
   login: (body: { username: string; password: string }) => adminApi<{ access_token: string; refresh_token: string; token_type: "bearer"; expires_in: number; account: Record<string, unknown> }>("admin/matchmaker/auth/login", { method: "POST", body }),
   me: () => adminApi<{ account: Record<string, unknown>; permissions: string[] }>("admin/matchmaker/auth/me"),
@@ -1697,21 +2212,13 @@ export const adminEndpoints = {
   createAssignment: (body: JsonBody) => create("admin/matchmaker/assignments", body),
   endAssignment: (id: number | string, reason: string) => adminApi(`admin/matchmaker/assignments/${id}/end`, { method: "POST", query: { reason } }),
   activities: (query: AdminListQuery = {}) => list("admin/activities", query),
-  createActivity: (body: JsonBody) => create("admin/activities", body),
-  updateActivity: (id: number | string, body: JsonBody) => update(`admin/activities/${id}`, body),
   merchants: (query: AdminListQuery = {}) => list("admin/merchants", query),
-  createMerchant: (body: JsonBody) => create("admin/merchants", body),
-  updateMerchant: (id: number | string, body: JsonBody) => update(`admin/merchants/${id}`, body),
   merchantProducts: (query: AdminListQuery = {}) => list("admin/merchant-products", query),
-  createMerchantProduct: (body: JsonBody) => create("admin/merchant-products", body),
-  updateMerchantProduct: (id: number | string, body: JsonBody) => update(`admin/merchant-products/${id}`, body),
   merchantOrders: (query: AdminListQuery = {}) => list("admin/merchant-orders", query),
-  updateMerchantOrder: (id: number | string, body: JsonBody) => update(`admin/merchant-orders/${id}`, body),
   videos: (query: AdminListQuery = {}) => list("admin/videos", query),
   createVideo: (body: JsonBody) => create("admin/videos", body),
   updateVideo: (id: number | string, body: JsonBody) => update(`admin/videos/${id}`, body),
   videoComments: (query: AdminListQuery = {}) => list("admin/video-comments", query),
-  updateVideoComment: (id: number | string, body: JsonBody) => update(`admin/video-comments/${id}`, body),
   videoTips: (query: AdminListQuery = {}) => list("admin/video-tips", query),
   updateVideoTip: (id: number | string, body: JsonBody) => update(`admin/video-tips/${id}`, body),
   moderationItems: (query: PageQuery = {}) => adminApi("admin/community/moderation-items", { method: "GET", query }),
@@ -2065,6 +2572,154 @@ export const adminEndpoints = {
     adminApi<OfflineVipItem>(`admin/offline-vips/${id}`, { method: "PUT", body }),
   offlineVipMeetLogs: (id: number | string, query: { page?: number; page_size?: number } = {}) =>
     adminApi<OfflineVipMeetLogPage>(`admin/offline-vips/${id}/meet-logs`, { method: "GET", query }),
+
+  // ─── M7 活动报名 ────────────────────────────────────────────
+  activityList: (
+    query: { page?: number; page_size?: number; status?: number; city?: string; search?: string; online?: boolean; audit_status?: ActivityAuditStatus } = {},
+  ) => adminApi<ActivityPage>("admin/activities", { method: "GET", query }),
+  activityOptions: () => adminApi<ActivityOption[]>("admin/activities/options", { method: "GET" }),
+  createActivity: (body: ActivityCreatePayload) =>
+    adminApi<ActivityItem>("admin/activities", { method: "POST", body }),
+  updateActivity: (id: number | string, body: ActivityUpdatePayload) =>
+    adminApi<ActivityItem>(`admin/activities/${id}`, { method: "PATCH", body }),
+  updateActivityStatus: (id: number | string, status: number, reason?: string) =>
+    adminApi<ActivityItem>(`admin/activities/${id}/status`, { method: "PATCH", body: { status, reason } }),
+  copyActivity: (id: number | string) =>
+    adminApi<ActivityItem>(`admin/activities/${id}/copy`, { method: "POST" }),
+  deleteActivity: (id: number | string) =>
+    adminApi<void>(`admin/activities/${id}`, { method: "DELETE" }),
+  activityLink: (id: number | string) =>
+    adminApi<ActivityLinkInfo>(`admin/activities/${id}/link`, { method: "GET" }),
+  activitySignups: (id: number | string, query: { page?: number; page_size?: number; status?: number } = {}) =>
+    adminApi<ActivitySignupPage>(`admin/activities/${id}/signups`, { method: "GET", query }),
+  activitySignupStatistics: (activityId?: number) =>
+    adminApi<ActivitySignupStatistics>("admin/activity-signups/statistics", {
+      method: "GET",
+      query: activityId ? { activity_id: activityId } : {},
+    }),
+  activitySignupOptions: () =>
+    adminApi<ActivityOption[]>("admin/activity-signups/options", { method: "GET" }),
+  updateActivitySignup: (id: number | string, body: ActivitySignupUpdatePayload) =>
+    adminApi<ActivitySignupItem>(`admin/activity-signups/${id}`, { method: "PATCH", body }),
+  deleteActivitySignup: (id: number | string) =>
+    adminApi<void>(`admin/activity-signups/${id}`, { method: "DELETE" }),
+  exportActivitySignups: (query: { activity_id?: number; status?: number } = {}) =>
+    downloadAdminFile("admin/activity-signups/export", "activity-signups.xlsx", query),
+
+  // ─── M7 互选活动 ────────────────────────────────────────────
+  mutualActivityList: (query: { page?: number; page_size?: number; keyword?: string; status?: number } = {}) =>
+    adminApi<MutualActivityPage>("admin/mutual-activities", { method: "GET", query }),
+  createMutualActivity: (body: Partial<MutualActivityItem>) =>
+    adminApi<MutualActivityItem>("admin/mutual-activities", { method: "POST", body }),
+  updateMutualActivity: (id: number | string, body: Partial<MutualActivityItem>) =>
+    adminApi<MutualActivityItem>(`admin/mutual-activities/${id}`, { method: "PATCH", body }),
+  deleteMutualActivity: (id: number | string) =>
+    adminApi<void>(`admin/mutual-activities/${id}`, { method: "DELETE" }),
+  copyMutualActivity: (id: number | string) =>
+    adminApi<MutualActivityItem>(`admin/mutual-activities/${id}/copy`, { method: "POST" }),
+  setMutualActivityVisible: (id: number | string, visible: boolean) =>
+    adminApi<MutualActivityItem>(`admin/mutual-activities/${id}/visible`, { method: "PATCH", query: { visible } }),
+  mutualParticipants: (id: number | string) =>
+    adminApi<MutualParticipant[]>(`admin/mutual-activities/${id}/participants`, { method: "GET" }),
+  addMutualParticipant: (id: number | string, userId: number) =>
+    adminApi<MutualParticipant>(`admin/mutual-activities/${id}/participants`, { method: "POST", body: { user_id: userId } }),
+  removeMutualParticipant: (id: number | string, userId: number) =>
+    adminApi<void>(`admin/mutual-activities/${id}/participants/${userId}`, { method: "DELETE" }),
+  mutualRecordList: (
+    query: { page?: number; page_size?: number; activity_id?: number; actor_id?: number; keyword?: string; result?: "success" | "fail" | "none" } = {},
+  ) => adminApi<MutualRecordPage>("admin/mutual-records", { method: "GET", query }),
+  mutualRecordOptions: () => adminApi<MutualOptions>("admin/mutual-records/options", { method: "GET" }),
+
+  // ─── M7 商家联盟 ────────────────────────────────────────────
+  merchantCategoryList: () => adminApi<MerchantCategoryItem[]>("admin/merchant-categories", { method: "GET" }),
+  createMerchantCategory: (body: { name: string; icon_url?: string | null; sort?: number; status?: number }) =>
+    adminApi<MerchantCategoryItem>("admin/merchant-categories", { method: "POST", body }),
+  updateMerchantCategory: (id: number | string, body: { name?: string; icon_url?: string | null; sort?: number; status?: number }) =>
+    adminApi<MerchantCategoryItem>(`admin/merchant-categories/${id}`, { method: "PATCH", body }),
+  deleteMerchantCategory: (id: number | string) =>
+    adminApi<void>(`admin/merchant-categories/${id}`, { method: "DELETE" }),
+  reorderMerchantCategories: (ids: number[]) =>
+    adminApi<void>("admin/merchant-categories/reorder", { method: "POST", body: { ids } }),
+  merchantList: (query: { page?: number; page_size?: number; category_id?: number; keyword?: string; visible?: boolean } = {}) =>
+    adminApi<MerchantPage>("admin/merchants", { method: "GET", query }),
+  merchantOptions: () => adminApi<MerchantOption[]>("admin/merchants/options", { method: "GET" }),
+  createMerchant: (body: Partial<MerchantItem>) => adminApi<MerchantItem>("admin/merchants", { method: "POST", body }),
+  updateMerchant: (id: number | string, body: Partial<MerchantItem>) =>
+    adminApi<MerchantItem>(`admin/merchants/${id}`, { method: "PUT", body }),
+  deleteMerchant: (id: number | string) => adminApi<void>(`admin/merchants/${id}`, { method: "DELETE" }),
+  setMerchantVisible: (id: number | string, visible: boolean) =>
+    adminApi<MerchantItem>(`admin/merchants/${id}/visible`, { method: "PATCH", query: { visible } }),
+  merchantProductList: (query: { page?: number; page_size?: number; merchant_id?: number; keyword?: string; status?: number } = {}) =>
+    adminApi<MerchantProductPage>("admin/merchant-products", { method: "GET", query }),
+  createMerchantProduct: (body: Partial<MerchantProductItem>) =>
+    adminApi<MerchantProductItem>("admin/merchant-products", { method: "POST", body }),
+  updateMerchantProduct: (id: number | string, body: Partial<MerchantProductItem>) =>
+    adminApi<MerchantProductItem>(`admin/merchant-products/${id}`, { method: "PUT", body }),
+  setMerchantProductStatus: (id: number | string, status: number) =>
+    adminApi<MerchantProductItem>(`admin/merchant-products/${id}/status`, { method: "PATCH", query: { status } }),
+  deleteMerchantProduct: (id: number | string) =>
+    adminApi<void>(`admin/merchant-products/${id}`, { method: "DELETE" }),
+  merchantOrderList: (
+    query: {
+      page?: number;
+      page_size?: number;
+      merchant_id?: number;
+      status?: string;
+      verify_status?: string;
+      keyword?: string;
+      order_no?: string;
+      buyer_keyword?: string;
+      verify_start?: string;
+      verify_end?: string;
+    } = {},
+  ) => adminApi<MerchantOrderPage>("admin/merchant-orders", { method: "GET", query }),
+  updateMerchantOrder: (id: number | string, status: string, remark?: string) =>
+    adminApi<MerchantOrderItem>(`admin/merchant-orders/${id}`, { method: "PATCH", body: { status, remark } }),
+  exportMerchantOrders: (query: Record<string, string | number | undefined> = {}) =>
+    downloadAdminFile("admin/merchant-orders/export", "merchant-orders.xlsx", query),
+
+  // ─── M7 短视频 ──────────────────────────────────────────────
+  videoCategoryList: () => adminApi<VideoCategoryItem[]>("admin/short-video-categories", { method: "GET" }),
+  createVideoCategory: (body: { name: string; sort?: number; status?: number }) =>
+    adminApi<VideoCategoryItem>("admin/short-video-categories", { method: "POST", body }),
+  updateVideoCategory: (id: number | string, body: { name?: string; sort?: number; status?: number }) =>
+    adminApi<VideoCategoryItem>(`admin/short-video-categories/${id}`, { method: "PATCH", body }),
+  deleteVideoCategory: (id: number | string) =>
+    adminApi<void>(`admin/short-video-categories/${id}`, { method: "DELETE" }),
+  shortVideoList: (
+    query: { page?: number; page_size?: number; audit_status?: string; category_id?: number; flag?: string; keyword?: string; order_by?: string } = {},
+  ) => adminApi<ShortVideoPage>("admin/short-videos", { method: "GET", query }),
+  createShortVideo: (body: Record<string, unknown>) =>
+    adminApi<ShortVideoItem>("admin/short-videos", { method: "POST", body }),
+  updateShortVideo: (id: number | string, body: Record<string, unknown>) =>
+    adminApi<ShortVideoItem>(`admin/short-videos/${id}`, { method: "PATCH", body }),
+  deleteShortVideo: (id: number | string) => adminApi<void>(`admin/short-videos/${id}`, { method: "DELETE" }),
+  brushVideos: (brushType: "views" | "likes" | "publish_time", minValue: number, maxValue: number) =>
+    adminApi<VideoBrushResult>("admin/short-videos/brush", {
+      method: "POST",
+      body: { brush_type: brushType, min_value: minValue, max_value: maxValue },
+    }),
+  videoCommentList: (
+    query: { page?: number; page_size?: number; audit_status?: string; keyword?: string } = {},
+  ) => adminApi<VideoCommentPage>("admin/short-video-comments", { method: "GET", query }),
+  updateVideoComment: (id: number | string, body: { content?: string; audit_status?: string }) =>
+    adminApi<VideoCommentItem>(`admin/short-video-comments/${id}`, { method: "PATCH", body }),
+  deleteVideoComment: (id: number | string) =>
+    adminApi<void>(`admin/short-video-comments/${id}`, { method: "DELETE" }),
+  batchDeleteVideoComments: (ids: number[]) =>
+    adminApi<{ deleted: number }>("admin/short-video-comments/batch-delete", { method: "POST", body: { ids } }),
+  videoTipList: (query: { page?: number; page_size?: number; keyword?: string; search_by?: string } = {}) =>
+    adminApi<VideoTipPage>("admin/short-video-tips", { method: "GET", query }),
+  redPacketList: (query: { page?: number; page_size?: number; claim_status?: string; keyword?: string } = {}) =>
+    adminApi<RedPacketPage>("admin/video-red-packets", { method: "GET", query }),
+  redPacketClaims: (id: number | string) =>
+    adminApi<RedPacketClaimItem[]>(`admin/video-red-packets/${id}/claims`, { method: "GET" }),
+  videoHomepageList: (query: { page?: number; page_size?: number; keyword?: string } = {}) =>
+    adminApi<VideoHomepagePage>("admin/short-video-homepages", { method: "GET", query }),
+  updateVideoHomepage: (id: number | string, query: { certified?: boolean; wechat?: string; bio?: string }) =>
+    adminApi<VideoHomepageItem>(`admin/short-video-homepages/${id}`, { method: "PATCH", query }),
+  deleteVideoHomepage: (id: number | string) =>
+    adminApi<void>(`admin/short-video-homepages/${id}`, { method: "DELETE" }),
 };
 
 /**

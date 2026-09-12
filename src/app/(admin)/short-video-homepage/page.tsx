@@ -1,30 +1,70 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminEndpoints, type VideoHomepageItem } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("短视频", "会员主页");
 
-interface HomeRow {
-  id: number;
-  nickname: string;
-  videoCount: number;
-  views: number;
-  followers: number;
-  likes: number;
-  tip: string;
-  certified: boolean;
-  createdAt: string;
-}
-
-const rows: HomeRow[] = [
-  { id: 4, nickname: "扒姐说媒", videoCount: 14, views: 97648, followers: 0, likes: 7, tip: "0元", certified: false, createdAt: "2026-06-13 13:22:28" },
-  { id: 3, nickname: "查营家-扒姐助理", videoCount: 0, views: 0, followers: 0, likes: 0, tip: "0元", certified: false, createdAt: "2026-06-12 17:30:06" },
-  { id: 2, nickname: "不吃猪肉", videoCount: 0, views: 0, followers: 1, likes: 0, tip: "0元", certified: false, createdAt: "2026-06-12 17:21:20" },
-  { id: 1, nickname: "SG小Q-WS", videoCount: 0, views: 0, followers: 0, likes: 0, tip: "0元", certified: false, createdAt: "2026-06-12 12:57:21" },
-];
+const fmt = (v: string | null | undefined) => (v ? v.replace("T", " ").slice(0, 19) : "-");
 
 export default function ShortVideoHomepagePage() {
+  const [rows, setRows] = useState<VideoHomepageItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [keyword, setKeyword] = useState("");
+
+  const load = useCallback(async (kw = keyword) => {
+    setLoading(true);
+    try {
+      const res = await adminEndpoints.videoHomepageList({ page: 1, page_size: 50, keyword: kw || undefined });
+      setRows(res.items);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [keyword]);
+
+  useEffect(() => { load(""); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const toggleCertified = async (r: VideoHomepageItem) => {
+    const next = !r.certified;
+    setRows((l) => l.map((x) => (x.id === r.id ? { ...x, certified: next } : x)));
+    try {
+      await adminEndpoints.updateVideoHomepage(r.id, { certified: next });
+    } catch (e) {
+      setRows((l) => l.map((x) => (x.id === r.id ? { ...x, certified: r.certified } : x)));
+      showConfigToast(e instanceof Error ? e.message : "操作失败", "error");
+    }
+  };
+
+  const editProfile = async (r: VideoHomepageItem) => {
+    const wechat = window.prompt("微信号", r.wechat ?? "");
+    if (wechat === null) return;
+    const bio = window.prompt("主页简介", r.bio ?? "");
+    if (bio === null) return;
+    try {
+      const updated = await adminEndpoints.updateVideoHomepage(r.id, { wechat, bio });
+      setRows((l) => l.map((x) => (x.id === r.id ? updated : x)));
+      showConfigToast("修改成功", "ok");
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "修改失败", "error");
+    }
+  };
+
+  const deleteRow = async (r: VideoHomepageItem) => {
+    if (!window.confirm(`确定删除会员主页「${r.nickname || r.id}」？`)) return;
+    try {
+      await adminEndpoints.deleteVideoHomepage(r.id);
+      showConfigToast("删除成功", "ok");
+      load();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
+    }
+  };
+
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -33,8 +73,8 @@ export default function ShortVideoHomepagePage() {
         <div className="svh-title">会员主页</div>
 
         <div className="svh-filters">
-          <input className="svh-input" placeholder="请输入会员昵称" />
-          <button className="finord-btn finord-btn-primary svh-search-btn">搜索</button>
+          <input className="svh-input" placeholder="请输入会员昵称" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} />
+          <button className="finord-btn finord-btn-primary svh-search-btn" onClick={() => load()}>搜索</button>
         </div>
 
         <div className="finord-table-wrap">
@@ -59,29 +99,32 @@ export default function ShortVideoHomepagePage() {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td className="svh-id">{r.id}</td>
-                  <td className="svh-nick">{r.nickname}</td>
-                  <td className="svh-empty">-</td>
-                  <td className="svh-empty">-</td>
-                  <td className="svh-num">{r.videoCount}</td>
-                  <td className="svh-num">{r.views}</td>
-                  <td className="svh-num">{r.followers}</td>
-                  <td className="svh-num">{r.likes}</td>
-                  <td><span className="svh-tip">{r.tip}</span></td>
+                  <td className="svh-nick">{r.nickname || "-"}</td>
+                  <td className={r.wechat ? "" : "svh-empty"}>{r.wechat || "-"}</td>
+                  <td className={r.bio ? "" : "svh-empty"}>{r.bio || "-"}</td>
+                  <td className="svh-num">{r.video_count}</td>
+                  <td className="svh-num">{r.view_count}</td>
+                  <td className="svh-num">{r.follower_count}</td>
+                  <td className="svh-num">{r.like_count}</td>
+                  <td><span className="svh-tip">{r.tip_amount}元</span></td>
                   <td>
-                    <button type="button" className={`mp-switch ${r.certified ? "on" : ""}`}>
+                    <button type="button" className={`mp-switch ${r.certified ? "on" : ""}`} onClick={() => toggleCertified(r)}>
                       <span className="mp-switch-knob"></span>
                     </button>
                   </td>
-                  <td className="svh-time">{r.createdAt}</td>
+                  <td className="svh-time">{fmt(r.created_at)}</td>
                   <td>
                     <div className="svh-ops">
                       <a className="finord-link">预览主页</a>
-                      <a className="finord-link">编辑资料</a>
-                      <a className="finord-link svh-op-del">删除</a>
+                      <a className="finord-link" onClick={() => editProfile(r)}>编辑资料</a>
+                      <a className="finord-link svh-op-del" onClick={() => deleteRow(r)}>删除</a>
                     </div>
                   </td>
                 </tr>
               ))}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={12} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>暂无数据</td></tr>
+              )}
             </tbody>
           </table>
         </div>
