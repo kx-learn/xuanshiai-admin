@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Inbox, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminApi } from "@/lib/admin-api";
+import { showConfigToast } from "@/lib/platform-config";
 
 const SEND_TARGETS = [
   "所有注册用户",
@@ -25,23 +27,23 @@ const TPLS: TplDef[] = [
   { id: "Q1438", text: "温馨提示：最近各种诈骗活动，有发短信冒充部队、妇联介绍、联姻活动介绍、平台介绍的认识，全是诈骗犯，大家一定要谨慎！" },
   { id: "Q1397", text: "您所报名的线上互动活动已经开始啦，请赶快参加！" },
   { id: "Q1329", text: "您好，平台中有会员向您发起牵线，想进一步相互了解，请尽快登录平台中查看处理。" },
-  { id: "Q1317", text: "您好，很遗憾。您报名参加的本场互动活动未能通过筛选。我们还会持续组织更多精彩的互动活动，您也可以报名我们后续的活动！遇您将是我们前进的动力，只为让您早日找到属于自己的爱情。我们也祝愿您，早日牵手成功！@幸福就在这里，愿我们终将成为自己想要的榜样" },
-  { id: "Q1138", text: "恭喜您成为我们的会员，您已经踏出了幸福的第一步！请认真填写您的更多资料，上传更多资料，将大大提升您的吸引力，让幸福来的快一些！" },
-  { id: "Q1137", text: "您好，给您电话您没有接到，不知道是不是在忙的。根据您的资料需求，联系关注了几个不错的需要。给您帮个介绍，请尽快联系我们服务老师。" },
-  { id: "Q1136", text: "您好，据我们服务老师给您打电话，是想邀请您来线下门店做一下实名认证，完成实名认证的会员，可以免费开通服务。" },
-  { id: "Q1135", text: "您好！欢迎您注册成为我们的会员，稍后我们会对您的情况做一个详细的回访，方便安排专业人员面对面提供服务。请注意接听电话，祝您早日收获幸福！" },
-  { id: "Q1134", text: "注册登记成功后，请及时联系服务老师对您的资料完成核实，平台对资料不属实、未实名信息不展示、不推荐、定期删除清理。" },
-  { id: "Q1133", text: "您好，我们为您筛选出了好几位符合您要求的嘉宾，希望为您做沟通了解。请在方便的时候联系我们专属服务老师。" },
-  { id: "Q1132", text: "刚我们服务老师给您去电话，未能联系到您。我们为您筛选出好几位符合您要求的嘉宾希望您能沟通了解。请在方便的时候联系我们专属服务老师。" },
+  { id: "Q1317", text: "您好，很遗憾。您报名参加的本场互动活动未能通过筛选。我们还会持续组织更多精彩的互动活动。" },
+  { id: "Q1138", text: "恭喜您成为我们的会员，您已经踏出了幸福的第一步！请认真填写您的更多资料。" },
+  { id: "Q1137", text: "您好，给您电话您没有接到，不知道是不是在忙的。根据您的资料需求，联系关注了几个不错的需要。" },
+  { id: "Q1136", text: "您好，据我们服务老师给您打电话，是想邀请您来线下门店做一下实名认证。" },
+  { id: "Q1135", text: "您好！欢迎您注册成为我们的会员，稍后我们会对您的情况做一个详细的回访。" },
+  { id: "Q1134", text: "注册登记成功后，请及时联系服务老师对您的资料完成核实。" },
+  { id: "Q1133", text: "您好，我们为您筛选出了好几位符合您要求的嘉宾，希望为您做沟通了解。" },
+  { id: "Q1132", text: "刚我们服务老师给您去电话，未能联系到您。我们为您筛选出好几位符合您要求的嘉宾。" },
   { id: "Q1131", text: "为了保证会员真实性，请进行实名认证，实名认证会员免费获得一次服务。" },
-  { id: "Q1130", text: "我们还会的服务老师跟您电话联系了您，了解下您的个人情况和需求，然后给您推荐几位符合您要求的嘉宾。" },
-  { id: "Q1129", text: "会员您好，我们邀请您前往我们的线下门店进行资料认证，可以获得更多更好的优质服务，详情请联系您的专属服务老师。" },
+  { id: "Q1130", text: "我们还会的服务老师跟您电话联系了您，了解下您的个人情况和需求。" },
+  { id: "Q1129", text: "会员您好，我们邀请您前往我们的线下门店进行资料认证。" },
   { id: "Q1025", text: "多多上传美照会大大提升您的个人吸引力哦" },
-  { id: "Q1023", text: "新年到，又大了一岁！愿您早日与爱情抱抱，幸福美好，新的一年更要有，爱ta，温暖！" },
-  { id: "Q1022", text: "近期有我们的大型线下活动，诚邀您参加！本次活动有非常多优秀嘉宾参加，活动详情和报名请联系平台工作人员。" },
-  { id: "Q1021", text: "发帖提醒：会员之间无论是线上还是线下交往中，切记涉及金钱往来、谨防诈骗。若发现对方行为异常请务必立即停止交往！" },
-  { id: "Q1020", text: "完善更多资料，进行实名认证，提升个人真诚度，让别人感受到您是真实、认真、靠谱，将大大提升您的吸引力哦。" },
-  { id: "Q1019", text: "恭喜您正式成为我们的会员，稍后我们会对您的情况做一个详细的回访，方便安排专业人员面对面提供服务。" },
+  { id: "Q1023", text: "新年到，又大了一岁！愿您早日与爱情抱抱，幸福美好。" },
+  { id: "Q1022", text: "近期有我们的大型线下活动，诚邀您参加！本次活动有非常多优秀嘉宾参加。" },
+  { id: "Q1021", text: "发帖提醒：会员之间无论是线上还是线下交往中，切记涉及金钱往来、谨防诈骗。" },
+  { id: "Q1020", text: "完善更多资料，进行实名认证，提升个人真诚度。" },
+  { id: "Q1019", text: "恭喜您正式成为我们的会员，稍后我们会对您的情况做一个详细的回访。" },
 ];
 
 const columns = [
@@ -55,11 +57,60 @@ const columns = [
   "操作",
 ];
 
+type SmsTask = {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  amount: number | null;
+  status: number;
+  sort: number;
+  extra: Record<string, unknown>;
+  created_at: string | null;
+};
+
+type SmsTaskPage = { items: SmsTask[]; total: number; page: number; page_size: number };
+
 export default function Page() {
   const router = useRouter();
   const breadcrumb = getBreadcrumb("运营工具", "短信群发");
   const [createOpen, setCreateOpen] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
+  const [tasks, setTasks] = useState<SmsTask[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageIdx, setPageIdx] = useState(1);
+
+  const load = async (page = pageIdx) => {
+    try {
+      const resp = await adminApi<SmsTaskPage>("admin/content/sms_broadcast", {
+        method: "GET",
+        query: { page, page_size: 20 },
+      });
+      setTasks(resp.items);
+      setTotal(resp.total);
+      setPageIdx(resp.page);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    }
+  };
+
+  useEffect(() => {
+    void load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const remove = async (id: number) => {
+    if (!window.confirm("确定删除该任务？")) return;
+    try {
+      await adminApi(`admin/content/sms_broadcast/${id}`, { method: "DELETE" });
+      showConfigToast("已删除", "ok");
+      void load(pageIdx);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
+    }
+  };
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
 
   return (
     <div>
@@ -105,20 +156,58 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={8}>
-                  <div className="grp-empty">
-                    <Inbox className="grp-empty-icon" />
-                    <span className="grp-empty-text">暂无数据</span>
-                  </div>
-                </td>
-              </tr>
+              {tasks.map((t) => {
+                const extra = t.extra ?? {};
+                return (
+                  <tr key={t.id}>
+                    <td>{t.title}</td>
+                    <td>{(t.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
+                    <td>{typeof extra.target === "string" ? extra.target : "-"}</td>
+                    <td>
+                      <span className="grp-phone">{typeof extra.phone_count === "number" ? extra.phone_count : 0}</span>
+                      <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("下载手机号列表", "ok"); }}>下载</a>
+                    </td>
+                    <td>
+                      <span className="grp-status">
+                        {t.status === 1 ? "已完成" : t.status === 2 ? "进行中" : "已暂停"}
+                      </span>
+                    </td>
+                    <td>
+                      发送成功：{typeof extra.sent_count === "number" ? extra.sent_count : 0} /{" "}
+                      失败：{typeof extra.fail_count === "number" ? extra.fail_count : 0}
+                    </td>
+                    <td><a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("查看发送明细", "ok"); }}>查看</a></td>
+                    <td>
+                      <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void remove(t.id); }}>删除</a>
+                    </td>
+                  </tr>
+                );
+              })}
+              {tasks.length === 0 && (
+                <tr>
+                  <td colSpan={8}>
+                    <div className="grp-empty">
+                      <Inbox className="grp-empty-icon" />
+                      <span className="grp-empty-text">暂无数据</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        <div className="finord-pagination">
+          <span className="finord-info">共 {total} 条</span>
+          <div className="finord-pages">
+            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
+            <span className="finord-page active">{pageIdx} / {totalPages}</span>
+            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
+          </div>
+        </div>
       </div>
 
-      {createOpen && <CreateTaskDrawer onClose={() => setCreateOpen(false)} />}
+      {createOpen && <CreateTaskDrawer onClose={() => setCreateOpen(false)} onSuccess={() => void load(1)} />}
       {tplOpen && <SubmitTplDrawer onClose={() => setTplOpen(false)} />}
     </div>
   );
@@ -132,24 +221,62 @@ function DrawerHead({ title, onClose }: { title: string; onClose: () => void }) 
         <span className="tlc-panel-title">{title}</span>
       </div>
       <div className="sms-head-actions">
-        <button className="finord-btn finord-btn-primary sms-upload-btn">☁ 拥抱此上传</button>
         <button className="finord-btn sms-cancel" onClick={onClose}>取消</button>
-        <button className="finord-btn finord-btn-primary">确定提交</button>
       </div>
     </div>
   );
 }
 
-function CreateTaskDrawer({ onClose }: { onClose: () => void }) {
+function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [taskName, setTaskName] = useState("");
   const [target, setTarget] = useState("所有注册用户");
   const [tplId, setTplId] = useState("Q1329");
+
+  const submit = async () => {
+    if (!taskName.trim()) {
+      showConfigToast("请填写任务名称", "error");
+      return;
+    }
+    try {
+      await adminApi("admin/content/sms_broadcast", {
+        method: "POST",
+        body: {
+          title: taskName.trim(),
+          subtitle: target,
+          status: 2,
+          sort: 100,
+          extra: {
+            target,
+            tpl_id: tplId,
+            phone_count: 0,
+            sent_count: 0,
+            fail_count: 0,
+          },
+        },
+      });
+      showConfigToast("已创建群发任务", "ok");
+      onSuccess();
+      onClose();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "创建失败", "error");
+    }
+  };
 
   return (
     <>
       <div className="tlc-mask" onClick={onClose} />
       <div className="tlc-panel sms-panel">
-        <DrawerHead title="创建群发任务" onClose={onClose} />
+        <div className="tlc-panel-head">
+          <div className="tlc-panel-head-left">
+            <button className="tlc-x" onClick={onClose} aria-label="关闭"><X size={18} /></button>
+            <span className="tlc-panel-title">创建群发任务</span>
+          </div>
+          <div className="sms-head-actions">
+            <button className="finord-btn finord-btn-primary sms-upload-btn" onClick={submit}>☁ 拥抱此上传</button>
+            <button className="finord-btn sms-cancel" onClick={onClose}>取消</button>
+            <button className="finord-btn finord-btn-primary" onClick={submit}>确定提交</button>
+          </div>
+        </div>
         <div className="tlc-panel-body">
           <div className="sms-notice">
             <div className="sms-notice-head">
@@ -161,7 +288,7 @@ function CreateTaskDrawer({ onClose }: { onClose: () => void }) {
 
           <div className="sms-form-row">
             <span className="sms-form-label">＊任务名称</span>
-            <input className="sms-input sms-input-wide" placeholder="自定义任务名称,限制20字符" value={taskName} onChange={(e) => setTaskName(e.target.value)} />
+            <input className="sms-input sms-input-wide" placeholder="自定义任务名称,限制20字符" value={taskName} onChange={(e) => setTaskName(e.target.value)} maxLength={20} />
           </div>
 
           <div className="sms-form-row sms-form-row-top">
@@ -204,11 +331,48 @@ function SubmitTplDrawer({ onClose }: { onClose: () => void }) {
   const [scene, setScene] = useState("");
   const [content, setContent] = useState("");
 
+  const submit = async () => {
+    if (!scene.trim() || !content.trim()) {
+      showConfigToast("请填写场景描述与模板内容", "error");
+      return;
+    }
+    try {
+      await adminApi("admin/content/sms_broadcast", {
+        method: "POST",
+        body: {
+          title: `模板-${scene.trim()}`,
+          subtitle: scene.trim(),
+          status: 1,
+          sort: 100,
+          extra: {
+            type: "template_pending",
+            scene: scene.trim(),
+            content: content.trim(),
+          },
+        },
+      });
+      showConfigToast("已提交模板创意", "ok");
+      onClose();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "提交失败", "error");
+    }
+  };
+
   return (
     <>
       <div className="tlc-mask" onClick={onClose} />
       <div className="tlc-panel sms-panel sms-panel-narrow">
-        <DrawerHead title="群发短信模板" onClose={onClose} />
+        <div className="tlc-panel-head">
+          <div className="tlc-panel-head-left">
+            <button className="tlc-x" onClick={onClose} aria-label="关闭"><X size={18} /></button>
+            <span className="tlc-panel-title">群发短信模板</span>
+          </div>
+          <div className="sms-head-actions">
+            <button className="finord-btn finord-btn-primary sms-upload-btn" onClick={submit}>☁ 拥抱此上传</button>
+            <button className="finord-btn sms-cancel" onClick={onClose}>取消</button>
+            <button className="finord-btn finord-btn-primary" onClick={submit}>确定提交</button>
+          </div>
+        </div>
         <div className="tlc-panel-body">
           <div className="obc-notice obc-notice-sms">
             <span className="obc-notice-i">!</span>
@@ -216,7 +380,6 @@ function SubmitTplDrawer({ onClose }: { onClose: () => void }) {
               <p className="obc-notice-t">须知</p>
               <p>您可以自定义的短信内容模板在此提交。提交后请在微信告知我们的技术工程师，确认后帮您提交至腾讯短信平台审核，通过后即可使用。</p>
               <p>短信服务商对于短信内容审核较为严格，短信内容中不得含有明确的营销性质、婚恋相关字样、不得含有任何具有联系方式和网站。</p>
-              <p>短信长度(签名+正文)不超过70字时，按照1条短信计费；超过70字即为长短信时，按67字/条分隔成多条计费，但会有一条短信内提示。1个汉字、数字、字母、标点、空格均算1字。</p>
             </div>
           </div>
 
