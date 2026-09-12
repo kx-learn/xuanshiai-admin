@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { useConfigDomain } from "@/lib/platform-config";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -9,20 +10,49 @@ const breadcrumb = [
   { label: "合同配置" },
 ];
 
+type EContractConfigForm = {
+  enabled: boolean;
+  contract_quota: number;
+  company_name: string;
+  credit_code: string;
+  legal_rep: string;
+};
+
+const DEFAULTS: EContractConfigForm = {
+  enabled: false,
+  contract_quota: 0,
+  company_name: "",
+  credit_code: "",
+  legal_rep: "",
+};
+
 export default function EContractConfigPage() {
-  const [enabled, setEnabled] = useState(false);
+  const { snapshot, save, loading } = useConfigDomain<EContractConfigForm>(
+    "econtract_config",
+    DEFAULTS,
+  );
+  const cfg: EContractConfigForm = snapshot?.config
+    ? { ...DEFAULTS, ...snapshot.config }
+    : DEFAULTS;
+  const [form, setForm] = useState<EContractConfigForm>(DEFAULTS);
+
+  useEffect(() => {
+    setForm(cfg);
+  }, [cfg.enabled, cfg.company_name, cfg.credit_code, cfg.legal_rep, cfg.contract_quota]);
+
+  const handleSave = async () => {
+    await save(form, "更新电子合同配置");
+  };
 
   return (
     <div>
-      {/* 红色提示条 */}
-      <div className="etc-alert">
+      <div className="etc-alert" style={{ display: cfg.enabled ? "none" : "flex" }}>
         <span className="etc-alert-x">✕</span>
         <span className="etc-alert-text">电子签功能已关闭,请先打开电子签配置</span>
       </div>
 
       <AdminBreadcrumb items={breadcrumb} />
 
-      {/* 蓝色须知条 */}
       <div className="ecl-notice">
         <div className="ecl-notice-body">
           <span className="ecl-notice-ic">◇</span>
@@ -38,7 +68,6 @@ export default function EContractConfigPage() {
       </div>
 
       <div className="finord-card">
-        {/* 卡片头部 */}
         <div className="ecc-head">
           <div className="crh-title">合同配置</div>
           <div className="ecc-links">
@@ -48,7 +77,6 @@ export default function EContractConfigPage() {
           <button className="finord-btn finord-btn-primary ecc-auth">授权电子签</button>
         </div>
 
-        {/* 表单 */}
         <div className="ecc-form">
           <div className="ecc-row">
             <span className="ecc-label">腾讯电子签系统</span>
@@ -56,8 +84,8 @@ export default function EContractConfigPage() {
               <input
                 type="radio"
                 name="ecc-enable"
-                checked={enabled}
-                onChange={() => setEnabled(true)}
+                checked={form.enabled}
+                onChange={() => setForm({ ...form, enabled: true })}
               />
               <span>开启</span>
             </label>
@@ -65,14 +93,54 @@ export default function EContractConfigPage() {
               <input
                 type="radio"
                 name="ecc-enable"
-                checked={!enabled}
-                onChange={() => setEnabled(false)}
+                checked={!form.enabled}
+                onChange={() => setForm({ ...form, enabled: false })}
               />
               <span>关闭</span>
             </label>
           </div>
 
-          <button className="ecc-submit">确定提交</button>
+          <div className="ecc-row">
+            <span className="ecc-label">企业名称</span>
+            <input
+              className="ecc-input"
+              value={form.company_name}
+              onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+            />
+          </div>
+
+          <div className="ecc-row">
+            <span className="ecc-label">统一社会信用代码</span>
+            <input
+              className="ecc-input"
+              value={form.credit_code}
+              onChange={(e) => setForm({ ...form, credit_code: e.target.value })}
+            />
+          </div>
+
+          <div className="ecc-row">
+            <span className="ecc-label">法人代表</span>
+            <input
+              className="ecc-input"
+              value={form.legal_rep}
+              onChange={(e) => setForm({ ...form, legal_rep: e.target.value })}
+            />
+          </div>
+
+          <div className="ecc-row">
+            <span className="ecc-label">合同余量</span>
+            <input
+              className="ecc-input"
+              type="number"
+              value={form.contract_quota}
+              onChange={(e) => setForm({ ...form, contract_quota: Number(e.target.value) || 0 })}
+            />
+            <span className="ecc-suffix">份</span>
+          </div>
+
+          <button className="ecc-submit" onClick={handleSave} disabled={loading}>
+            {loading ? "保存中..." : "确定提交"}
+          </button>
         </div>
       </div>
     </div>

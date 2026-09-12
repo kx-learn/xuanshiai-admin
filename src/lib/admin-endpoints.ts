@@ -1082,6 +1082,91 @@ export interface AdminAccountItem {
   updated_at: string;
 }
 
+// ─── M9 系统管理 / 平台配置 / 财务 / 电子合同 ──────────────────────
+export interface FinanceOrderAdminItem {
+  id: number;
+  order_no: string;
+  user_id: number;
+  product_type: number;
+  product_name: string;
+  amount: string;            // 后端 Decimal 以 str 序列化
+  status: 0 | 1 | 2 | 3;    // 0=未支付 1=已支付 2=已退款 3=已关闭
+  pay_time: string | null;
+  created_at: string;
+}
+export interface FinanceOrderAdminPage {
+  items: FinanceOrderAdminItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface WithdrawalAdminItem {
+  id: number;
+  account_type: string;
+  account_id: number;
+  amount: string;
+  status: "PENDING_REVIEW" | "APPROVED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "REJECTED";
+  payee_masked: string | null;
+  failure_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface WithdrawalAdminPage {
+  items: WithdrawalAdminItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface LedgerEntryItem {
+  id: number;
+  account_type: string;
+  account_id: number;
+  direction: "CREDIT" | "DEBIT";
+  amount: string;
+  state: "PENDING" | "AVAILABLE";
+  source_type: string;
+  source_id: number;
+  idempotency_key: string;
+  created_at: string;
+}
+export interface LedgerEntryPage {
+  items: LedgerEntryItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface FinanceReportRow {
+  beneficiary_type: string;
+  beneficiary_id: number;
+  order_count: number;
+  total_amount: string;
+  pending_amount: string;
+  available_amount: string;
+}
+export interface FinanceDailyRow {
+  date: string;             // YYYY-MM-DD
+  pay_count: number;
+  income_amount: string;
+  refund_count: number;
+  refund_amount: string;
+}
+export type CreditGrantTargetType = "all" | "member" | "verified" | "matchmaker_team";
+export interface CreditGrantRequest {
+  target_type: CreditGrantTargetType;
+  user_ids?: number[] | null;
+  amount: number;           // 每人积分数（正整数）
+  reason: string;           // ≤ 20 字
+}
+export interface CreditGrantResult {
+  granted_count: number;
+  total_amount: number;
+  sample_ledger_ids: number[];
+  target_user_ids: number[];
+}
+
 export interface CertificationDetail {
   user_id: number;
   kind: "education" | "house" | "marriage";
@@ -2274,9 +2359,12 @@ export const adminEndpoints = {
   financeCommissionRules: (query: PageQuery = {}) => adminApi("admin/finance/commission-rules", { method: "GET", query }),
   createFinanceCommissionRule: (body: Record<string, unknown>) => adminApi("admin/finance/commission-rules", { method: "POST", body }),
   financeReport: (query: PageQuery = {}) => adminApi("admin/finance/report", { method: "GET", query }),
-  financeOrders: (query: AdminListQuery = {}) => list("admin/finance/orders", query),
-  financeWithdrawals: (query: AdminListQuery = {}) => list("admin/finance/withdrawals", query),
-  financeLedger: (query: AdminListQuery = {}) => list("admin/finance/ledger", query),
+  financeOrders: (query: AdminListQuery = {}) =>
+    adminApi<FinanceOrderAdminPage>("admin/finance/orders", { method: "GET", query }),
+  financeWithdrawals: (query: AdminListQuery = {}) =>
+    adminApi<WithdrawalAdminPage>("admin/finance/withdrawals", { method: "GET", query }),
+  financeLedger: (query: AdminListQuery = {}) =>
+    adminApi<LedgerEntryPage>("admin/finance/ledger", { method: "GET", query }),
   vipMembers: (query: AdminListQuery = {}) => list("admin/members/vip", query),
   updateProductCommissionRule: (productId: number | string, body: Record<string, unknown>) => adminApi(`admin/finance/product-commission-rules/${productId}`, { method: "POST", body }),
   settleFinanceOrder: (orderId: number | string, body: Record<string, unknown> = {}) => adminApi(`admin/finance/orders/${orderId}/settle`, { method: "POST", body }),
@@ -2720,6 +2808,38 @@ export const adminEndpoints = {
     adminApi<VideoHomepageItem>(`admin/short-video-homepages/${id}`, { method: "PATCH", query }),
   deleteVideoHomepage: (id: number | string) =>
     adminApi<void>(`admin/short-video-homepages/${id}`, { method: "DELETE" }),
+
+  // ─── M9 系统管理 / 平台配置 / 财务 / 电子合同 ──────────────────────
+  /** 通用：读取 /admin/configs/{namespace} */
+  readPlatformConfig: <T extends Dict = Dict>(namespace: string) =>
+    adminApi<ConfigSnapshot<T>>(`admin/configs/${namespace}`, { method: "GET" }),
+  /** 通用：PATCH /admin/configs/{namespace}（version 乐观锁） */
+  writePlatformConfig: <T extends Dict = Dict>(
+    namespace: string,
+    body: { version: number; config: T; change_summary?: string },
+  ) => adminApi<ConfigSnapshot<T>>(`admin/configs/${namespace}`, { method: "PATCH", body }),
+
+  /** 收入明细统计（按日） */
+  financeDailyReport: (query: { start_date?: string; end_date?: string } = {}) =>
+    adminApi<FinanceDailyRow[]>("admin/finance/daily-report", { method: "GET", query }),
+  /** 后台手动发放积分 */
+  creditGrant: (body: CreditGrantRequest) =>
+    adminApi<CreditGrantResult>("admin/finance/credit-grants", { method: "POST", body }),
+
+  /* ----------------- admin_content 通用 CRUD ----------------- */
+  listContent: <T = unknown>(domain: string, query: AdminListQuery = {}) =>
+    adminApi<{ items: T[]; page: number; page_size: number; total: number; has_more: boolean }>(
+      `admin/content/${domain}`,
+      { method: "GET", query },
+    ),
+  getContent: <T = unknown>(domain: string, id: number | string) =>
+    adminApi<T>(`admin/content/${domain}/${id}`),
+  createContent: <T = unknown>(domain: string, body: JsonBody) =>
+    adminApi<T>(`admin/content/${domain}`, { method: "POST", body }),
+  updateContent: <T = unknown>(domain: string, id: number | string, body: JsonBody) =>
+    adminApi<T>(`admin/content/${domain}/${id}`, { method: "PATCH", body }),
+  deleteContent: (domain: string, id: number | string) =>
+    adminApi<void>(`admin/content/${domain}/${id}`, { method: "DELETE" }),
 };
 
 /**

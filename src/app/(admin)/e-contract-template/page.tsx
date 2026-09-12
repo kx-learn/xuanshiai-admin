@@ -1,5 +1,7 @@
 "use client";
+import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -8,10 +10,38 @@ const breadcrumb = [
   { label: "模板管理" },
 ];
 
+type TemplateRow = {
+  id: number;
+  template_id: string;
+  name: string;
+  version: string;
+  contract_type: string;
+  creator: string;
+  created_at: string;
+};
+
 export default function EContractTemplatePage() {
+  const [rows, setRows] = useState<TemplateRow[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await adminEndpoints.listContent("econtract_template", { page: 1, page_size: 50 });
+      setRows((data.items ?? []) as TemplateRow[]);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   return (
     <div>
-      {/* 红色提示条 */}
       <div className="etc-alert">
         <span className="etc-alert-x">✕</span>
         <span className="etc-alert-text">电子签功能已关闭,请先打开电子签配置</span>
@@ -19,7 +49,6 @@ export default function EContractTemplatePage() {
 
       <AdminBreadcrumb items={breadcrumb} />
 
-      {/* 蓝色须知条 */}
       <div className="ecl-notice">
         <div className="ecl-notice-body">
           <span className="ecl-notice-ic">◇</span>
@@ -38,11 +67,12 @@ export default function EContractTemplatePage() {
           <div className="crh-title">模板管理</div>
           <div className="etc-actions">
             <button className="finord-btn finord-btn-primary">＋ 添加合同模板</button>
-            <button className="finord-btn finord-btn-primary">↻ 刷新列表</button>
+            <button className="finord-btn finord-btn-primary" onClick={load} disabled={loading}>
+              {loading ? "刷新中..." : "↻ 刷新列表"}
+            </button>
           </div>
         </div>
 
-        {/* 表格 */}
         <div className="finord-table-wrap">
           <table className="finord-table">
             <thead>
@@ -55,14 +85,29 @@ export default function EContractTemplatePage() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={5} className="ecl-empty">
-                  <div className="ecl-empty-inner">
-                    <div className="ecl-empty-icon">▤</div>
-                    <div className="ecl-empty-text">暂无数据</div>
-                  </div>
-                </td>
-              </tr>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="ecl-empty">
+                    <div className="ecl-empty-inner">
+                      <div className="ecl-empty-icon">▤</div>
+                      <div className="ecl-empty-text">{loading ? "加载中..." : "暂无数据"}</div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.version}</td>
+                    <td>{r.name}</td>
+                    <td>{r.template_id}</td>
+                    <td>{r.creator}</td>
+                    <td>
+                      <button className="ecc-link">编辑</button>
+                      <button className="ecc-link ecl-del">删除</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

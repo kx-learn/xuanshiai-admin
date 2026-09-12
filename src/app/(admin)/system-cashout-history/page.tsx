@@ -1,76 +1,129 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import type { WithdrawalAdminItem } from "@/lib/admin-endpoints";
 
-type Record = {
-  id: number;
-  nickname: string;
-  uid: number;
-  phone: string;
-  apply: number; // 申请提现金额
-  fee: number; // 手续费
-  arrive: number; // 到账金额
-  status: "已提现" | "待处理" | "提现中" | "拒绝提现";
-  balance: string; // 当前账号余额
-  applyTime: string;
-  arriveTime?: string;
-  payTo: string; // 支付方式名+账号
-  payeeName: string;
-  payMethod: string; // 支付方式
-};
-
-const seedRecords: Record[] = [
-  { id: 548, nickname: "σπη'η", uid: 548, phone: "188****7690", apply: 10, fee: 0, arrive: 10, status: "已提现", balance: "9.91元", applyTime: "2026-06-28 15:35:52", arriveTime: "2026-06-28 15:36:50", payTo: "人工转账微信 18856767590", payeeName: "李会强", payMethod: "线下支付" },
-  { id: 54, nickname: "出现1", uid: 54, phone: "132****8888", apply: 999, fee: 9.99, arrive: 989.01, status: "已提现", balance: "-", applyTime: "2026-06-28 15:24:18", arriveTime: "2026-06-28 15:25:16", payTo: "人工转账微信 13285288888", payeeName: "张瑞", payMethod: "线下支付" },
-  { id: 506, nickname: "憨喜", uid: 506, phone: "182****5504", apply: 74, fee: 0, arrive: 0, status: "待处理", balance: "-", applyTime: "2026-06-14 13:22:30", payTo: "支付宝 18263955504", payeeName: "夏建军", payMethod: "-" },
-  { id: 506, nickname: "憨喜", uid: 506, phone: "182****5504", apply: 380, fee: 3.8, arrive: 0, status: "待处理", balance: "-", applyTime: "2026-06-13 17:48:54", payTo: "银行卡 6228481829047928370", payeeName: "夏建军", payMethod: "-" },
-  { id: 506, nickname: "憨喜", uid: 506, phone: "182****5504", apply: 80, fee: 0, arrive: 0, status: "待处理", balance: "-", applyTime: "2026-06-13 13:57:26", payTo: "银行卡 6228481829047928370", payeeName: "夏建军", payMethod: "-" },
+const STATUS_TABS = [
+  { value: "", label: "全部" },
+  { value: "PENDING_REVIEW", label: "待处理" },
+  { value: "APPROVED", label: "已批准" },
+  { value: "SUCCEEDED", label: "已提现" },
+  { value: "PROCESSING", label: "提现中" },
+  { value: "REJECTED", label: "拒绝提现" },
+  { value: "FAILED", label: "失败" },
 ];
 
-const STATUS_TABS = ["全部", "待处理", "已提现", "提现中", "拒绝提现"];
+function statusLabel(s: string): string {
+  const found = STATUS_TABS.find((t) => t.value === s);
+  return found ? found.label : s;
+}
+
+function timeText(s: string): string {
+  return s ? s.replace("T", " ").slice(0, 19) : "-";
+}
 
 export default function SystemCashoutHistoryPage() {
-  const [statusTab, setStatusTab] = useState("全部");
+  const [statusTab, setStatusTab] = useState("");
+  const [items, setItems] = useState<WithdrawalAdminItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [keyword, setKeyword] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const query: Record<string, string | number | undefined> = { page: 1, page_size: 100 };
+      if (statusTab) query.status = statusTab;
+      if (startDate) query.start_time = startDate;
+      if (endDate) query.end_time = endDate;
+      const result = await adminEndpoints.financeWithdrawals(query);
+      setItems(result?.items ?? []);
+    } catch (e) {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusTab]);
+
+  const filtered = useMemo(() => {
+    if (!keyword) return items;
+    const k = keyword.trim();
+    return items.filter(
+      (r) =>
+        String(r.account_id).includes(k) ||
+        (r.payee_masked ?? "").includes(k) ||
+        (r.failure_reason ?? "").includes(k),
+    );
+  }, [items, keyword]);
+
+  const stats = useMemo(() => {
+    const sum = (arr: WithdrawalAdminItem[]) =>
+      arr.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+    const succeeded = items.filter((r) => r.status === "SUCCEEDED");
+    const pending = items.filter((r) => ["PENDING_REVIEW", "APPROVED", "PROCESSING"].includes(r.status));
+    return {
+      notApplied: sum(items.filter((r) => r.status === "PENDING_REVIEW")) + 0,
+      succeeded: sum(succeeded),
+      pending: sum(pending),
+    };
+  }, [items]);
+
+  const review = async (id: number, status: "APPROVED" | "REJECTED" | "SUCCEEDED") => {
+    try {
+      await adminEndpoints.reviewWithdrawal(id, { status });
+      await load();
+    } catch (e) {
+      // 静默失败，依赖下一次 load
+    }
+  };
+
   const breadcrumb = getBreadcrumb("财务管理", "余额提现");
 
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
 
-      {/* 蓝色信息条 */}
       <div className="cs-info">
         <div className="cs-info-body">
-          <span className="cs-info-ic"><span>ℹ</span></span>
+          <span className="cs-info-ic">
+            <span>ℹ</span>
+          </span>
           <div className="cs-info-text">
             <p>平台中的用户可以将账号中的"余额"，以两种方式与平台进行现金结算（提现）：</p>
-            <p>1、用户可自主操作自动提现到其微信零钱中，无需您的审核，秒到账。钱款将自动从您的微信商户号的"运营资金"中支付。开启本功能前请确保 您已经在微信商户平台中开通了"商家转账功能"且您的微信商户号中需有足额资金用于支付提现。微信商户系统会根据您的账号安全情况限制用户单次提现金额的上限（一般200元）、单日提现的总上限（一般1万元）</p>
-            <p>2、用户输入金额向平台提出结算提现申请，其金额会从余额中扣除，平台工作人员核实后人工转账到用户指定的银行卡或者支付宝中，然后操作点击"已完成转账"，即完成提现，若操作点击"拒绝提现"，则对应金额退回 到其账号余额中。</p>
+            <p>1、用户可自主操作自动提现到其微信零钱中，无需您的审核，秒到账。</p>
+            <p>2、用户输入金额向平台提出结算提现申请，工作人员核实后人工转账或拒绝退回余额。</p>
           </div>
         </div>
       </div>
 
-      {/* 统计卡 */}
       <div className="cs-stats">
         <div className="cs-stat">
           <div className="cs-stat-icon green">¥</div>
           <div className="cs-stat-meta">
-            <div className="cs-stat-label">未申请提现总额</div>
-            <div className="cs-stat-value">15756.58元</div>
+            <div className="cs-stat-label">待处理提现金额</div>
+            <div className="cs-stat-value">{stats.notApplied.toFixed(2)}元</div>
           </div>
         </div>
         <div className="cs-stat">
           <div className="cs-stat-icon red">☺</div>
           <div className="cs-stat-meta">
             <div className="cs-stat-label">已提现总额</div>
-            <div className="cs-stat-value">1009元</div>
+            <div className="cs-stat-value">{stats.succeeded.toFixed(2)}元</div>
           </div>
         </div>
         <div className="cs-stat">
           <div className="cs-stat-icon blue">✓</div>
           <div className="cs-stat-meta">
-            <div className="cs-stat-label">提现中的总额</div>
-            <div className="cs-stat-value">0元</div>
+            <div className="cs-stat-label">处理中总额</div>
+            <div className="cs-stat-value">{stats.pending.toFixed(2)}元</div>
           </div>
         </div>
       </div>
@@ -80,27 +133,49 @@ export default function SystemCashoutHistoryPage() {
           <div className="crh-title">余额提现</div>
         </div>
 
-        {/* 筛选条 */}
         <div className="cs-filters">
           <div className="cs-radios">
             {STATUS_TABS.map((t) => (
-              <label key={t} className={`cs-radio ${statusTab === t ? "active" : ""}`}>
-                <input type="radio" name="cs-status" checked={statusTab === t} onChange={() => setStatusTab(t)} />
-                <span>{t}</span>
+              <label
+                key={t.value || "all"}
+                className={`cs-radio ${statusTab === t.value ? "active" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="cs-status"
+                  checked={statusTab === t.value}
+                  onChange={() => setStatusTab(t.value)}
+                />
+                <span>{t.label}</span>
               </label>
             ))}
           </div>
-          <select className="finord-select">
+          <select className="finord-select" disabled>
             <option>全部支付类型</option>
             <option>自动提现</option>
             <option>人工转账</option>
           </select>
-          <input className="finord-search-input crh-search-input" placeholder="请输入账号昵称" />
-          <button className="finord-btn finord-btn-primary">搜索</button>
-          <button className="finord-btn finord-btn-outline cs-clear">🗑 清空数据</button>
+          <input
+            className="finord-search-input crh-search-input"
+            placeholder="请输入账号/收款人"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          <button className="finord-btn finord-btn-primary" onClick={load}>
+            搜索
+          </button>
+          <button
+            className="finord-btn finord-btn-outline cs-clear"
+            onClick={() => {
+              setKeyword("");
+              setStartDate("");
+              setEndDate("");
+            }}
+          >
+            🗑 清空筛选
+          </button>
         </div>
 
-        {/* 表格 */}
         <div className="finord-table-wrap">
           <table className="finord-table">
             <thead>
@@ -119,52 +194,87 @@ export default function SystemCashoutHistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {seedRecords.map((rec) => (
-                <tr key={`${rec.id}-${rec.applyTime}`}>
-                  <td>
-                    <div className="cs-nick">{rec.nickname}</div>
-                    <div className="cs-uid">ID: {rec.uid}</div>
-                  </td>
-                  <td className="cs-phone">{rec.phone}</td>
-                  <td className="cs-amount">{rec.apply}元</td>
-                  <td className="cs-fee">{rec.fee}元</td>
-                  <td className={`cs-arrive ${rec.status === "已提现" ? "done" : ""}`}>{rec.arrive}元</td>
-                  <td>
-                    <span className={`cs-status ${rec.status === "已提现" ? "done" : "pending"}`}>{rec.status}</span>
-                  </td>
-                  <td className="cs-balance">{rec.balance}</td>
-                  <td>
-                    <div className="cs-time">申请时间:{rec.applyTime}</div>
-                    {rec.arriveTime && <div className="cs-time">到账时间:{rec.arriveTime}</div>}
-                  </td>
-                  <td>
-                    <div className="cs-payto">{rec.payTo}</div>
-                    <div className="cs-payname">{rec.payeeName}</div>
-                  </td>
-                  <td className="cs-paymethod">{rec.payMethod}</td>
-                  <td>
-                    {rec.status === "待处理" ? (
-                      <div className="cs-ops">
-                        <span className="finord-link">已完成转账</span>
-                        <span className="cs-op-sep">|</span>
-                        <span className="finord-link">拒绝提现</span>
-                      </div>
-                    ) : (
-                      <span className="finord-td-dash">-</span>
-                    )}
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={11} className="finord-td-empty">加载中…</td>
                 </tr>
-              ))}
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="finord-td-empty">暂无数据</td>
+                </tr>
+              ) : (
+                filtered.map((rec) => (
+                  <tr key={rec.id}>
+                    <td>
+                      <div className="cs-nick">用户#{rec.account_id}</div>
+                      <div className="cs-uid">ID: {rec.account_id}</div>
+                    </td>
+                    <td className="cs-phone">-</td>
+                    <td className="cs-amount">{rec.amount}元</td>
+                    <td className="cs-fee">-</td>
+                    <td
+                      className={`cs-arrive ${
+                        rec.status === "SUCCEEDED" ? "done" : ""
+                      }`}
+                    >
+                      {rec.status === "SUCCEEDED" ? `${rec.amount}元` : "-"}
+                    </td>
+                    <td>
+                      <span
+                        className={`cs-status ${
+                          rec.status === "SUCCEEDED" ? "done" : "pending"
+                        }`}
+                      >
+                        {statusLabel(rec.status)}
+                      </span>
+                    </td>
+                    <td className="cs-balance">-</td>
+                    <td>
+                      <div className="cs-time">申请时间:{timeText(rec.created_at)}</div>
+                      <div className="cs-time">更新时间:{timeText(rec.updated_at)}</div>
+                    </td>
+                    <td>
+                      <div className="cs-payto">{rec.payee_masked ?? "-"}</div>
+                      <div className="cs-payname">-</div>
+                    </td>
+                    <td className="cs-paymethod">-</td>
+                    <td>
+                      {rec.status === "PENDING_REVIEW" ? (
+                        <div className="cs-ops">
+                          <span
+                            className="finord-link"
+                            onClick={() => review(rec.id, "SUCCEEDED")}
+                          >
+                            已完成转账
+                          </span>
+                          <span className="cs-op-sep">|</span>
+                          <span
+                            className="finord-link"
+                            onClick={() => review(rec.id, "REJECTED")}
+                          >
+                            拒绝提现
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="finord-td-dash">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* 分页 */}
         <div className="finord-pagination">
           <div className="finord-pages">
-            <button className="finord-page nav" disabled>‹</button>
+            <button className="finord-page nav" disabled>
+              ‹
+            </button>
             <button className="finord-page active">1</button>
-            <button className="finord-page nav" disabled>›</button>
+            <button className="finord-page nav" disabled>
+              ›
+            </button>
           </div>
           <div className="finord-page-size">
             <span>20条/页</span>

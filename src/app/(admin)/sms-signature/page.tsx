@@ -1,11 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { useConfigDomain, asStr, type Dict } from "@/lib/platform-config";
+import { useConfigDomain, asStr, showConfigToast, type Dict } from "@/lib/platform-config";
 
 export default function Page() {
-  const domain = useConfigDomain<Dict>("sys_sms", {});
-  const [signature, setSignature] = useState("南京信达宜管家");
+  const domain = useConfigDomain<Dict>("sys_sms", {
+    signature: "",
+    send_enabled: true,
+    notices: [],
+  } as unknown as Dict);
+  const [signature, setSignature] = useState("");
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -18,9 +22,30 @@ export default function Page() {
   useEffect(() => {
     if (!domain.ready || !domain.snapshot) return;
     const c = domain.snapshot.config as Dict;
-    setSignature(asStr(c.signature, "南京信达宜管家"));
+    setSignature(asStr(c.signature, ""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain.ready]);
+
+  // 改动即自动保存（debounced）
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (!domain.ready || !loaded.current) return;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const c = (domain.snapshot?.config ?? {}) as Dict;
+      const ok = await domain.save(
+        { signature, send_enabled: c.send_enabled ?? true, notices: c.notices ?? [] },
+        "更新短信签名",
+      );
+      if (!ok && domain.error) showConfigToast(domain.error, "error");
+      else showConfigToast("短信签名已保存", "ok");
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
 
   return (
     <div className="obc-page">
@@ -71,7 +96,12 @@ export default function Page() {
             <div className="sy-row">
               <label className="sy-label">您的短信签名</label>
               <div className="sy-ctrl">
-                <input className="sy-input obc-input" value={signature} readOnly />
+                <input
+                  className="sy-input obc-input"
+                  value={signature}
+                  maxLength={32}
+                  onChange={(e) => setSignature(e.target.value)}
+                />
               </div>
             </div>
 
@@ -79,7 +109,7 @@ export default function Page() {
               <svg className="sign-info-i" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm.9 12.1H7.1V7.2h1.8v4.9zM8 5.9a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1z" />
               </svg>
-              <span>需要修改请对接系统服务商为您申请</span>
+              <span>修改签名后将自动保存到配置，无需点击按钮</span>
             </div>
           </div>
         </div>

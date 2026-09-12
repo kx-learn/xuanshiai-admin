@@ -144,6 +144,34 @@ export default function Page() {
     setState((prev) => prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));
   };
 
+  const removeTag = (rowId: number, idx: number) => {
+    setState((prev) =>
+      prev.map((r) =>
+        r.id === rowId && r.adminTags
+          ? { ...r, adminTags: r.adminTags.filter((_, i) => i !== idx) }
+          : r,
+      ),
+    );
+  };
+
+  const addTagPrompt = (rowId: number) => {
+    if (typeof window === "undefined") return;
+    const tag = window.prompt(
+      "请输入要通知的管理员账号或权限组（如 admin 或管理员用户名），用逗号分隔多条：",
+    );
+    if (!tag) return;
+    const values = tag
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (values.length === 0) return;
+    setState((prev) =>
+      prev.map((r) =>
+        r.id === rowId ? { ...r, adminTags: [...(r.adminTags ?? []), ...values] } : r,
+      ),
+    );
+  };
+
   const adminPlaceholder = "请选择管理员";
 
   return (
@@ -217,16 +245,28 @@ export default function Page() {
                       <div className="notif-admin">
                         {r.adminTags && r.adminTags.length > 0 && (
                           <div className="notif-tags">
-                            {r.adminTags.map((tag) => (
-                              <span key={tag} className="notif-tag">
+                            {r.adminTags.map((tag, ti) => (
+                              <span key={`${tag}-${ti}`} className="notif-tag">
                                 {tag}
-                                <button type="button" className="notif-tag-x">×</button>
+                                <button
+                                  type="button"
+                                  className="notif-tag-x"
+                                  onClick={() => removeTag(r.id, ti)}
+                                >
+                                  ×
+                                </button>
                               </span>
                             ))}
                           </div>
                         )}
                         <div className="notif-select">
-                          <span className="notif-select-label">{adminPlaceholder}</span>
+                          <button
+                            type="button"
+                            className="notif-select-label"
+                            style={{ cursor: "pointer", background: "none", border: "none" }}
+                            onClick={() => addTagPrompt(r.id)}
+                          >
+                            + {adminPlaceholder}</button>
                           {r.adminType === "single" && (
                             <span className="notif-select-ghost">请选择要通知的管理员</span>
                           )}
