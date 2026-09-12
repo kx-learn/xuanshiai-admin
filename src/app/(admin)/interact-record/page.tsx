@@ -1,7 +1,10 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminApi } from "@/lib/admin-api";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -10,41 +13,71 @@ const breadcrumb = [
   { label: "消息记录" },
 ];
 
-interface MsgRow {
+type MsgContent = {
   id: number;
-  senderName: string;
-  senderId: string;
-  senderMatch: string;
-  recvName: string;
-  recvId: string;
-  recvMatch: string;
-  sendAt: string;
-  replyAt: string;
-  lastAt: string;
-}
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  amount: number | null;
+  status: number;
+  sort: number;
+  extra: Record<string, unknown>;
+  created_at: string | null;
+};
 
-const rows: MsgRow[] = [
-  { id: 8, senderName: "秋刀鱼", senderId: "B976071", senderMatch: "李会强", recvName: "", recvId: "G397921", recvMatch: "-", sendAt: "2026-07-09 10:44", replyAt: "未回复", lastAt: "2026-07-09 10:44" },
-  { id: 7, senderName: "出现1", senderId: "B241050", senderMatch: "张瑞", recvName: "1196", recvId: "G617884", recvMatch: "荷菱颖", sendAt: "2026-07-09 09:38", replyAt: "未回复", lastAt: "2026-07-09 09:38" },
-  { id: 6, senderName: "秋刀鱼", senderId: "B976071", senderMatch: "李会强", recvName: "", recvId: "G397921", recvMatch: "-", sendAt: "2026-07-08 10:00", replyAt: "未回复", lastAt: "2026-07-08 10:00" },
-  { id: 5, senderName: "出现", senderId: "B237195", senderMatch: "张瑞", recvName: "0哔吧啦", recvId: "G368717", recvMatch: "冯琴", sendAt: "2026-06-28 15:32", replyAt: "未回复", lastAt: "2026-06-28 15:32" },
-  { id: 4, senderName: "σπη'η", senderId: "B108658", senderMatch: "李会强", recvName: "爱慕药", recvId: "G152031", recvMatch: "杨奕斌", sendAt: "2026-06-25 16:59", replyAt: "未回复", lastAt: "2026-06-25 16:59" },
-  { id: 3, senderName: "σπη'η", senderId: "B108658", senderMatch: "李会强", recvName: "0哔吧啦", recvId: "G368717", recvMatch: "冯琴", sendAt: "2026-06-25 16:56", replyAt: "未回复", lastAt: "2026-06-25 16:56" },
-  { id: 2, senderName: "σπη'η", senderId: "B108658", senderMatch: "李会强", recvName: "小Yang又困❀", recvId: "G667599", recvMatch: "方梓涵", sendAt: "2026-06-25 16:56", replyAt: "未回复", lastAt: "2026-06-25 16:56" },
-  { id: 1, senderName: "σπη'η", senderId: "B108658", senderMatch: "李会强", recvName: "毛毛", recvId: "G765914", recvMatch: "汪苏杭", sendAt: "2026-06-25 16:55", replyAt: "未回复", lastAt: "2026-06-25 16:55" },
-];
+type MsgPage = { items: MsgContent[]; total: number; page: number; page_size: number };
 
 const sortOptions = ["按首次发送时间", "按首次回复时间", "按最后互动时间"];
 
 export default function InteractRecordPage() {
+  const [rows, setRows] = useState<MsgContent[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageIdx, setPageIdx] = useState(1);
+  const [keyword, setKeyword] = useState("");
   const [sort, setSort] = useState(0);
   const [preview, setPreview] = useState(false);
+
+  const load = async (page = pageIdx) => {
+    try {
+      const resp = await adminApi<MsgPage>("admin/content/interactive_message", {
+        method: "GET",
+        query: {
+          page,
+          page_size: 20,
+          keyword: keyword || undefined,
+          sort_mode: sort,
+        },
+      });
+      setRows(resp.items);
+      setTotal(resp.total);
+      setPageIdx(resp.page);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
+    }
+  };
+
+  useEffect(() => {
+    void load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
+
+  const remove = async (id: number) => {
+    if (!window.confirm("确定删除该消息记录？")) return;
+    try {
+      await adminApi(`admin/content/interactive_message/${id}`, { method: "DELETE" });
+      showConfigToast("已删除", "ok");
+      void load(pageIdx);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
+    }
+  };
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
 
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
 
-      {/* 蓝色须知条 */}
       <div className="ecl-notice">
         <div className="ecl-notice-body">
           <span className="ecl-notice-ic">i</span>
@@ -60,8 +93,16 @@ export default function InteractRecordPage() {
         <div className="ir-title">消息记录</div>
 
         <div className="ir-filters">
-          <input className="ir-search-input" placeholder="请输入主动发送人昵称/编号/手机/姓名" />
-          <button className="ir-search-btn">搜索</button>
+          <input
+            className="ir-search-input"
+            placeholder="请输入主动发送人昵称/编号/手机/姓名"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void load(1);
+            }}
+          />
+          <button className="ir-search-btn" onClick={() => void load(1)}>搜索</button>
           <div className="ir-sorts">
             {sortOptions.map((s, i) => (
               <label className="ir-sort" key={s}>
@@ -85,48 +126,70 @@ export default function InteractRecordPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <div className="ir-person">
-                      <span className="ir-avatar" />
-                      <div className="ir-person-info">
-                        <div className="ir-name">{r.senderName} <span className="ir-id">{r.senderId}</span></div>
-                        <div className="ir-match">{r.senderMatch}</div>
+              {rows.map((r) => {
+                const extra = r.extra ?? {};
+                return (
+                  <tr key={r.id}>
+                    <td>
+                      <div className="ir-person">
+                        <span className="ir-avatar" />
+                        <div className="ir-person-info">
+                          <div className="ir-name">
+                            {typeof extra.sender_name === "string" ? extra.sender_name : r.title}
+                            <span className="ir-id">{typeof extra.sender_id === "string" ? extra.sender_id : ""}</span>
+                          </div>
+                          <div className="ir-match">{typeof extra.sender_matchmaker === "string" ? extra.sender_matchmaker : "-"}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="ir-person">
-                      {r.recvName && <span className="ir-avatar" />}
-                      <div className="ir-person-info">
-                        {r.recvName ? (
-                          <>
-                            <div className="ir-name">{r.recvName} <span className="ir-id">{r.recvId}</span></div>
-                            <div className="ir-match">{r.recvMatch}</div>
-                          </>
-                        ) : (
-                          <div className="ir-name"><span className="ir-id">{r.recvId}</span> <span className="ir-dash">-</span></div>
-                        )}
+                    </td>
+                    <td>
+                      <div className="ir-person">
+                        <span className="ir-avatar" />
+                        <div className="ir-person-info">
+                          <div className="ir-name">
+                            {typeof extra.recv_name === "string" ? extra.recv_name : (r.subtitle ?? "-")}
+                            <span className="ir-id">{typeof extra.recv_id === "string" ? extra.recv_id : ""}</span>
+                          </div>
+                          <div className="ir-match">{typeof extra.recv_matchmaker === "string" ? extra.recv_matchmaker : "-"}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="ir-time">{r.sendAt}</td>
-                  <td className="ir-time">{r.replyAt}</td>
-                  <td className="ir-time">{r.lastAt}</td>
-                  <td>
-                    <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); setPreview(true); }}>
-                      查看消息内容记录
-                    </a>
+                    </td>
+                    <td className="ir-time">{typeof extra.send_at === "string" ? extra.send_at : ((r.created_at ?? "-").replace("T", " ").slice(0, 16))}</td>
+                    <td className="ir-time">{typeof extra.reply_at === "string" ? extra.reply_at : "未回复"}</td>
+                    <td className="ir-time">{typeof extra.last_at === "string" ? extra.last_at : "-"}</td>
+                    <td>
+                      <span className="ir-ops">
+                        <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); setPreview(true); }}>
+                          查看消息内容记录
+                        </a>
+                        <span className="cs-op-sep">|</span>
+                        <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void remove(r.id); }}>删除</a>
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                    暂无消息记录
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
+
+        <div className="finord-pagination">
+          <span className="finord-info">共 {total} 条</span>
+          <div className="finord-pages">
+            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
+            <span className="finord-page active">{pageIdx} / {totalPages}</span>
+            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
+          </div>
+        </div>
       </div>
 
-      {/* 预览前台 Drawer */}
       {preview && (
         <div className="ir-mask" onClick={() => setPreview(false)}>
           <div className="ir-drawer" onClick={(e) => e.stopPropagation()}>
@@ -146,13 +209,11 @@ export default function InteractRecordPage() {
               </div>
 
               <div className="ir-user-card">
-                <span className="ir-user-avatar">1196</span>
+                <span className="ir-user-avatar">用户</span>
                 <div className="ir-user-info">
                   <div className="ir-user-line">
-                    <span className="ir-user-name">1196</span>
+                    <span className="ir-user-name">互动对象</span>
                     <span className="ir-user-badge">已实名</span>
-                    <span className="ir-user-meta">26岁</span>
-                    <span className="ir-user-meta">166cm</span>
                   </div>
                   <div className="ir-user-detail">
                     <a href="#">详细</a>
@@ -161,7 +222,7 @@ export default function InteractRecordPage() {
                 </div>
               </div>
 
-              <div className="ir-chat-time">07-09 09:38</div>
+              <div className="ir-chat-time">--</div>
 
               <div className="ir-bubble-wrap">
                 <div className="ir-bubble">
