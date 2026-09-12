@@ -1,20 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import type { PartnerLevelId, PartnerStaffItem, PartnerUserCandidate } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("合伙红娘", "合伙人管理");
 
-const columns = ["ID", "合伙人", "合伙级别", "创建时间", "团队成员", "团队业绩", "团队有效会员", "累计分成", "操作"];
+const columns = ["ID", "合伙人", "合伙级别", "创建时间", "团队成员", "团队业绩", "团队有效会员", "累积分成", "操作"];
 
-const partners = [
-  { id: 2, account: "出现1", team: "富婆爱1", level: "初级合伙人", createdAt: "2026-06-28 14:30:17", members: "5人", memberLink: "名单", performance: "0元", validMembers: "2（男女2）", totalBonus: "2元", bonusLink: "明细" },
+const LEVEL_OPTIONS: { id: PartnerLevelId; label: string }[] = [
+  { id: 1, label: "初级合伙人" },
+  { id: 2, label: "中级合伙人" },
+  { id: 3, label: "战略合伙人" },
 ];
 
+const fmt = (value: string | null) => (value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "-");
+
 export default function LovePartnerListPage() {
+  const router = useRouter();
+  const [rows, setRows] = useState<PartnerStaffItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<PartnerStaffItem | null>(null);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await adminEndpoints.partnerList({ page, page_size: pageSize });
+      setRows(result.items);
+      setTotal(result.total);
+      setMessage("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const removeRow = async (row: PartnerStaffItem) => {
+    if (typeof window !== "undefined" && !window.confirm(`确认关闭合伙人「${row.team_name}」？团队成员将被移出，合伙人角色将被撤销。`)) return;
+    try {
+      await adminEndpoints.deletePartner(row.team_id);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "删除失败");
+    }
+  };
+
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -40,7 +85,7 @@ export default function LovePartnerListPage() {
       <div className="finord-card lpl-card">
         <div className="lpl-head">
           <h2 className="lpl-title">合伙人管理</h2>
-          <button className="finord-btn finord-btn-primary lpl-add-btn" onClick={() => setAddOpen(true)}>＋ 添加合伙人</button>
+          <button className="finord-btn finord-btn-primary lpl-add-btn" onClick={() => { setEditing(null); setAddOpen(true); }}>＋ 添加合伙人</button>
         </div>
 
         <div className="finord-table-wrap">
@@ -51,51 +96,152 @@ export default function LovePartnerListPage() {
               </tr>
             </thead>
             <tbody>
-              {partners.map((p) => (
+              {rows.map((p) => (
                 <tr key={p.id}>
                   <td>{p.id}</td>
                   <td>
                     <div className="lpl-partner">
                       <div className="lpl-avatar">?</div>
                       <div className="lpl-partner-info">
-                        <div>账号：{p.account}</div>
-                        <div className="lpl-team">团队：{p.team}</div>
+                        <div>账号：{p.account || `用户${p.user_id}`}</div>
+                        <div className="lpl-team">团队：{p.team_name}</div>
                       </div>
                     </div>
                   </td>
-                  <td><span className="lpl-level">{p.level}</span></td>
-                  <td className="lpl-time">{p.createdAt}</td>
-                  <td>{p.members} <a className="finord-link">{p.memberLink}</a></td>
-                  <td><span className="lpl-performance">{p.performance}</span></td>
-                  <td>{p.validMembers}</td>
-                  <td><span className="lpl-bonus">{p.totalBonus}</span><a className="finord-link lpl-bonus-link">[{p.bonusLink}]</a></td>
+                  <td><span className="lpl-level">{p.level_name || `级别${p.level_id}`}</span></td>
+                  <td className="lpl-time">{fmt(p.created_at)}</td>
+                  <td>
+                    {p.member_count}人{" "}
+                    <a className="finord-link" role="button" onClick={() => router.push("/love-partner-relation")}>名单</a>
+                  </td>
+                  <td><span className="lpl-performance">{p.performance_amount}元</span></td>
+                  <td>{p.effective_member_count}</td>
+                  <td>
+                    <span className="lpl-bonus">{p.commission_amount}元</span>
+                    <a className="finord-link lpl-bonus-link" role="button" onClick={() => router.push("/love-partner-bonus-details")}>[明细]</a>
+                  </td>
                   <td>
                     <div className="lpl-ops">
-                      <a className="finord-link">合伙人中心</a>
-                      <a className="finord-link">编辑</a>
-                      <a className="finord-link lpl-op-del">删除</a>
+                      <a
+                        className="finord-link"
+                        role="button"
+                        onClick={() => setMessage("合伙人中心为客户端功能，后台暂未提供免登入口")}
+                      >
+                        合伙人中心
+                      </a>
+                      <a className="finord-link" role="button" onClick={() => { setEditing(p); setAddOpen(true); }}>编辑</a>
+                      <a className="finord-link lpl-op-del" role="button" onClick={() => void removeRow(p)}>删除</a>
                     </div>
                   </td>
                 </tr>
               ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length} style={{ textAlign: "center", color: "#999" }}>
+                    {loading ? "加载中…" : "暂无数据"}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="lpl-pager">
-          <span className="lpl-pager-arrow">‹</span>
-          <span className="lpl-pager-cur">1</span>
-          <span className="lpl-pager-arrow">›</span>
+          <span
+            className="lpl-pager-arrow"
+            style={{ cursor: page > 1 ? "pointer" : "default" }}
+            onClick={() => { if (page > 1) setPage(page - 1); }}
+          >
+            ‹
+          </span>
+          <span className="lpl-pager-cur">{page}</span>
+          <span
+            className="lpl-pager-arrow"
+            style={{ cursor: page < totalPages ? "pointer" : "default" }}
+            onClick={() => { if (page < totalPages) setPage(page + 1); }}
+          >
+            ›
+          </span>
         </div>
+        {message && <p style={{ color: "#faad14", marginTop: 12 }}>{message}</p>}
       </div>
 
-      {addOpen && <AddPartnerDrawer onClose={() => setAddOpen(false)} />}
+      {addOpen && (
+        <AddPartnerDrawer
+          partner={editing}
+          onClose={() => { setAddOpen(false); setEditing(null); }}
+          onSaved={() => { setAddOpen(false); setEditing(null); void load(); }}
+        />
+      )}
     </div>
   );
 }
 
-function AddPartnerDrawer({ onClose }: { onClose: () => void }) {
-  const [level, setLevel] = useState("初级合伙人");
+function AddPartnerDrawer({ partner, onClose, onSaved }: {
+  partner: PartnerStaffItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [account, setAccount] = useState(partner?.account ?? "");
+  const [teamName, setTeamName] = useState(partner?.team_name ?? "");
+  const [level, setLevel] = useState<string>(partner ? (partner.level_name || "初级合伙人") : "初级合伙人");
+  const [candidates, setCandidates] = useState<PartnerUserCandidate[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  // 已注册用户候选：走 datalist，不新增可见 DOM
+  useEffect(() => {
+    if (partner) return;
+    const keyword = account.trim();
+    if (keyword.length < 1) { setCandidates([]); return; }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      adminEndpoints
+        .partnerUserCandidates(keyword)
+        .then((list) => { if (!cancelled) setCandidates(list); })
+        .catch(() => { if (!cancelled) setCandidates([]); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [account, partner]);
+
+  const matchedId = useMemo(() => {
+    const keyword = account.trim();
+    if (!keyword) return null;
+    const exact = candidates.find((item) => (item.nickname ?? "") === keyword);
+    return exact?.id ?? (candidates.length === 1 ? candidates[0].id : null);
+  }, [account, candidates]);
+
+  const submit = async () => {
+    if (!partner && !account.trim()) { setMessage("请输入账号昵称"); return; }
+    if (!teamName.trim()) { setMessage("请输入团队名称"); return; }
+    setSaving(true);
+    setMessage("");
+    try {
+      if (partner) {
+        await adminEndpoints.updatePartner(partner.team_id, {
+          team_name: teamName.trim(),
+          level_id: (LEVEL_OPTIONS.find((o) => o.label === level)?.id ?? 1) as PartnerLevelId,
+        });
+      } else {
+        await adminEndpoints.createPartner({
+          user_id: matchedId ?? undefined,
+          lookup: matchedId ? undefined : account.trim(),
+          lookup_by: "nickname",
+          team_name: teamName.trim(),
+          level_id: (LEVEL_OPTIONS.find((o) => o.label === level)?.id ?? 1) as PartnerLevelId,
+        });
+      }
+      showConfigToast(partner ? "合伙人已更新" : "合伙人已添加");
+      onSaved();
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "提交失败";
+      setMessage(text);
+      showConfigToast(text, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <div className="tlc-mask" onClick={onClose} />
@@ -107,7 +253,9 @@ function AddPartnerDrawer({ onClose }: { onClose: () => void }) {
           </div>
           <div className="lpl-head-actions">
             <button className="finord-btn lpl-cancel" onClick={onClose}>关闭</button>
-            <button className="finord-btn finord-btn-primary">确定提交</button>
+            <button className="finord-btn finord-btn-primary" disabled={saving} onClick={() => void submit()}>
+              {saving ? "提交中…" : "确定提交"}
+            </button>
           </div>
         </div>
         <div className="tlc-panel-body">
@@ -128,8 +276,29 @@ function AddPartnerDrawer({ onClose }: { onClose: () => void }) {
           <div className="lpl-row">
             <span className="lpl-label">＊用户账号</span>
             <div className="lpl-content">
-              <input className="lpl-input-wide" placeholder="请输入账号昵称" />
-              <div className="lpl-info">① 服务红娘不能成为合伙人</div>
+              <input
+                className="lpl-input-wide"
+                placeholder="请输入账号昵称"
+                value={account}
+                list={partner ? undefined : "lpl-user-candidates"}
+                readOnly={Boolean(partner)}
+                onChange={(e) => setAccount(e.target.value)}
+              />
+              {!partner && (
+                <datalist id="lpl-user-candidates">
+                  {candidates.map((item) => (
+                    <option key={item.id} value={item.nickname ?? ""}>
+                      {`${item.nickname ?? ""}${item.phone ? ` · ${item.phone}` : ""}${item.is_promoter ? " · 推广红娘" : ""}${item.has_team ? " · 已是合伙人" : ""}`}
+                    </option>
+                  ))}
+                </datalist>
+              )}
+              <div className="lpl-info">
+                ① 服务红娘不能成为合伙人
+                {!partner && account.trim() && (
+                  matchedId ? `（已匹配：${account.trim()}）` : "（未匹配到用户，请从候选列表中选择）"
+                )}
+              </div>
             </div>
           </div>
 
@@ -137,7 +306,12 @@ function AddPartnerDrawer({ onClose }: { onClose: () => void }) {
           <div className="lpl-row">
             <span className="lpl-label">＊团队名称</span>
             <div className="lpl-content">
-              <input className="lpl-input-wide" placeholder="请输入团队名称" />
+              <input
+                className="lpl-input-wide"
+                placeholder="请输入团队名称"
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+              />
               <div className="lpl-info">① 请输入合伙人团队的名称，如：校园红娘小队</div>
             </div>
           </div>
@@ -147,16 +321,18 @@ function AddPartnerDrawer({ onClose }: { onClose: () => void }) {
             <span className="lpl-label">＊分成级别</span>
             <div className="lpl-content">
               <div className="lpl-radio-row">
-                {["初级合伙人", "中级合伙人", "战略合伙人"].map((o) => (
-                  <label key={o} className={`lpl-radio ${level === o ? "active" : ""}`}>
-                    <input type="radio" name="level" value={o} checked={level === o} onChange={() => setLevel(o)} />
-                    <span>{o}</span>
+                {LEVEL_OPTIONS.map((o) => (
+                  <label key={o.label} className={`lpl-radio ${level === o.label ? "active" : ""}`}>
+                    <input type="radio" name="level" value={o.label} checked={level === o.label} onChange={() => setLevel(o.label)} />
+                    <span>{o.label}</span>
                   </label>
                 ))}
               </div>
               <div className="lpl-info">① 不同级别的享有不同的分成标准，请在分级配置中自行设定相关标准</div>
             </div>
           </div>
+
+          {message && <p style={{ color: "#ff4d4f" }}>{message}</p>}
         </div>
       </div>
     </>

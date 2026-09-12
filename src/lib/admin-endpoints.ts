@@ -679,6 +679,242 @@ export type StoreCommissionEntryQuery = {
   end_date?: string;
 };
 
+// ─── 合伙红娘（M6）：合伙人管理 / 团队关系 / 分成明细 / 分成配置 ────────
+
+export type PartnerLevelId = 1 | 2 | 3;
+
+export interface PartnerStaffItem {
+  id: number;
+  team_id: number;
+  user_id: number;
+  account: string | null;
+  display_name: string | null;
+  avatar: string | null;
+  phone: string | null;
+  team_name: string;
+  level_id: PartnerLevelId;
+  level_name: string | null;
+  member_count: number;
+  performance_amount: string;
+  effective_member_count: number;
+  commission_amount: string;
+  status: 1 | 2 | 3;
+  status_label: string;
+  open_mode: string;
+  created_at: string | null;
+}
+
+export interface PartnerStaffPage {
+  items: PartnerStaffItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface PartnerStaffDetail extends PartnerStaffItem {
+  owner_nickname: string | null;
+  owner_phone: string | null;
+  invite_code: string | null;
+}
+
+export interface PartnerStatistics {
+  total_partners: number;
+  active_partners: number;
+  total_members: number;
+  total_effective_members: number;
+  total_performance: string;
+  total_commission: string;
+}
+
+export interface PartnerUserCandidate {
+  id: number;
+  nickname: string | null;
+  real_name: string | null;
+  phone: string | null;
+  avatar: string | null;
+  is_promoter: boolean;
+  has_team: boolean;
+}
+
+export interface PartnerStaffCreatePayload {
+  user_id?: number;
+  lookup?: string;
+  lookup_by?: "nickname" | "phone";
+  team_name: string;
+  level_id?: PartnerLevelId;
+  open_mode?: "manual" | "paid";
+}
+
+export interface PartnerStaffUpdatePayload {
+  team_name?: string;
+  level_id?: PartnerLevelId;
+  status?: 1 | 2 | 3;
+  open_mode?: "manual" | "paid";
+}
+
+export type PartnerStaffListQuery = {
+  page?: number;
+  page_size?: number;
+  keyword?: string;
+  level_id?: PartnerLevelId;
+  status?: 1 | 2 | 3;
+  sort?: "created_desc" | "created_asc" | "performance_desc" | "member_desc";
+};
+
+export interface PartnerRelationItem {
+  id: number;
+  promoter_id: number;
+  promoter_name: string | null;
+  promoter_avatar: string | null;
+  promoter_phone: string | null;
+  team_id: number;
+  team_name: string | null;
+  joined_at: string | null;
+  left_at: string | null;
+  member_count: number;
+  performance_amount: string;
+  status: 1 | 2 | 3;
+  status_label: string;
+  change_reason: string | null;
+}
+
+export interface PartnerRelationPage {
+  items: PartnerRelationItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface PartnerTeamOption {
+  id: number;
+  name: string;
+  owner_user_id: number | null;
+  owner_name: string | null;
+  level_id: PartnerLevelId | null;
+  level_name: string | null;
+}
+
+export interface PartnerRelationBindPayload {
+  promoter_user_id?: number;
+  promoter_lookup?: string;
+  team_id: number;
+  reason?: string;
+}
+
+export interface PartnerRelationResult {
+  promoter_id: number;
+  team_id: number | null;
+  team_name: string | null;
+  status: "BOUND" | "REMOVED";
+  message: string;
+}
+
+export interface PartnerCommissionEntryItem {
+  id: number;
+  created_at: string | null;
+  partner_id: number;
+  partner_name: string | null;
+  team_id: number | null;
+  team_name: string | null;
+  promoter_id: number | null;
+  promoter_name: string | null;
+  event_type: string | null;
+  event_name: string | null;
+  consumer_id: number | null;
+  consumer_name: string | null;
+  order_id: number | null;
+  order_no: string | null;
+  base_amount: string;
+  amount: string;
+  status: string;
+  source: string;
+  remark: string | null;
+}
+
+export interface PartnerCommissionEntryPage {
+  items: PartnerCommissionEntryItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface PartnerCommissionOptions {
+  partners: Array<{ id: number; name: string; team_id: number | null; team_name: string | null; avatar: string | null }>;
+  events: Array<{ id: number; name: string }>;
+}
+
+export type PartnerCommissionEntryQuery = {
+  page?: number;
+  page_size?: number;
+  partner_id?: number;
+  rule_id?: number;
+  start_date?: string;
+  end_date?: string;
+};
+
+export interface PartnerCommissionEntryCreatePayload {
+  partner_user_id: number;
+  consumer_user_id?: number;
+  rule_id?: number;
+  amount: number | string;
+  base_amount?: number | string;
+  remark?: string;
+}
+
+export interface PartnerCommissionEntryCreateResult {
+  entry: PartnerCommissionEntryItem;
+  ledger_id: number;
+  balance_after: string;
+}
+
+export interface PartnerBonusItem {
+  name: string;
+  amount: string;
+}
+
+export interface PartnerLevelItem {
+  id: number;
+  level_id: PartnerLevelId;
+  level_name: string;
+  auto_split_mode: "fixed_amount" | "auto_rate";
+  auto_split_mode_label: string;
+  auto_split_rate: string | null;
+  promote_performance_threshold: string | null;
+  promote_member_threshold: number | null;
+  promote_condition_text: string;
+  partner_count: number;
+  register_reward_male: string;
+  register_reward_female: string;
+  promoter_join_reward: string;
+  consume_commission_mode: "none" | "auto_rate";
+  consume_commission_rate: string | null;
+  share_bonus: boolean;
+  bonus_items: PartnerBonusItem[];
+  updated_at: string | null;
+}
+
+export interface PartnerLevelPage {
+  items: PartnerLevelItem[];
+}
+
+export interface PartnerLevelUpdatePayload {
+  level_name?: string;
+  auto_split_mode?: "fixed_amount" | "auto_rate";
+  auto_split_rate?: string | number;
+  promote_performance_threshold?: string | number;
+  promote_member_threshold?: number;
+  register_reward_male?: string | number;
+  register_reward_female?: string | number;
+  promoter_join_reward?: string | number;
+  consume_commission_mode?: "none" | "auto_rate";
+  consume_commission_rate?: string | number;
+  share_bonus?: boolean;
+  bonus_items?: PartnerBonusItem[];
+}
+
 export interface MatchmakerPosterResponse {
   matchmaker_id: number;
   url: string;
@@ -1681,6 +1917,48 @@ export const adminEndpoints = {
       start_date: query.start_date,
       end_date: query.end_date,
     }),
+
+  // ─── 合伙红娘（M6）：合伙人管理 ──────────────────────────
+  partnerList: (query: PartnerStaffListQuery = {}) =>
+    adminApi<PartnerStaffPage>("admin/partners", { method: "GET", query }),
+  partnerStatistics: () =>
+    adminApi<PartnerStatistics>("admin/partners/statistics"),
+  partnerUserCandidates: (keyword: string, limit = 10) =>
+    adminApi<PartnerUserCandidate[]>("admin/partners/user-candidates", { method: "GET", query: { keyword, limit } }),
+  partnerTeamOptions: () =>
+    adminApi<PartnerTeamOption[]>("admin/partners/team-options"),
+  createPartner: (body: PartnerStaffCreatePayload) =>
+    adminApi<PartnerStaffDetail>("admin/partners", { method: "POST", body }),
+  partnerDetail: (teamId: number | string) =>
+    adminApi<PartnerStaffDetail>(`admin/partners/${teamId}`),
+  updatePartner: (teamId: number | string, body: PartnerStaffUpdatePayload) =>
+    adminApi<PartnerStaffDetail>(`admin/partners/${teamId}`, { method: "PUT", body }),
+  deletePartner: (teamId: number | string) =>
+    adminApi<{ team_id: number; status: number; removed_members: number }>(`admin/partners/${teamId}`, { method: "DELETE" }),
+
+  // ─── 合伙红娘（M6）：团队关系 ────────────────────────────
+  partnerRelations: (query: { page?: number; page_size?: number; team_id?: number; keyword?: string; status?: 1 | 2 | 3 } = {}) =>
+    adminApi<PartnerRelationPage>("admin/partner-relations", { method: "GET", query }),
+  bindPartnerRelation: (body: PartnerRelationBindPayload) =>
+    adminApi<PartnerRelationResult>("admin/partner-relations", { method: "POST", body }),
+  removePartnerRelation: (relationId: number | string, reason: string) =>
+    adminApi<PartnerRelationResult>(`admin/partner-relations/${relationId}/remove`, { method: "POST", body: { reason } }),
+
+  // ─── 合伙红娘（M6）：分成明细 ────────────────────────────
+  partnerCommissionEntries: (query: PartnerCommissionEntryQuery = {}) =>
+    adminApi<PartnerCommissionEntryPage>("admin/partners/commission-entries", { method: "GET", query }),
+  partnerCommissionOptions: () =>
+    adminApi<PartnerCommissionOptions>("admin/partners/commission-entries/options"),
+  createPartnerCommissionEntry: (body: PartnerCommissionEntryCreatePayload) =>
+    adminApi<PartnerCommissionEntryCreateResult>("admin/partners/commission-entries", { method: "POST", body }),
+
+  // ─── 合伙红娘（M6）：分成配置（3 固定级别） ───────────────
+  partnerLevelList: () =>
+    adminApi<PartnerLevelPage>("admin/partner-levels"),
+  partnerLevel: (levelId: PartnerLevelId) =>
+    adminApi<PartnerLevelItem>(`admin/partner-levels/${levelId}`),
+  updatePartnerLevel: (levelId: PartnerLevelId, body: PartnerLevelUpdatePayload) =>
+    adminApi<PartnerLevelItem>(`admin/partner-levels/${levelId}`, { method: "PUT", body }),
 
   // ─── 会员资料媒体验证（M3-2） ──────────────────────────────
   memberMediaIntros: (query: MemberIntroQuery = {}) =>

@@ -1,24 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import type { PartnerRelationItem, PartnerTeamOption } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("合伙红娘", "团队关系");
 
 const columns = ["ID", "推广红娘", "隶属合伙人（团队）", "加入团队时间", "发展会员数量", "团队业绩贡献", "团队关系状态", "操作"];
 
-const relations = [
-  { id: 6, name: "lemon", team: "富豪爱1", joinedAt: "2026-08-23 21:49:21", members: 0, performance: "0元", status: "正常" },
-  { id: 5, name: "是胖春本人没错", team: "富豪爱1", joinedAt: "2026-07-11 16:39:26", members: 0, performance: "0元", status: "正常" },
-  { id: 4, name: "越可名", team: "富豪爱1", joinedAt: "2026-07-11 16:39:14", members: 0, performance: "0元", status: "正常" },
-  { id: 3, name: "Sofia", team: "富豪爱1", joinedAt: "2026-07-05 14:53:18", members: 2, performance: "0元", status: "正常" },
-  { id: 1, name: "σ^^ η'", team: "富豪爱1", joinedAt: "2026-06-30 16:17:55", members: 0, performance: "0元", status: "正常" },
-];
+const fmt = (value: string | null) => (value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "-");
 
 export default function LovePartnerRelationPage() {
+  const [rows, setRows] = useState<PartnerRelationItem[]>([]);
+  const [teams, setTeams] = useState<PartnerTeamOption[]>([]);
+  const [teamFilter, setTeamFilter] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [applied, setApplied] = useState({ team: "", keyword: "" });
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
   const [bindOpen, setBindOpen] = useState(false);
+  const [bindTarget, setBindTarget] = useState<PartnerRelationItem | null>(null);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await adminEndpoints.partnerRelations({
+        page,
+        page_size: pageSize,
+        team_id: applied.team ? Number(applied.team) : undefined,
+        keyword: applied.keyword || undefined,
+      });
+      setRows(result.items);
+      setTotal(result.total);
+      setMessage("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, applied]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    adminEndpoints.partnerTeamOptions().then(setTeams).catch(() => setTeams([]));
+  }, []);
+
+  const search = () => {
+    setPage(1);
+    setApplied({ team: teamFilter, keyword: keyword.trim() });
+  };
+
+  const removeRow = async (row: PartnerRelationItem) => {
+    const reason = typeof window !== "undefined"
+      ? window.prompt(`确认将「${row.promoter_name ?? row.promoter_id}」移出团队「${row.team_name ?? ""}」？请填写原因`, "后台人工移出团队")
+      : "后台人工移出团队";
+    if (reason === null) return;
+    if (!reason.trim()) { setMessage("请填写移出原因"); return; }
+    try {
+      await adminEndpoints.removePartnerRelation(row.id, reason.trim());
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "移出失败");
+    }
+  };
+
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -42,13 +97,24 @@ export default function LovePartnerRelationPage() {
       <div className="finord-card lpr-card">
         <div className="lpr-head">
           <h2 className="lpr-title">合伙人团队关系</h2>
-          <button className="finord-btn finord-btn-primary lpr-bind-btn" onClick={() => setBindOpen(true)}>人工绑定团队关系</button>
+          <button className="finord-btn finord-btn-primary lpr-bind-btn" onClick={() => { setBindTarget(null); setBindOpen(true); }}>人工绑定团队关系</button>
         </div>
 
         <div className="lpr-filters">
-          <select className="lpr-select"><option>按隶属合伙人搜</option></select>
-          <input className="lpr-input" placeholder="请输入" />
-          <button className="finord-btn finord-btn-primary lpr-search-btn">搜索</button>
+          <select className="lpr-select" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+            <option value="">按隶属合伙人搜</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>{`${team.name}${team.owner_name ? `（${team.owner_name}）` : ""}`}</option>
+            ))}
+          </select>
+          <input
+            className="lpr-input"
+            placeholder="请输入"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") search(); }}
+          />
+          <button className="finord-btn finord-btn-primary lpr-search-btn" onClick={search}>搜索</button>
         </div>
 
         <div className="finord-table-wrap">
@@ -59,40 +125,100 @@ export default function LovePartnerRelationPage() {
               </tr>
             </thead>
             <tbody>
-              {relations.map((r) => (
+              {rows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.id}</td>
-                  <td>{r.name}</td>
-                  <td>{r.team}</td>
-                  <td className="lpr-time">{r.joinedAt}</td>
-                  <td>{r.members}</td>
-                  <td><span className="lpr-performance">{r.performance}</span></td>
-                  <td><span className="lpr-status">{r.status}</span></td>
+                  <td>{r.promoter_name ?? `红娘${r.promoter_id}`}</td>
+                  <td>{r.team_name ?? "-"}</td>
+                  <td className="lpr-time">{fmt(r.joined_at)}</td>
+                  <td>{r.member_count}</td>
+                  <td><span className="lpr-performance">{r.performance_amount}元</span></td>
+                  <td><span className="lpr-status">{r.status_label}</span></td>
                   <td>
                     <div className="lpr-ops">
-                      <a className="finord-link">移出团队</a>
-                      <a className="finord-link">变更团队</a>
+                      <a className="finord-link" role="button" onClick={() => void removeRow(r)}>移出团队</a>
+                      <a className="finord-link" role="button" onClick={() => { setBindTarget(r); setBindOpen(true); }}>变更团队</a>
                     </div>
                   </td>
                 </tr>
               ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length} style={{ textAlign: "center", color: "#999" }}>
+                    {loading ? "加载中…" : "暂无数据"}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="lpr-pager">
-          <span className="lpr-pager-arrow">‹</span>
-          <span className="lpr-pager-cur">1</span>
-          <span className="lpr-pager-arrow">›</span>
+          <span
+            className="lpr-pager-arrow"
+            style={{ cursor: page > 1 ? "pointer" : "default" }}
+            onClick={() => { if (page > 1) setPage(page - 1); }}
+          >
+            ‹
+          </span>
+          <span className="lpr-pager-cur">{page}</span>
+          <span
+            className="lpr-pager-arrow"
+            style={{ cursor: page < totalPages ? "pointer" : "default" }}
+            onClick={() => { if (page < totalPages) setPage(page + 1); }}
+          >
+            ›
+          </span>
         </div>
+        {message && <p style={{ color: "#ff4d4f", marginTop: 12 }}>{message}</p>}
       </div>
 
-      {bindOpen && <BindRelationDrawer onClose={() => setBindOpen(false)} />}
+      {bindOpen && (
+        <BindRelationDrawer
+          target={bindTarget}
+          teams={teams}
+          onClose={() => { setBindOpen(false); setBindTarget(null); }}
+          onSaved={() => { setBindOpen(false); setBindTarget(null); void load(); }}
+        />
+      )}
     </div>
   );
 }
 
-function BindRelationDrawer({ onClose }: { onClose: () => void }) {
+function BindRelationDrawer({ target, teams, onClose, onSaved }: {
+  target: PartnerRelationItem | null;
+  teams: PartnerTeamOption[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [promoter, setPromoter] = useState(target?.promoter_name ?? "");
+  const [teamId, setTeamId] = useState(target ? String(target.team_id) : "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const submit = async () => {
+    if (!promoter.trim()) { setMessage("请输入推广红娘的账号昵称"); return; }
+    if (!teamId) { setMessage("请选择一个团队"); return; }
+    setSaving(true);
+    setMessage("");
+    try {
+      await adminEndpoints.bindPartnerRelation({
+        promoter_user_id: target?.promoter_id,
+        promoter_lookup: target ? undefined : promoter.trim(),
+        team_id: Number(teamId),
+        reason: target ? "后台人工变更团队" : "后台人工绑定团队",
+      });
+      showConfigToast(target ? "团队关系已变更" : "团队关系已绑定");
+      onSaved();
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "提交失败";
+      setMessage(text);
+      showConfigToast(text, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <div className="tlc-mask" onClick={onClose} />
@@ -104,7 +230,9 @@ function BindRelationDrawer({ onClose }: { onClose: () => void }) {
           </div>
           <div className="lpr-head-actions">
             <button className="finord-btn lpr-cancel" onClick={onClose}>关闭</button>
-            <button className="finord-btn finord-btn-primary">确定提交</button>
+            <button className="finord-btn finord-btn-primary" disabled={saving} onClick={() => void submit()}>
+              {saving ? "提交中…" : "确定提交"}
+            </button>
           </div>
         </div>
         <div className="tlc-panel-body">
@@ -114,7 +242,13 @@ function BindRelationDrawer({ onClose }: { onClose: () => void }) {
           <div className="lpr-row">
             <span className="lpr-label">＊推广红娘</span>
             <div className="lpr-content">
-              <input className="lpr-input-wide" placeholder="请输入推广红娘的账号昵称" />
+              <input
+                className="lpr-input-wide"
+                placeholder="请输入推广红娘的账号昵称"
+                value={promoter}
+                readOnly={Boolean(target)}
+                onChange={(e) => setPromoter(e.target.value)}
+              />
               <div className="lpr-info">① 请填写推广红娘的账号昵称</div>
             </div>
           </div>
@@ -122,8 +256,15 @@ function BindRelationDrawer({ onClose }: { onClose: () => void }) {
           {/* 绑定到 */}
           <div className="lpr-row">
             <span className="lpr-label">＊绑定到</span>
-            <select className="lpr-select-wide"><option>请选择一个团队</option></select>
+            <select className="lpr-select-wide" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+              <option value="">请选择一个团队</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>{`${team.name}${team.owner_name ? `（${team.owner_name}）` : ""}`}</option>
+              ))}
+            </select>
           </div>
+
+          {message && <p style={{ color: "#ff4d4f" }}>{message}</p>}
         </div>
       </div>
     </>

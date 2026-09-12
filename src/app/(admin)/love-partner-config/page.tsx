@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link2, Image as ImageIcon, Smile, Code, Heading1, Heading2, RotateCcw, RotateCw, Maximize2, Minus, Quote } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
+import { asBool, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("合伙红娘", "功能配置");
 
@@ -31,8 +32,50 @@ const TOOLBAR: { icon: React.ReactNode; title: string }[] = [
   { icon: <Heading2 size={14} />, title: "标题2" },
 ];
 
+const CONFIG_DEFAULTS: Dict = { content_html: "", enabled: true, apply_tip: "", share_bonus: true };
+
+// 首次进入时展示的原型文案（与设计稿一致）；配置域有内容时以服务端为准。
+const DEFAULT_EDITOR_HTML = `<div class="lp-banner">
+                  <div class="lp-banner-title">寻婚恋事业合伙人</div>
+                  <div class="lp-banner-pill">携手共创，共享婚恋市场蓝海！</div>
+                  <div class="lp-banner-image"></div>
+                </div>
+                <p class="lp-editor-text">作为婚恋服务行业的佼佼者，我们专注于为单身人士提供高端、专业的婚恋匹配服务。秉承"真诚、专业、高效的服务理念，我们已成功帮助数千对有情人牵手成功，赢得了市场的广泛赞誉。</p>`;
+
 export default function LovePartnerConfigPage() {
+  const domain = useConfigDomain<Dict>("tools_love_partner", CONFIG_DEFAULTS);
   const [shareBonus, setShareBonus] = useState("享有");
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [message, setMessage] = useState("");
+
+  // 配置域回填（不改动 DOM 结构，仅同步受控值）
+  useEffect(() => {
+    if (!domain.ready) return;
+    const config = domain.snapshot?.config ?? {};
+    setShareBonus(asBool(config.share_bonus, true) ? "享有" : "不享有");
+    const stored = asStr(config.content_html, "");
+    if (stored && editorRef.current) editorRef.current.innerHTML = stored;
+  }, [domain.ready, domain.snapshot]);
+
+  const submit = useCallback(async () => {
+    if (!domain.ready) {
+      setMessage("配置尚未加载完成，请稍候");
+      return;
+    }
+    const html = editorRef.current?.innerHTML ?? "";
+    const ok = await domain.save(
+      { content_html: html, share_bonus: shareBonus === "享有" },
+      "合伙红娘功能配置",
+    );
+    if (domain.error) {
+      setMessage(domain.error);
+      showConfigToast(domain.error, "error");
+      return;
+    }
+    setMessage("");
+    showConfigToast(ok ? "功能配置已保存" : "内容未发生变化");
+  }, [domain, shareBonus]);
+
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -64,14 +107,13 @@ export default function LovePartnerConfigPage() {
                   <button key={idx} type="button" className="lp-editor-tool" title={it.title}>{it.icon}</button>
                 ))}
               </div>
-              <div className="lp-editor-body" contentEditable suppressContentEditableWarning>
-                <div className="lp-banner">
-                  <div className="lp-banner-title">寻婚恋事业合伙人</div>
-                  <div className="lp-banner-pill">携手共创，共享婚恋市场蓝海！</div>
-                  <div className="lp-banner-image" />
-                </div>
-                <p className="lp-editor-text">作为婚恋服务行业的佼佼者，我们专注于为单身人士提供高端、专业的婚恋匹配服务。秉承"真诚、专业、高效的服务理念，我们已成功帮助数千对有情人牵手成功，赢得了市场的广泛赞誉。</p>
-              </div>
+              <div
+                ref={editorRef}
+                className="lp-editor-body"
+                contentEditable
+                suppressContentEditableWarning
+                dangerouslySetInnerHTML={{ __html: DEFAULT_EDITOR_HTML }}
+              />
             </div>
           </div>
         </div>
@@ -92,7 +134,14 @@ export default function LovePartnerConfigPage() {
         </div>
 
         <div className="lp-submit-row">
-          <button className="finord-btn finord-btn-primary lp-submit">确定提交</button>
+          {message && <span style={{ color: "#e34d59", marginRight: 12 }}>{message}</span>}
+          <button
+            className="finord-btn finord-btn-primary lp-submit"
+            disabled={!domain.ready || domain.loading || domain.saving}
+            onClick={() => void submit()}
+          >
+            {domain.saving ? "提交中…" : "确定提交"}
+          </button>
         </div>
       </div>
     </div>
