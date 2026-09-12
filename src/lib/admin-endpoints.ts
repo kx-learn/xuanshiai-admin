@@ -423,6 +423,7 @@ export interface MatchmakerStaffItem {
   commission_amount: string;
   locked: boolean;
   visible: boolean;
+  menu_permission_count?: number;
   wechat_qr: string | null;
   description: string | null;
   /** 以下 4 个字段由后端同事同步添加，目前可能尚未返回 */
@@ -463,6 +464,8 @@ export type MatchmakerStaffListQuery = {
   store_id?: number;
   commission_level_id?: number;
   locked?: boolean;
+  /** true 仅分店红娘 / false 仅总店红娘 / 不传 全部 */
+  in_store?: boolean;
 };
 
 export type MatchmakerStaffCreatePayload = {
@@ -548,6 +551,133 @@ export interface StoreDictItem {
   display_name: string | null;
   status: 1 | 2 | 3;
 }
+
+// ─── 分店管理（M5） ─────────────────────────────────────────
+export interface StoreAdminItem {
+  id: number;
+  code: string;
+  name: string;
+  display_name: string | null;
+  region_code: string | null;
+  link_url: string | null;
+  sort_order: number;
+  qr_code: string | null;
+  status: 1 | 2 | 3;
+  auto_redirect: boolean;
+  member_count: number;
+  matchmaker_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StoreAdminPage {
+  items: StoreAdminItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export type StoreAdminCreatePayload = {
+  code: string;
+  name: string;
+  display_name?: string | null;
+  region_code?: string | null;
+  link_url?: string | null;
+  sort_order?: number;
+  qr_code?: string | null;
+  auto_redirect?: boolean;
+};
+
+export type StoreAdminUpdatePayload = Partial<Omit<StoreAdminCreatePayload, "code">>;
+
+export interface StoreReportSummary {
+  store_id: number;
+  store_name: string | null;
+  lead_count: number;
+  member_count: number;
+  online_match_count: number;
+  online_vip_count: number;
+  offline_vip_count: number;
+  meeting_arranged_count: number;
+  online_commission: string;
+  offline_performance: string;
+  meeting_rank: number | null;
+  online_commission_rank: number | null;
+  offline_performance_rank: number | null;
+}
+
+export interface StoreReportMonthlyRow {
+  month: string;
+  new_male_members: number;
+  new_female_members: number;
+  new_leads: number;
+  new_online_vip: number;
+  new_match_requests: number;
+  new_offline_meetings: number;
+  new_offline_vip: number;
+  online_commission: string;
+  offline_performance: string;
+}
+
+export interface StoreReportMonthly {
+  store_id: number;
+  months: StoreReportMonthlyRow[];
+}
+
+export interface StoreCommissionEntryItem {
+  id: number;
+  created_at: string;
+  store_id: number;
+  store_name: string;
+  matchmaker_id: number | null;
+  matchmaker_name: string | null;
+  consumer_id: number | null;
+  consumer_name: string | null;
+  event_name: string;
+  order_id: number;
+  order_no: string | null;
+  consumer_amount: string;
+  commission_amount: string;
+  status: string;
+}
+
+export interface StoreCommissionEntryPage {
+  items: StoreCommissionEntryItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface StoreOption {
+  id: number;
+  name: string;
+  status: number;
+}
+
+export interface StoreCommissionOptions {
+  stores: StoreOption[];
+  matchmakers: Array<{ id: number; name: string; avatar?: string | null }>;
+  events: Array<{ id: number; name: string; beneficiary_type: string }>;
+}
+
+export interface StoreCommissionSummary {
+  total_amount: string;
+  current_month_amount: string;
+  previous_month_amount: string;
+  pending_amount: string;
+}
+
+export type StoreCommissionEntryQuery = {
+  page?: number;
+  page_size?: number;
+  store_id?: number;
+  matchmaker_id?: number;
+  rule_id?: number;
+  start_date?: string;
+  end_date?: string;
+};
 
 export interface MatchmakerPosterResponse {
   matchmaker_id: number;
@@ -1521,6 +1651,36 @@ export const adminEndpoints = {
     adminApi<CommissionLevelDictItem[]>("admin/dict/commission-levels"),
   dictStores: () =>
     adminApi<StoreDictItem[]>("admin/dict/stores"),
+
+  // ─── 分店管理（M5）：分站/门店 CRUD ──────────────────────
+  storeList: (query: AdminListQuery = {}) =>
+    adminApi<StoreAdminPage>("admin/matchmaker/stores", { method: "GET", query }),
+  createStore: (body: StoreAdminCreatePayload) =>
+    adminApi<StoreAdminItem>("admin/matchmaker/stores", { method: "POST", body }),
+  updateStoreAdmin: (id: number | string, body: StoreAdminUpdatePayload) =>
+    adminApi<StoreAdminItem>(`admin/matchmaker/stores/${id}`, { method: "PATCH", body }),
+  deleteStore: (id: number | string) =>
+    adminApi<StoreAdminItem>(`admin/matchmaker/stores/${id}`, { method: "DELETE" }),
+  storeReportSummary: (id: number | string) =>
+    adminApi<StoreReportSummary>(`admin/matchmaker/stores/${id}/report/summary`, { method: "GET" }),
+  storeReportMonthly: (id: number | string, months = 6) =>
+    adminApi<StoreReportMonthly>(`admin/matchmaker/stores/${id}/report/monthly`, { method: "GET", query: { months } }),
+
+  // ─── 分店管理（M5）：分店线上分成明细 ────────────────────
+  storeCommissionEntries: (query: StoreCommissionEntryQuery = {}) =>
+    adminApi<StoreCommissionEntryPage>("admin/finance/store-commission-entries", { method: "GET", query }),
+  storeCommissionOptions: () =>
+    adminApi<StoreCommissionOptions>("admin/finance/store-commission-entries/options", { method: "GET" }),
+  storeCommissionSummary: (storeId?: number) =>
+    adminApi<StoreCommissionSummary>("admin/finance/store-commission-summary", { method: "GET", query: { store_id: storeId } }),
+  exportStoreCommissionEntries: (query: StoreCommissionEntryQuery = {}) =>
+    downloadAdminFile("admin/finance/store-commission-entries/export", "分店分成明细.xlsx", {
+      store_id: query.store_id,
+      matchmaker_id: query.matchmaker_id,
+      rule_id: query.rule_id,
+      start_date: query.start_date,
+      end_date: query.end_date,
+    }),
 
   // ─── 会员资料媒体验证（M3-2） ──────────────────────────────
   memberMediaIntros: (query: MemberIntroQuery = {}) =>

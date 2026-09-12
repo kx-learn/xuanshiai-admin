@@ -22,14 +22,25 @@ export function resolveMediaUrl(value?: string | null) {
 }
 
 /** 后台文件下载：带鉴权请求后落地为 Blob，用于模板等二进制资源。 */
-export async function downloadAdminFile(path: string, filename: string): Promise<void> {
+export async function downloadAdminFile(
+  path: string,
+  filename: string,
+  query?: Record<string, string | number | undefined>,
+): Promise<void> {
   const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
-  const url = typeof window === "undefined"
+  const search = query
+    ? Object.entries(query)
+        .filter(([, value]) => value !== undefined && value !== "")
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        .join("&")
+    : "";
+  const base = typeof window === "undefined"
     ? new URL(relativePath, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
     : new URL(
       `/api/v1/${path.replace(/^\/+/, "")}`,
       process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
     );
+  const url = `${base.toString()}${search ? `?${search}` : ""}`;
   const headers = new Headers();
   const token = getAdminToken();
   if (token) headers.set("authorization", `Bearer ${token}`);
