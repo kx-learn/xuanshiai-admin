@@ -1,35 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ChevronDown, X } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
 
-/* ---------- 表格数据 ---------- */
-type Row = {
-  id: string;
-  from: string;
-  fromCode: string;
-  to: string;
-  toCode: string;
-  time: string;
-  matchmaker: string;
-  status: "待处理" | "已处理";
+/* ---------- 类型 ---------- */
+type MeetingRequestRow = {
+  id: number;
+  user_id: number;
+  target_user_id: number;
+  matchmaker_id: number | null;
+  status: "SUBMITTED" | "CONTACTED" | "ACCEPTED" | "DECLINED" | "CLOSED";
+  note: string;
+  created_at: string;
+  user_nickname: string | null;
+  user_member_code: string | null;
+  target_nickname: string | null;
+  target_member_code: string | null;
+  matchmaker_name: string | null;
 };
 
-const rows: Row[] = [
-  { id: "17", from: "lll", fromCode: "G396140", to: "Lemon", toCode: "B965945", time: "2026-09-01 14:49:30", matchmaker: "", status: "待处理" },
-  { id: "15", from: "rasin", fromCode: "G847150", to: "一个好人", toCode: "B124065", time: "2026-07-16 07:52:47", matchmaker: "芸希老师", status: "待处理" },
-  { id: "14", from: "出现1", fromCode: "B241050", to: "余生请指教", toCode: "G519122", time: "2026-07-09 09:42:45", matchmaker: "", status: "待处理" },
-  { id: "13", from: "q~nd~N", fromCode: "B134461", to: "你芝士甘薯么呢", toCode: "G674881", time: "2026-06-28 13:58:35", matchmaker: "琴琴", status: "已处理" },
-  { id: "12", from: "毛毛", fromCode: "G765914", to: "q~nd~N", toCode: "B134461", time: "2026-06-27 11:04:06", matchmaker: "芸希老师", status: "已处理" },
-  { id: "11", from: "Z", fromCode: "G583088", to: "出现", toCode: "B118408", time: "2026-06-04 14:58:00", matchmaker: "芸希老师", status: "已处理" },
-  { id: "10", from: "出现", fromCode: "B118408", to: "Z", toCode: "G583088", time: "2026-06-04 14:29:14", matchmaker: "芸希老师", status: "已处理" },
-  { id: "9", from: "出现", fromCode: "B118408", to: "Suntod", toCode: "G107039", time: "2026-06-03 14:51:50", matchmaker: "芸希老师", status: "已处理" },
-  { id: "8", from: "别偷我橘子", fromCode: "B329794", to: "乐乐", toCode: "G893895", time: "2026-05-31 16:22:57", matchmaker: "芸希老师", status: "已处理" },
-  { id: "7", from: "别偷我橘子", fromCode: "B329794", to: "芒果", toCode: "G964781", time: "2026-05-31 16:19:53", matchmaker: "芸希老师", status: "已处理" },
-  { id: "6", from: "芒果", fromCode: "G964781", to: "别偷我橘子", toCode: "B329794", time: "2026-05-31 16:19:50", matchmaker: "芸希老师", status: "已处理" },
-];
+type MatchmakerOption = { id: number; nickname: string | null; phone: string | null };
+
+const DONE_STATUSES = new Set(["ACCEPTED", "DECLINED", "CLOSED"]);
+const statusLabel = (status: MeetingRequestRow["status"]) => (DONE_STATUSES.has(status) ? "已处理" : "待处理");
+const fmt = (value: string) => new Date(value).toLocaleString("zh-CN", { hour12: false });
 
 function MiniSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
@@ -50,9 +47,102 @@ export default function Page() {
   const [keyword, setKeyword] = useState("");
   const [server, setServer] = useState("");
   const [status, setStatus] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [rows, setRows] = useState<MeetingRequestRow[]>([]);
+  const [matchmakers, setMatchmakers] = useState<MatchmakerOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [activeRow, setActiveRow] = useState<MeetingRequestRow | null>(null);
   const [smsOn, setSmsOn] = useState(true);
   const [memberVisible, setMemberVisible] = useState(true);
+  const [organizerId, setOrganizerId] = useState("");
+  const [location, setLocation] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [metStatus, setMetStatus] = useState<"wait" | "met">("wait");
+  const [submitting, setSubmitting] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const page = (await adminEndpoints.meetingRequests({
+        page: 1,
+        page_size: 100,
+        status_group: status || undefined,
+        search_value: keyword.trim() || undefined,
+        matchmaker_id: server || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      })) as { items: MeetingRequestRow[] };
+      setRows(page.items ?? []);
+      setMessage("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [status, keyword, server, fromDate, toDate]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const options = (await adminEndpoints.meetingRequestOptions()) as { matchmakers?: MatchmakerOption[] };
+        setMatchmakers(options.matchmakers ?? []);
+      } catch {
+        /* 下拉字典失败不阻断主列表 */
+      }
+    })();
+  }, []);
+
+  const openAdd = (row: MeetingRequestRow) => {
+    setActiveRow(row);
+    setOrganizerId(row.matchmaker_id ? String(row.matchmaker_id) : "");
+    setLocation("");
+    setScheduledAt("");
+    setSmsOn(true);
+    setMemberVisible(true);
+    setMetStatus("wait");
+    setAddOpen(true);
+  };
+
+  const submitAdd = async () => {
+    if (!activeRow) return;
+    if (!organizerId) { setMessage("请选择服务红娘"); return; }
+    if (!scheduledAt) { setMessage("请选择见面时间"); return; }
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const record = (await adminEndpoints.scheduleMeeting(activeRow.id, {
+        organizer_id: Number(organizerId),
+        scheduled_at: scheduledAt.replace("T", " ") + ":00",
+        location: location.trim() || "待确定",
+        member_visible: memberVisible,
+        sms_remind: smsOn,
+      })) as { id: number };
+      if (metStatus === "met" && record?.id) {
+        await adminEndpoints.updateMeeting(record.id, { status: "COMPLETED" });
+      }
+      setAddOpen(false);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "添加约会失败");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const removeRow = async (row: MeetingRequestRow) => {
+    if (typeof window !== "undefined" && !window.confirm(`确认删除约见申请 #${row.id}？`)) return;
+    try {
+      await adminEndpoints.meetingRequestDelete(row.id);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "删除失败");
+    }
+  };
 
   return (
     <div className="min-w-0">
@@ -91,23 +181,26 @@ export default function Page() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <button type="button" className="lvi-btn primary">
+          <button type="button" className="lvi-btn primary" onClick={() => void load()}>
             搜索
           </button>
           <div className="lvi-daterange">
             <label className="lvi-date">
-              <input type="text" placeholder="开始日期" readOnly />
+              <input type="date" aria-label="开始日期" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <CalendarDays size={14} />
             </label>
             <span className="lvi-arrow">→</span>
             <label className="lvi-date">
-              <input type="text" placeholder="结束日期" readOnly />
+              <input type="date" aria-label="结束日期" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               <CalendarDays size={14} />
             </label>
           </div>
           <label className="lvi-select">
             <select value={server} onChange={(e) => setServer(e.target.value)}>
               <option value="">服务红娘：不限</option>
+              {matchmakers.map((item) => (
+                <option key={item.id} value={item.id}>{item.nickname || `红娘 #${item.id}`}</option>
+              ))}
             </select>
             <ChevronDown className="lvi-caret" />
           </label>
@@ -145,30 +238,32 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows.length === 0 ? (
+                <tr><td colSpan={7} className="lvi-td-id" style={{ textAlign: "center" }}>{loading ? "加载中…" : "暂无数据"}</td></tr>
+              ) : rows.map((row) => (
                 <tr key={row.id}>
                   <td className="lvi-td-id">{row.id}</td>
                   <td className="lvi-person">
-                    {row.from}
-                    <span>（编号：{row.fromCode}）</span>
+                    {row.user_nickname || `用户${row.user_id}`}
+                    <span>（编号：{row.user_member_code || row.user_id}）</span>
                   </td>
                   <td className="lvi-person">
-                    {row.to}
-                    <span>（编号：{row.toCode}）</span>
+                    {row.target_nickname || `用户${row.target_user_id}`}
+                    <span>（编号：{row.target_member_code || row.target_user_id}）</span>
                   </td>
-                  <td className="lvi-time">{row.time}</td>
-                  <td className="lvi-matchmaker">{row.matchmaker}</td>
+                  <td className="lvi-time">{fmt(row.created_at)}</td>
+                  <td className="lvi-matchmaker">{row.matchmaker_name || ""}</td>
                   <td>
-                    <span className={`lvi-status ${row.status === "待处理" ? "pending" : "done"}`}>
-                      {row.status}
+                    <span className={`lvi-status ${DONE_STATUSES.has(row.status) ? "done" : "pending"}`}>
+                      {statusLabel(row.status)}
                     </span>
                   </td>
                   <td>
                     <div className="lvi-actions">
-                      <button type="button" className="lvi-link" onClick={() => setAddOpen(true)}>
+                      <button type="button" className="lvi-link" onClick={() => openAdd(row)}>
                         添加约会记录
                       </button>
-                      <button type="button" className="lvi-link">
+                      <button type="button" className="lvi-link" onClick={() => void removeRow(row)}>
                         删除记录
                       </button>
                     </div>
@@ -178,10 +273,11 @@ export default function Page() {
             </tbody>
           </table>
         </div>
+        {message && <p className="lvi-side-hint" style={{ color: "#ff4d4f" }}>{message}</p>}
       </section>
 
       {/* Drawer：添加约会 */}
-      {addOpen && (
+      {addOpen && activeRow && (
         <>
           <div className="lvi-mask" onClick={() => setAddOpen(false)} />
           <aside className="lvi-panel" role="dialog" aria-modal="true" aria-label="添加约会">
@@ -201,8 +297,8 @@ export default function Page() {
                 <div className="lvi-field-control">
                   <div className="lvi-tag-input">
                     <span className="lvi-tag">
-                      Lemon
-                      <button type="button" className="lvi-tag-x" aria-label="移除 Lemon">
+                      {activeRow.user_nickname || `用户${activeRow.user_id}`}
+                      <button type="button" className="lvi-tag-x" aria-label="移除" onClick={() => setActiveRow(null)}>
                         <X size={12} />
                       </button>
                     </span>
@@ -216,8 +312,8 @@ export default function Page() {
                 <div className="lvi-field-control">
                   <div className="lvi-tag-input">
                     <span className="lvi-tag">
-                      lll
-                      <button type="button" className="lvi-tag-x" aria-label="移除 lll">
+                      {activeRow.target_nickname || `用户${activeRow.target_user_id}`}
+                      <button type="button" className="lvi-tag-x" aria-label="移除" onClick={() => setActiveRow(null)}>
                         <X size={12} />
                       </button>
                     </span>
@@ -233,7 +329,7 @@ export default function Page() {
               <div className="lvi-field">
                 <span className="lvi-field-label">见面地点</span>
                 <div className="lvi-field-control">
-                  <input className="lvi-input" placeholder="示例：XXX咖啡馆" />
+                  <input className="lvi-input" placeholder="示例：XXX咖啡馆" value={location} onChange={(e) => setLocation(e.target.value)} />
                   <span className="lvi-side-hint">留空则显示为：待确定</span>
                 </div>
               </div>
@@ -241,7 +337,7 @@ export default function Page() {
                 <span className="lvi-field-label">见面时间</span>
                 <div className="lvi-field-control">
                   <label className="lvi-date block">
-                    <input type="text" placeholder="请选择见面时间" readOnly />
+                    <input type="datetime-local" aria-label="见面时间" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
                     <CalendarDays size={14} />
                   </label>
                   <span className="lvi-side-hint">留空则显示为：待确定</span>
@@ -278,8 +374,11 @@ export default function Page() {
                 </span>
                 <div className="lvi-field-control">
                   <label className="lvi-select block">
-                    <select defaultValue="">
+                    <select value={organizerId} onChange={(e) => setOrganizerId(e.target.value)}>
                       <option value="">请选择服务红娘</option>
+                      {matchmakers.map((item) => (
+                        <option key={item.id} value={item.id}>{item.nickname || `红娘 #${item.id}`}</option>
+                      ))}
                     </select>
                     <ChevronDown className="lvi-caret" />
                   </label>
@@ -290,7 +389,7 @@ export default function Page() {
                 <span className="lvi-field-label">见面状态</span>
                 <div className="lvi-field-control column">
                   <label className="lvi-select block">
-                    <select defaultValue="wait">
+                    <select value={metStatus} onChange={(e) => setMetStatus(e.target.value as "wait" | "met")}>
                       <option value="wait">待见面</option>
                       <option value="met">已见面</option>
                     </select>
@@ -305,8 +404,8 @@ export default function Page() {
             </div>
 
             <footer className="lvi-panel-foot">
-              <button type="button" className="lvi-panel-submit">
-                确定提交
+              <button type="button" className="lvi-panel-submit" disabled={submitting} onClick={() => void submitAdd()}>
+                {submitting ? "提交中…" : "确定提交"}
               </button>
             </footer>
           </aside>

@@ -1,4 +1,4 @@
-import { adminApi, getAdminToken } from "@/lib/admin-api";
+import { adminApi, downloadAdminFile, getAdminToken } from "@/lib/admin-api";
 import type { ConfigSnapshot, Dict } from "@/lib/platform-config";
 
 export type PageQuery = { page?: number; page_size?: number; status?: number | string; keyword?: string };
@@ -6,6 +6,80 @@ export type ReviewPayload = { status?: number; reason?: string; result?: string;
 export type AdminListQuery = PageQuery & Record<string, string | number | undefined>;
 export type JsonBody = Record<string, unknown>;
 export type DashboardQuery = { from?: string; to?: string };
+
+// ─── M4 客源线索 / 会员服务类型 ────────────────────────────────────
+export interface CustomerLeadOption {
+  value: string;
+  label: string;
+}
+export interface CustomerLeadOptions {
+  sources: CustomerLeadOption[];
+  matchmakers: CustomerLeadOption[];
+  promoters: CustomerLeadOption[];
+  tags: CustomerLeadOption[];
+}
+export interface CustomerLeadImportSummary {
+  created: number;
+  skipped: number;
+  failed: number;
+  total: number;
+  errors: string[];
+}
+export interface MeetingStatistics {
+  total_arranged: number;
+  total_met: number;
+  month_arranged: number;
+  month_waiting: number;
+  month_met: number;
+  month_not_met: number;
+}
+export interface MeetingDirectPayload {
+  from_user_id: number;
+  to_user_id: number;
+  organizer_id: number;
+  organization_id?: number;
+  scheduled_at?: string;
+  location?: string;
+  member_visible: boolean;
+  sms_remind: boolean;
+  met: boolean;
+}
+export type PromotionPayStatus = "unpaid" | "paid" | "refunded";
+export type PromotionOrderStatus = "pending" | "processing" | "done" | "cancelled";
+export interface PromotionOrder {
+  id: number;
+  order_no: string;
+  user_id: number;
+  user_nickname: string | null;
+  product_name: string;
+  amount: string;
+  pay_status: PromotionPayStatus;
+  pay_method: string | null;
+  status: PromotionOrderStatus;
+  remark: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface PromotionOrderPage {
+  items: PromotionOrder[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+export interface PromotionOrderStatistics {
+  total: number;
+  paid_count: number;
+  paid_amount: string;
+  processing_count: number;
+}
+export type PromotionOrderUpdatePayload = Partial<{
+  pay_status: PromotionPayStatus;
+  pay_method: string;
+  status: PromotionOrderStatus;
+  remark: string;
+}>;
 
 // ─── 服务红娘分成级别类型 ──────────────────────────────────────
 export type CommissionLevelMode = "rate" | "fixed";
@@ -1226,6 +1300,12 @@ export const adminEndpoints = {
   restoreCustomerLead: (id: number | string, reason: string) => create(`admin/customer-leads/${id}/restore`, { reason }),
   batchImportCustomerLeads: (body: { rows: Array<{ name: string; phone?: string; wechat?: string; source: string; intention_level: 1 | 2 | 3; remark?: string }>; dup_mode: "skip" | "append" }) =>
     adminApi("admin/customer-leads/batch-import", { method: "POST", body }),
+  // 客源批量导入：模板下载（xlsx）+ 文件导入（FormData）+ 下拉字典
+  customerLeadOptions: () => adminApi<CustomerLeadOptions>("admin/customer-leads/options"),
+  downloadCustomerLeadTemplate: () =>
+    downloadAdminFile("admin/customer-leads/import-template", "客源批量导入模板.xlsx"),
+  importCustomerLeads: (form: FormData) =>
+    adminApi<CustomerLeadImportSummary>("admin/customer-leads/import", { method: "POST", body: form }),
   members: (query: AdminListQuery = {}) => list("admin/matchmaker/members", query),
   member: (id: number | string) => adminApi(`admin/matchmaker/members/${id}`),
   createMember: (body: JsonBody) => create("admin/matchmaker/members", body),
@@ -1300,12 +1380,24 @@ export const adminEndpoints = {
   meetingRequest: (requestId: number | string) => adminApi(`admin/matchmaker/meetings/requests/${requestId}`),
   updateMeetingRequest: (requestId: number | string, body: JsonBody) => update(`admin/matchmaker/meetings/requests/${requestId}`, body),
   meetings: (query: AdminListQuery = {}) => list("admin/matchmaker/meetings", query),
+  meetingStatistics: () => adminApi<MeetingStatistics>("admin/matchmaker/meetings/statistics"),
+  createMeetingDirect: (body: MeetingDirectPayload) =>
+    adminApi("admin/matchmaker/meetings", { method: "POST", body }),
   meeting: (id: number | string) => adminApi(`admin/matchmaker/meetings/${id}`),
   updateMeeting: (id: number | string, body: JsonBody) => update(`admin/matchmaker/meetings/${id}`, body),
   meetingFeedback: (id: number | string) => adminApi<Record<string, unknown>[]>(`admin/matchmaker/meetings/${id}/feedback`),
   matchRecords: (query: AdminListQuery = {}) => list("admin/matchmaker/match-records", query),
   createMatchRecord: (body: { from_love_user_id: number; to_love_user_id: number; create_time: string; complete_time: string; line_status: 1 | 2 }) =>
     adminApi("admin/matchmaker/match-records", { method: "POST", body }),
+  // ─── 会员服务-推广管理（推广服务订单） ─────────────────────────────
+  promotionOrders: (query: AdminListQuery = {}) =>
+    adminApi<PromotionOrderPage>("admin/promotion-orders", { method: "GET", query }),
+  promotionOrderStatistics: () => adminApi<PromotionOrderStatistics>("admin/promotion-orders/statistics"),
+  promotionOrder: (id: number | string) => adminApi<PromotionOrder>(`admin/promotion-orders/${id}`),
+  updatePromotionOrder: (id: number | string, body: PromotionOrderUpdatePayload) =>
+    adminApi<PromotionOrder>(`admin/promotion-orders/${id}`, { method: "PATCH", body }),
+  deletePromotionOrder: (id: number | string) =>
+    adminApi<{ id: number; deleted: boolean }>(`admin/promotion-orders/${id}`, { method: "DELETE" }),
   financeCommissionRules: (query: PageQuery = {}) => adminApi("admin/finance/commission-rules", { method: "GET", query }),
   createFinanceCommissionRule: (body: Record<string, unknown>) => adminApi("admin/finance/commission-rules", { method: "POST", body }),
   financeReport: (query: PageQuery = {}) => adminApi("admin/finance/report", { method: "GET", query }),

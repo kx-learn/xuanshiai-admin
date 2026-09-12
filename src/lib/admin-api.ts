@@ -21,6 +21,30 @@ export function resolveMediaUrl(value?: string | null) {
   return new URL(value.startsWith("/") ? value : `/${value}`, base).toString();
 }
 
+/** 后台文件下载：带鉴权请求后落地为 Blob，用于模板等二进制资源。 */
+export async function downloadAdminFile(path: string, filename: string): Promise<void> {
+  const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
+  const url = typeof window === "undefined"
+    ? new URL(relativePath, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
+    : new URL(
+      `/api/v1/${path.replace(/^\/+/, "")}`,
+      process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
+    );
+  const headers = new Headers();
+  const token = getAdminToken();
+  if (token) headers.set("authorization", `Bearer ${token}`);
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error((await response.text()) || `下载失败 (${response.status})`);
+  const blob = await response.blob();
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
 export async function adminApi<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
   const url = typeof window === "undefined"
