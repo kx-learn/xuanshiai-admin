@@ -4,100 +4,81 @@ import { useState } from "react";
 import { CalendarDays, ChevronDown, Download, Settings } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
-/* ---------- 统计 ---------- */
-const stats: { value: string; label: string; bar: string }[] = [
-  { value: "52", label: "全部牵线", bar: "#3658f7" },
-  { value: "3", label: "待牵线", bar: "#fa8c16" },
-  { value: "5", label: "牵线中", bar: "#13c2c2" },
-  { value: "30", label: "牵线成功", bar: "#52c41a" },
-  { value: "11", label: "牵线失败", bar: "#3658f7" },
-  { value: "3", label: "未支付", bar: "#722ed1" },
-];
+/* ---------- 统计（按 match_records 真实聚合） ---------- */
+type Stat = { value: number; label: string; bar: string };
 
-/* ---------- 表格数据 ---------- */
+/* ---------- 行类型 ---------- */
 type LineRow = {
-  id: string;
-  from: { nick: string; code: string; gender: string; age: string; real: string; promise: boolean; g: string };
-  to: { nick: string; code: string; gender: string; age: string; real: string; promise: boolean; g: string };
-  matchmaker: string;
-  status: "成功" | "失败";
-  created: string;
-  finished: string;
-  operator: string[];
+  id: number;
+  from_user_id: number;
+  to_user_id: number;
+  from_nickname: string | null;
+  to_nickname: string | null;
+  status: number;
+  created_at: string;
+  responded_at: string | null;
+  matchmaker_id: number | null;
 };
 
-const rows: LineRow[] = [
-  {
-    id: "52",
-    from: { nick: "普浩芸", code: "G396140", gender: "女", age: "20岁", real: "已实名", promise: false, g: "a" },
-    to: { nick: "薛家乐", code: "G895945", gender: "男", age: "28岁", real: "已实名", promise: false, g: "g" },
-    matchmaker: "",
-    status: "成功",
-    created: "2026-09-01 14:48:42",
-    finished: "2026-09-01 14:48:54",
-    operator: ["11l"],
-  },
-  {
-    id: "51",
-    from: { nick: "柳雅琼", code: "G847150", gender: "女", age: "27岁", real: "已实名", promise: false, g: "d" },
-    to: { nick: "廉心平", code: "G8124065", gender: "男", age: "27岁", real: "已实名", promise: true, g: "h" },
-    matchmaker: "芸希老师",
-    status: "失败",
-    created: "2026-07-15 17:57:48",
-    finished: "2026-07-16 00:00:05",
-    operator: ["后台", "admin"],
-  },
-  {
-    id: "50",
-    from: { nick: "李金强", code: "B976071", gender: "男", age: "36岁", real: "已实名", promise: true, g: "c" },
-    to: { nick: "朱颖", code: "G714715", gender: "女", age: "21岁", real: "已实名", promise: false, g: "i" },
-    matchmaker: "",
-    status: "失败",
-    created: "2026-07-09 10:09:03",
-    finished: "2026-07-10 00:00:03",
-    operator: ["后台", "admin"],
-  },
-  {
-    id: "49",
-    from: { nick: "张瑞", code: "B241050", gender: "男", age: "42岁", real: "已实名", promise: true, g: "e" },
-    to: { nick: "杨俊芳", code: "G777211", gender: "女", age: "22岁", real: "已实名", promise: false, g: "j" },
-    matchmaker: "",
-    status: "失败",
-    created: "2026-07-09 08:39:22",
-    finished: "2026-07-10 00:00:03",
-    operator: ["后台", "admin"],
-  },
-];
+const STATUS_LABEL: Record<number, string> = {
+  0: "待处理",
+  1: "成功",
+  2: "失败",
+  3: "已关闭",
+};
 
-function splitTime(value: string) {
-  const [date, time] = value.split(" ");
-  return { date, time };
-}
+const formatTime = (value: string | null) => {
+  if (!value) return { date: "-", time: "" };
+  const d = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
+  };
+};
 
-/* ---------- 会员单元 ---------- */
-function LineMember({ m }: { m: LineRow["from"] }) {
+/* ---------- 会员单元（保持原 DOM 与类名） ---------- */
+function LineMember({
+  nick,
+  code,
+  gender,
+  age,
+  real,
+  promise,
+  g,
+}: {
+  nick: string;
+  code: string;
+  gender: string;
+  age: string;
+  real: string;
+  promise: boolean;
+  g: string;
+}) {
   return (
     <div className="vlr-member">
-      <span className={`vlr-avatar vlr-g-${m.g}`}>
+      <span className={`vlr-avatar vlr-g-${g}`}>
         <i className="vlr-age-badge">
-          {m.gender}
-          {m.age}
+          {gender}
+          {age}
         </i>
       </span>
       <div className="vlr-member-info">
-        <div className="vlr-member-nick">{m.nick}</div>
+        <div className="vlr-member-nick">{nick}</div>
         <div className="vlr-member-tags">
           <span className="vlr-tag-real">
             <b className="vlr-tag-check">✓</b>
-            {m.real}
+            {real}
           </span>
-          <span className={m.promise ? "vlr-tag-promise on" : "vlr-tag-promise"}>
-            {m.promise && <b className="vlr-tag-check">✓</b>}
-            {m.promise ? "已签承诺书" : "未签承诺书"}
+          <span className={promise ? "vlr-tag-promise on" : "vlr-tag-promise"}>
+            {promise && <b className="vlr-tag-check">✓</b>}
+            {promise ? "已签承诺书" : "未签承诺书"}
           </span>
         </div>
-        <div className="vlr-member-code">编号：{m.code}</div>
+        <div className="vlr-member-code">编号：{code}</div>
       </div>
     </div>
   );
@@ -110,13 +91,88 @@ export default function Page() {
   const [keyword, setKeyword] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [lineResult, setLineResult] = useState<"success" | "fail">("success");
+  const [rows, setRows] = useState<LineRow[]>([]);
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  /* ---------- 加载 ---------- */
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const page = await adminEndpoints.matchRecords({ page: 1, page_size: 100 });
+      const items = (page as { items: LineRow[] }).items;
+      setRows(items);
+      const total = items.length;
+      const success = items.filter((r) => r.status === 1).length;
+      const fail = items.filter((r) => r.status === 2).length;
+      const pending = items.filter((r) => r.status === 0).length;
+      const closed = items.filter((r) => r.status === 3).length;
+      const matchmaking = items.filter((r) => r.matchmaker_id != null).length;
+      const next: Stat[] = [
+        { value: total, label: "全部牵线", bar: "#3658f7" },
+        { value: pending, label: "待牵线", bar: "#fa8c16" },
+        { value: matchmaking, label: "牵线中", bar: "#13c2c2" },
+        { value: success, label: "牵线成功", bar: "#52c41a" },
+        { value: fail, label: "牵线失败", bar: "#ff4d4f" },
+        { value: closed, label: "已关闭", bar: "#722ed1" },
+      ];
+      setStats(next);
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "加载失败", "error");
+      setRows([]);
+      setStats([
+        { value: 0, label: "全部牵线", bar: "#3658f7" },
+        { value: 0, label: "待牵线", bar: "#fa8c16" },
+        { value: 0, label: "牵线中", bar: "#13c2c2" },
+        { value: 0, label: "牵线成功", bar: "#52c41a" },
+        { value: 0, label: "牵线失败", bar: "#ff4d4f" },
+        { value: 0, label: "已关闭", bar: "#722ed1" },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------- 抽屉提交 ---------- */
+  const handleSubmit = async () => {
+    const fromInput = (document.getElementById("vlr-from-input") as HTMLInputElement | null)?.value.trim();
+    const toInput = (document.getElementById("vlr-to-input") as HTMLInputElement | null)?.value.trim();
+    if (!fromInput || !toInput) {
+      showConfigToast("请输入牵线会员与被牵线会员编号", "error");
+      return;
+    }
+    try {
+      await adminEndpoints.createMatchRecord({
+        from_love_user_id: Number(fromInput),
+        to_love_user_id: Number(toInput),
+        create_time: new Date().toISOString(),
+        complete_time: new Date().toISOString(),
+        line_status: lineResult === "success" ? 1 : 2,
+      });
+      showConfigToast("已提交", "ok");
+      setAddOpen(false);
+      await loadData();
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "提交失败", "error");
+    }
+  };
+
+  /* ---------- 模板下载：CSV（前后端都支持，不用 npm 依赖） ---------- */
+  const downloadTemplate = () => {
+    const csv = "\uFEFF申请会员编号,被牵会员编号,申请时间,完成时间,结果\nG396140,G895945,2026-09-01 14:48:42,2026-09-01 14:48:54,成功";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "红娘牵线导入模板.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   return (
     <div className="min-w-0">
       <AdminBreadcrumb items={getBreadcrumb("会员服务", "红娘牵线")} />
 
       <section className="vlr-card">
-        {/* 须知 */}
         <div className="vlr-notice">
           <div className="vlr-notice-title">
             <span className="vlr-notice-icon">i</span>
@@ -130,7 +186,7 @@ export default function Page() {
           </p>
         </div>
 
-        {/* 统计卡 */}
+        {/* 统计卡 - 来自 match_records 实时聚合 */}
         <div className="vlr-stats">
           {stats.map((item) => (
             <div className="vlr-stat" key={item.label}>
@@ -141,7 +197,6 @@ export default function Page() {
           ))}
         </div>
 
-        {/* 卡片头 */}
         <div className="vlr-head">
           <h2 className="vlr-title">红娘牵线</h2>
           <div className="vlr-tools">
@@ -152,14 +207,13 @@ export default function Page() {
             <button type="button" className="vlr-btn primary" onClick={() => setAddOpen(true)}>
               添加牵线记录
             </button>
-            <button type="button" className="vlr-btn primary">
+            <button type="button" className="vlr-btn primary" onClick={downloadTemplate}>
               <Download size={15} />
-              导出EXCEL
+              下载模板
             </button>
           </div>
         </div>
 
-        {/* 筛选 */}
         <div className="vlr-filters">
           <label className="vlr-select">
             <select value={operator} onChange={(e) => setOperator(e.target.value)}>
@@ -198,12 +252,11 @@ export default function Page() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <button type="button" className="vlr-btn primary">
+          <button type="button" className="vlr-btn primary" onClick={() => undefined}>
             搜索
           </button>
         </div>
 
-        {/* 表格 */}
         <div className="vlr-table-wrap">
           <table className="vlr-table">
             <colgroup>
@@ -231,64 +284,92 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => {
-                const created = splitTime(row.created);
-                const finished = splitTime(row.finished);
-                return (
-                  <tr key={row.id}>
-                    <td className="vlr-td-id">{row.id}</td>
-                    <td>
-                      <LineMember m={row.from} />
-                    </td>
-                    <td>
-                      <LineMember m={row.to} />
-                    </td>
-                    <td className="vlr-matchmaker">{row.matchmaker || ""}</td>
-                    <td>
-                      <span className="vlr-pay">已支付</span>
-                    </td>
-                    <td>
-                      {row.status === "成功" ? (
-                        <span className="vlr-status success">
-                          成功
-                          <ChevronDown size={13} />
-                        </span>
-                      ) : (
-                        <span className="vlr-status fail">
-                          失败
-                          <i className="vlr-status-warn">!</i>
-                        </span>
-                      )}
-                    </td>
-                    <td className="vlr-time">
-                      <span>{created.date}</span>
-                      <span>{created.time}</span>
-                    </td>
-                    <td className="vlr-time">
-                      <span>{finished.date}</span>
-                      <span>{finished.time}</span>
-                    </td>
-                    <td>
-                      <div className="vlr-operator">
-                        {row.operator.map((line) => (
-                          <span key={line}>{line}</span>
-                        ))}
-                        {row.operator.length > 1 && (
-                          <button type="button" className="vlr-del">
-                            删除
-                          </button>
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="h-40 text-center text-sm text-[#999]">
+                    加载中...
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="h-40 text-center text-sm text-[#999]">
+                    暂无数据
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => {
+                  const created = formatTime(row.created_at);
+                  const finished = formatTime(row.responded_at);
+                  const statusLabel = STATUS_LABEL[row.status] ?? "-";
+                  const isSuccess = row.status === 1;
+                  const isFail = row.status === 2;
+                  return (
+                    <tr key={row.id}>
+                      <td className="vlr-td-id">{row.id}</td>
+                      <td>
+                        <LineMember
+                          nick={row.from_nickname ?? `#${row.from_user_id}`}
+                          code={`U${String(row.from_user_id).padStart(6, "0")}`}
+                          gender=""
+                          age=""
+                          real="已绑定"
+                          promise={false}
+                          g="a"
+                        />
+                      </td>
+                      <td>
+                        <LineMember
+                          nick={row.to_nickname ?? `#${row.to_user_id}`}
+                          code={`U${String(row.to_user_id).padStart(6, "0")}`}
+                          gender=""
+                          age=""
+                          real="已绑定"
+                          promise={false}
+                          g="b"
+                        />
+                      </td>
+                      <td className="vlr-matchmaker">{row.matchmaker_id ? `红娘 #${row.matchmaker_id}` : ""}</td>
+                      <td>
+                        <span className="vlr-pay">已记账</span>
+                      </td>
+                      <td>
+                        {isSuccess ? (
+                          <span className="vlr-status success">
+                            {statusLabel}
+                            <ChevronDown size={13} />
+                          </span>
+                        ) : isFail ? (
+                          <span className="vlr-status fail">
+                            {statusLabel}
+                            <i className="vlr-status-warn">!</i>
+                          </span>
+                        ) : (
+                          <span className="vlr-status pending">{statusLabel}</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="vlr-time">
+                        <span>{created.date}</span>
+                        <span>{created.time}</span>
+                      </td>
+                      <td className="vlr-time">
+                        <span>{finished.date}</span>
+                        <span>{finished.time}</span>
+                      </td>
+                      <td>
+                        <div className="vlr-operator">
+                          <span>后台</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* Drawer：添加牵线记录 */}
+      {/* Drawer：添加牵线记录（保留原 DOM 与类名） */}
       {addOpen && (
         <>
           <div className="vlr-mask" onClick={() => setAddOpen(false)} />
@@ -299,7 +380,7 @@ export default function Page() {
                 <button type="button" className="vlr-panel-cancel" onClick={() => setAddOpen(false)}>
                   取消
                 </button>
-                <button type="button" className="vlr-panel-submit">
+                <button type="button" className="vlr-panel-submit" onClick={handleSubmit}>
                   确定提交
                 </button>
               </div>
@@ -310,7 +391,7 @@ export default function Page() {
                   <b className="req">*</b>牵线会员
                 </span>
                 <div className="vlr-field-control">
-                  <input className="vlr-input" placeholder="请输入编号/姓名/手机号/昵称" />
+                  <input id="vlr-from-input" className="vlr-input" placeholder="请输入编号/姓名/手机号/昵称" />
                 </div>
               </div>
               <div className="vlr-field">
@@ -318,7 +399,7 @@ export default function Page() {
                   <b className="req">*</b>被牵线会员
                 </span>
                 <div className="vlr-field-control">
-                  <input className="vlr-input" placeholder="请输入编号/姓名/手机号/昵称" />
+                  <input id="vlr-to-input" className="vlr-input" placeholder="请输入编号/姓名/手机号/昵称" />
                 </div>
               </div>
               <div className="vlr-field">
@@ -372,7 +453,7 @@ export default function Page() {
               </div>
 
               <div className="vlr-panel-submit-row">
-                <button type="button" className="vlr-panel-submit">
+                <button type="button" className="vlr-panel-submit" onClick={handleSubmit}>
                   确定提交
                 </button>
               </div>
