@@ -179,9 +179,14 @@ export const PROMOTER_LEVELS: { id: 1 | 2 | 3 | 4; name: string }[] = [
 
 export interface PromoterUserCandidate {
   id: number;
-  nickname: string | null;
-  phone: string | null;
-  avatar: string | null;
+  nickname?: string | null;
+  real_name?: string | null;
+  phone?: string | null;
+  avatar?: string | null;
+  wechat_bound?: boolean;
+  is_promoter?: boolean;
+  unavailable?: boolean;
+  unavailable_reason?: string | null;
 }
 
 export interface PromoterStaffItem {
@@ -452,9 +457,14 @@ export interface MatchmakerStaffPage {
 
 export interface MatchmakerUserCandidate {
   id: number;
-  nickname: string | null;
-  phone: string | null;
-  avatar: string | null;
+  nickname?: string | null;
+  real_name?: string | null;
+  phone?: string | null;
+  avatar?: string | null;
+  wechat_bound?: boolean;
+  is_service_matchmaker?: boolean;
+  unavailable?: boolean;
+  unavailable_reason?: string | null;
 }
 
 export type MatchmakerStaffListQuery = {
@@ -729,12 +739,14 @@ export interface PartnerStatistics {
 
 export interface PartnerUserCandidate {
   id: number;
-  nickname: string | null;
-  real_name: string | null;
-  phone: string | null;
-  avatar: string | null;
-  is_promoter: boolean;
-  has_team: boolean;
+  nickname?: string | null;
+  real_name?: string | null;
+  phone?: string | null;
+  avatar?: string | null;
+  is_promoter?: boolean;
+  has_team?: boolean;
+  unavailable?: boolean;
+  unavailable_reason?: string | null;
 }
 
 export interface PartnerStaffCreatePayload {
@@ -1080,6 +1092,36 @@ export interface AdminAccountItem {
   permissions: string[];
   created_at: string;
   updated_at: string;
+}
+
+// ─── 平台账号 · 注销申请（/reg-user-cancel） ──────────────────────
+export interface AccountCancellationItem {
+  id: number;
+  account_id: number;
+  username: string;
+  display_name: string;
+  linked_user_id: number | null;
+  requested_ip: string | null;
+  reason: string | null;
+  status: "pending" | "approved" | "cancelled";
+  previous_status: number;
+  has_member_profile: boolean;
+  has_promoter_link: boolean;
+  has_partner_link: boolean;
+  has_matchmaker_link: boolean;
+  reviewed_by: number | null;
+  reviewer_name: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface AccountCancellationPage {
+  items: AccountCancellationItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
 }
 
 // ─── M9 系统管理 / 平台配置 / 财务 / 电子合同 ──────────────────────
@@ -2247,9 +2289,28 @@ export const adminEndpoints = {
   resetAdminAccountPassword: (id: number | string, body: JsonBody) => create(`admin/matchmaker/accounts/${id}/reset-password`, body),
   adminAccountSessions: (id: number | string, query: AdminListQuery = {}) => list(`admin/matchmaker/accounts/${id}/sessions`, query),
   revokeAdminAccountSessions: (id: number | string) => adminApi<void>(`admin/matchmaker/accounts/${id}/sessions/revoke-all`, { method: "POST" }),
+  /** 删除账号：DELETE /admin/matchmaker/accounts/{id}（提交注销申请，不直接删除） */
+  deleteAdminAccount: (id: number | string) => adminApi<AccountCancellationItem>(`admin/matchmaker/accounts/${id}`, { method: "DELETE" }),
+  /** 注销申请列表：GET /admin/matchmaker/account-cancellations */
+  accountCancellations: (query: AdminListQuery = {}) => list("admin/matchmaker/account-cancellations", query) as Promise<AccountCancellationPage>,
+  /** 处理注销申请：approve=true 确定注销 / approve=false 取消注销 */
+  reviewAccountCancellation: (id: number | string, body: { approve: boolean; note?: string }) => create(`admin/matchmaker/account-cancellations/${id}/review`, body) as Promise<AccountCancellationItem>,
   adminLoginLogs: (query: AdminListQuery = {}) => list("admin/matchmaker/accounts/login-logs", query),
   users: (query: AdminListQuery = {}) => list("admin/matchmaker/members", query),
   user: (id: number | string) => adminApi(`admin/matchmaker/members/${id}`),
+  memberDetail: (id: number | string) => adminApi<Record<string, unknown>>(`admin/matchmaker/members/${id}`),
+  memberMedia: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/media`),
+  memberFollowUps: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/follow-ups`, query),
+  memberCallRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/call-records`, query),
+  memberMatchRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/match-records`, query),
+  memberDatingRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/dating-records`, query),
+  memberActivitySignups: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/activity-signups`, query),
+  memberPrivateInfo: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/private-info`),
+  memberSuperInfo: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/super-info`),
+  memberSourceRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/source-records`, query),
+  memberBehavior: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/behavior`, query),
+  memberRealnameReview: (id: number | string) =>
+    adminApi<RealnameReviewPage>("admin/members/auth/realname-reviews", { method: "GET", query: { page: 1, page_size: 100, keyword: String(id) } }),
   loginLogs: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/behavior/login-logs`, query),
   memberFollowUpsOverview: (query: AdminListQuery = {}) => list("admin/members/follow-ups", query),
   customerLeads: (query: AdminListQuery = {}) => list("admin/customer-leads", query),
@@ -2848,24 +2909,6 @@ export const adminEndpoints = {
  * 携带后台 token 拉取 Blob 后触发浏览器下载。
  */
 export async function downloadMemberFollowUpTemplate(): Promise<void> {
-  const url = new URL(
-    "/api/v1/admin/members/follow-ups/import-template",
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
-  );
-  const token = getAdminToken();
-  const response = await fetch(url, {
-    headers: token ? { authorization: `Bearer ${token}` } : undefined,
-  });
-  if (!response.ok) {
-    throw new Error((await response.text()) || `模板下载失败 (${response.status})`);
-  }
-  const blob = await response.blob();
-  const objectUrl = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = "follow-up-import-template.xlsx";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(objectUrl);
+  // 与其他下载一致，统一走站内代理 /api/backend/*，避免浏览器直连后端域名。
+  await downloadAdminFile("admin/members/follow-ups/import-template", "follow-up-import-template.xlsx");
 }

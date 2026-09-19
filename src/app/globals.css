@@ -2744,7 +2744,7 @@
 .ov-pending-item:hover { background: #f1f4fb; }
 .ov-pending-label { font-size: 13px; color: #5c6270; }
 .ov-pending-count { font-size: 23px; font-weight: 700; color: #2f3542; line-height: 1; }
-.ov-pending-btn { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 4px; background: #eef1ff; color: #3658f7; font-size: 12px; }
+.ov-pending-btn { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 4px; background: #eef1ff; color: #3658f7; font-size: 12px; text-decoration: none; cursor: pointer; }
 
 .ov-mid { display: grid; grid-template-columns: 3fr 1.8fr 2fr 1fr; gap: 16px; margin-bottom: 16px; }
 
@@ -8154,6 +8154,17 @@
 .mdt-select-wrap{position:relative;flex:1;min-width:0;display:block}
 .mdt-select{appearance:none;padding-right:26px;cursor:pointer}
 .mdt-select-wrap::after{content:"";position:absolute;right:11px;top:50%;width:6px;height:6px;border-right:1px solid #999;border-bottom:1px solid #999;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.mdt-region-picker{position:relative;display:block;width:100%}
+.mdt-region-trigger{position:relative;width:100%;height:34px;overflow:hidden;border:1px solid #d9d9d9;border-radius:4px;background:#fff;padding:0 34px 0 12px;text-align:left;text-overflow:ellipsis;white-space:nowrap;color:#444;font-size:13px;cursor:pointer}
+.mdt-region-trigger::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;border-right:1px solid #999;border-bottom:1px solid #999;transform:translateY(-70%) rotate(45deg)}
+.mdt-region-trigger.open{border-color:#5b7cff;box-shadow:0 0 0 2px rgba(54,88,247,.14)}
+.mdt-region-panel{position:absolute;z-index:40;top:calc(100% + 4px);left:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(520px,calc(100vw - 64px));height:268px;overflow:hidden;border:1px solid #e1e5ec;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(31,35,41,.16)}
+.mdt-region-column{display:block;min-width:0;overflow-y:auto;border-right:1px solid #edf0f4;padding:6px 0}
+.mdt-region-column:last-child{border-right:0}
+.mdt-region-column button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:36px;border:0;background:#fff;padding:0 14px;text-align:left;color:#363b43;font-size:13px;cursor:pointer;white-space:nowrap}
+.mdt-region-column button:hover,.mdt-region-column button.active{background:#f2f5ff;color:#27334b;font-weight:600}
+.mdt-region-column button i{width:7px;height:7px;border-top:1px solid #8a919f;border-right:1px solid #8a919f;transform:rotate(45deg)}
+.mdt-region-placeholder{display:block;padding:12px 14px;color:#a8afbb;font-size:13px}
 .mdt-radios{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;font-size:13px}
 .mdt-radio,.mdt-check{display:inline-flex;align-items:center;gap:5px;color:#444;cursor:pointer;white-space:nowrap}
 .mdt-textarea{width:100%;border:1px solid #d9d9d9;border-radius:4px;padding:10px 12px;font-size:13px;color:#444;outline:none;resize:vertical;font-family:inherit}

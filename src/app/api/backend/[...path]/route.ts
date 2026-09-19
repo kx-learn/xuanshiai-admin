@@ -14,7 +14,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     const value = request.headers.get(header);
     if (value) headers.set(header, value);
   }
-  const body = method === "GET" || method === "DELETE" ? undefined : await request.arrayBuffer();
+  const body = method === "GET" ? undefined : await request.arrayBuffer();
   let response: Response;
   try {
     response = await fetch(target, { method, headers, body, redirect: "manual", cache: "no-store" });

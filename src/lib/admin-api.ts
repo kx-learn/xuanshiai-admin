@@ -36,10 +36,7 @@ export async function downloadAdminFile(
     : "";
   const base = typeof window === "undefined"
     ? new URL(relativePath, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
-    : new URL(
-      `/api/v1/${path.replace(/^\/+/, "")}`,
-      process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
-    );
+    : new URL(relativePath, window.location.origin);
   const url = `${base.toString()}${search ? `?${search}` : ""}`;
   const headers = new Headers();
   const token = getAdminToken();
@@ -60,10 +57,7 @@ export async function adminApi<T>(path: string, options: RequestOptions = {}): P
   const relativePath = `/api/backend/${path.replace(/^\/+/, "")}`;
   const url = typeof window === "undefined"
     ? new URL(relativePath, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
-    : new URL(
-      `/api/v1/${path.replace(/^\/+/, "")}`,
-      process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
-    );
+    : new URL(relativePath, window.location.origin);
   Object.entries(options.query ?? {}).forEach(([key, value]) => { if (value !== undefined && value !== "") url.searchParams.set(key, String(value)); });
   const headers = new Headers(options.headers);
   const token = getAdminToken();

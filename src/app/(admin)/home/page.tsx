@@ -150,17 +150,17 @@ export default function HomePage() {
 
   /* ---------- 待审工作（后端 pending 映射，无对应项为 0） ---------- */
   const pendingItems = [
-    { label: "会员承诺", count: 0 },
-    { label: "房产认证", count: 0 },
-    { label: "学历认证", count: 0 },
-    { label: "其他认证", count: 0 },
-    { label: "资料待审", count: 0 },
-    { label: "活动报名", count: 0 },
-    { label: "待牵线", count: report.pending.match_application },
-    { label: "约见申请", count: report.pending.matchmaker_service },
-    { label: "提现申请", count: report.pending.withdrawal },
-    { label: "账号注销", count: 0 },
-    { label: "投诉举报", count: report.pending.report },
+    { label: "会员承诺", count: 0, href: "/love-user-auth" },
+    { label: "房产认证", count: 0, href: "/love-user-auth" },
+    { label: "学历认证", count: 0, href: "/love-user-auth" },
+    { label: "其他认证", count: 0, href: "/love-user-auth" },
+    { label: "资料待审", count: 0, href: "/love-user-auth" },
+    { label: "活动报名", count: 0, href: "/active-signupmanager" },
+    { label: "待牵线", count: report.pending.match_application, href: "/love-matchmaker-list" },
+    { label: "约见申请", count: report.pending.matchmaker_service, href: "/love-appointment" },
+    { label: "提现申请", count: report.pending.withdrawal, href: "/system-cashout-history" },
+    { label: "账号注销", count: 0, href: "/reg-user-cancel" },
+    { label: "投诉举报", count: report.pending.report, href: "/content-verify" },
   ];
 
   /* ---------- 会员增长趋势 ---------- */
@@ -250,7 +250,7 @@ export default function HomePage() {
             <div className="ov-pending-item" key={item.label}>
               <span className="ov-pending-label">{item.label}</span>
               <strong className="ov-pending-count">{item.count}</strong>
-              <span className="ov-pending-btn">去处理</span>
+              <Link href={item.href} className="ov-pending-btn">去处理</Link>
             </div>
           ))}
         </div>

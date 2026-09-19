@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bookmark,
@@ -23,13 +23,157 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { resolveMediaUrl } from "@/lib/admin-api";
+import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
+import { adminEndpoints, type RealnameReviewItem } from "@/lib/admin-endpoints";
 
 type Member = {
   id?: number;
   nickname?: string | null;
   avatar?: string | null;
+  [key: string]: unknown;
 };
+
+type DetailData = Record<string, unknown>;
+type DetailPage = { items?: DetailData[]; total?: number };
+type Region = { code: string; name: string };
+type RegionSelection = { value: string; provinceCode: string; cityCode: string; districtCode: string };
+const regionCode = (value: string, length: number) => value.replace(/\D/g, "").slice(0, length);
+type BasicDraft = {
+  matchStatus: string;
+  tags: string[];
+  nickname: string;
+  gender: string;
+  birthday: string;
+  constellation: string;
+  zodiac: string;
+  height: string;
+  weight: string;
+  isMarried: string;
+  hometown: string;
+  hometownProvinceCode: string;
+  hometownCityCode: string;
+  hometownDistrictCode: string;
+  residence: string;
+  residenceProvinceCode: string;
+  residenceCityCode: string;
+  residenceDistrictCode: string;
+  household: string;
+  householdProvinceCode: string;
+  householdCityCode: string;
+  householdDistrictCode: string;
+  education: string;
+  job: string;
+  income: string;
+  ethnicity: string;
+  house: string;
+  car: string;
+  smoking: string;
+  drinking: string;
+  religion: string;
+  marriagePlan: string;
+  school: string;
+  company: string;
+};
+
+const dataValue = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return "-";
+  if (Array.isArray(value)) return value.join("、") || "-";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+};
+
+const dataItems = (value: unknown): DetailData[] => {
+  if (Array.isArray(value)) return value as DetailData[];
+  if (value && typeof value === "object" && Array.isArray((value as DetailPage).items)) return (value as DetailPage).items!;
+  return [];
+};
+
+const formatDateTime = (value: unknown) => {
+  if (typeof value !== "string" || !value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
+};
+
+const maskContact = (value: unknown) => {
+  const text = typeof value === "string" ? value : "";
+  if (!text) return "-";
+  if (text.length === 11) return `${text.slice(0, 3)}****${text.slice(-4)}`;
+  if (text.length > 5) return `${text.slice(0, 2)}****${text.slice(-2)}`;
+  return text;
+};
+
+const realnameLabel = (value: unknown) => ({ 0: "未认证", 1: "审核中", 2: "已实名", 3: "未通过", 4: "未通过" })[Number(value)] ?? "未认证";
+const memberStatusLabel = (value: unknown) => ({ 1: "公开相亲", 2: "委托红娘", 3: "完全私密", 4: "停止相亲", 5: "已经脱单" })[Number(value)] ?? "-";
+const memberStatusValue = (value: string) => STATUS_OPTIONS.indexOf(value) + 1;
+const certificationLabel = (value: unknown) => ({ 0: "未提交", 1: "审核中", 2: "已通过", 3: "未通过" })[Number(value)] ?? "-";
+const stringValue = (value: unknown) => value === null || value === undefined ? "" : String(value);
+const dateValue = (value: unknown) => stringValue(value).slice(0, 10);
+const statusValue = (value: unknown) => {
+  const label = memberStatusLabel(value);
+  return label === "-" ? STATUS_OPTIONS[0] : label;
+};
+const marriageValue = (value: unknown) => ({ 1: "未婚", 2: "离异", 3: "丧偶" })[Number(value)] ?? "";
+const tagsValue = (value: unknown) => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>).flatMap((item) => Array.isArray(item) ? item.filter((tag): tag is string => typeof tag === "string") : []);
+  return [];
+};
+const incomeLabel = (value: unknown) => {
+  const raw = stringValue(value);
+  if (!raw) return "";
+  if (INCOME.includes(raw)) return raw;
+  const income = Number(raw);
+  if (!Number.isFinite(income)) return raw;
+  if (income < 3000) return "3千元以下";
+  if (income < 5000) return "3-5千元";
+  if (income < 8000) return "5-8千元";
+  if (income < 10000) return "8千-1万元";
+  if (income < 20000) return "1-2万元";
+  if (income < 50000) return "2万以上";
+  return "5万以上";
+};
+const basicDraftFrom = (detail: DetailData, fallback: Member): BasicDraft => ({
+  matchStatus: statusValue(detail.match_status ?? fallback.match_status),
+  tags: tagsValue(detail.tags ?? fallback.tags),
+  nickname: stringValue(detail.nickname ?? fallback.nickname),
+  gender: Number(detail.gender ?? fallback.gender) === 2 ? "女" : "男",
+  birthday: dateValue(detail.birthday ?? fallback.birthday),
+  constellation: stringValue(detail.constellation ?? fallback.constellation),
+  zodiac: stringValue(detail.zodiac ?? fallback.zodiac),
+  height: stringValue(detail.height ?? fallback.height),
+  weight: stringValue(detail.weight ?? fallback.weight),
+  isMarried: marriageValue(detail.is_married ?? fallback.is_married),
+  hometown: stringValue(detail.hometown ?? fallback.hometown),
+  hometownProvinceCode: stringValue(detail.hometown_province_code ?? fallback.hometown_province_code),
+  hometownCityCode: stringValue(detail.hometown_city_code ?? fallback.hometown_city_code),
+  hometownDistrictCode: stringValue(detail.hometown_district_code ?? fallback.hometown_district_code),
+  residence: stringValue(detail.residence ?? fallback.residence),
+  residenceProvinceCode: stringValue(detail.residence_province_code ?? fallback.residence_province_code),
+  residenceCityCode: stringValue(detail.residence_city_code ?? fallback.residence_city_code),
+  residenceDistrictCode: stringValue(detail.residence_district_code ?? fallback.residence_district_code),
+  household: stringValue(detail.household ?? fallback.household),
+  householdProvinceCode: stringValue(detail.household_province_code ?? fallback.household_province_code),
+  householdCityCode: stringValue(detail.household_city_code ?? fallback.household_city_code),
+  householdDistrictCode: stringValue(detail.household_district_code ?? fallback.household_district_code),
+  education: stringValue(detail.education ?? fallback.education),
+  job: stringValue(detail.job ?? fallback.job),
+  income: incomeLabel(detail.income ?? fallback.income),
+  ethnicity: stringValue(detail.ethnicity ?? fallback.ethnicity),
+  house: stringValue(detail.house ?? fallback.house),
+  car: stringValue(detail.car ?? fallback.car),
+  smoking: stringValue(detail.smoking ?? fallback.smoking),
+  drinking: stringValue(detail.drinking ?? fallback.drinking),
+  religion: stringValue(detail.religion ?? fallback.religion),
+  marriagePlan: stringValue(detail.marriage_plan ?? fallback.marriage_plan),
+  school: stringValue(detail.school ?? fallback.school),
+  company: stringValue(detail.company ?? fallback.company),
+});
+
+function ApiState({ loading, error, empty = "暂无数据", children }: { loading: boolean; error: string; empty?: string; children: React.ReactNode }) {
+  if (loading) return <div className="mdt-empty">加载中...</div>;
+  if (error) return <div className="mdt-empty text-[#d4380d]">{error}</div>;
+  return <>{children}</>;
+}
 
 const TABS = [
   { key: "basic", label: "基本资料" },
@@ -67,6 +211,16 @@ const TAG_OPTIONS = [
 const ZODIAC = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"];
 const EDUCATION = ["初中", "技校", "高中", "中专", "大专", "本科", "硕士", "博士"];
 const INCOME = ["3千元以下", "3-5千元", "5-8千元", "8千-1万元", "1-2万元", "2万以上", "5万以上", "年入百万"];
+const INCOME_VALUES: Record<string, number> = {
+  "3千元以下": 2500,
+  "3-5千元": 4000,
+  "5-8千元": 6500,
+  "8千-1万元": 9000,
+  "1-2万元": 15000,
+  "2万以上": 30000,
+  "5万以上": 50000,
+  "年入百万": 83333,
+};
 const OCCUPATION = [
   "私企员工",
   "央企/国企",
@@ -106,21 +260,25 @@ function Inp({
   readOnly,
   type,
   unit,
+  onChange,
 }: {
   value?: string;
   placeholder?: string;
   readOnly?: boolean;
   type?: string;
   unit?: string;
+  onChange?: (value: string) => void;
 }) {
   return (
     <span className="mdt-input-wrap">
       <input
         className="mdt-input"
-        defaultValue={value}
+        value={onChange ? value ?? "" : undefined}
+        defaultValue={onChange ? undefined : value}
         placeholder={placeholder}
         readOnly={readOnly}
         type={type}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         style={unit ? { paddingRight: 36 } : undefined}
       />
       {unit ? <span className="mdt-unit">{unit}</span> : null}
@@ -132,15 +290,17 @@ function Sel({
   value,
   options,
   placeholder = "请选择",
+  onChange,
 }: {
   value?: string;
   options: string[];
   placeholder?: string;
+  onChange?: (value: string) => void;
 }) {
   const list = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <span className="mdt-select-wrap">
-      <select className="mdt-select" defaultValue={value ?? ""}>
+      <select className="mdt-select" value={onChange ? value ?? "" : undefined} defaultValue={onChange ? undefined : value ?? ""} onChange={onChange ? (event) => onChange(event.target.value) : undefined}>
         {value ? null : <option value="">{placeholder}</option>}
         {list.map((item) => (
           <option key={item} value={item}>
@@ -156,16 +316,18 @@ function Radios({
   name,
   options,
   value,
+  onChange,
 }: {
   name: string;
   options: string[];
   value?: string;
+  onChange?: (value: string) => void;
 }) {
   return (
     <span className="mdt-radios">
       {options.map((item) => (
         <label key={item} className="mdt-radio">
-          <input type="radio" name={name} defaultChecked={item === value} />
+          <input type="radio" name={name} checked={onChange ? item === value : undefined} defaultChecked={onChange ? undefined : item === value} onChange={onChange ? () => onChange(item) : undefined} />
           <span>{item}</span>
         </label>
       ))}
@@ -176,15 +338,17 @@ function Radios({
 function Checks({
   options,
   checked = [],
+  onChange,
 }: {
   options: string[];
   checked?: string[];
+  onChange?: (value: string[]) => void;
 }) {
   return (
     <span className="mdt-radios">
       {options.map((item) => (
         <label key={item} className="mdt-check">
-          <input type="checkbox" defaultChecked={checked.includes(item)} />
+          <input type="checkbox" checked={onChange ? checked.includes(item) : undefined} defaultChecked={onChange ? undefined : checked.includes(item)} onChange={onChange ? (event) => onChange(event.target.checked ? [...checked, item] : checked.filter((tag) => tag !== item)) : undefined} />
           <span>{item}</span>
         </label>
       ))}
@@ -253,8 +417,121 @@ export default function MemberDetailWorkspace({
   const [guestCardOpen, setGuestCardOpen] = useState(false);
   const [posterOpen, setPosterOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [detail, setDetail] = useState<DetailData>({});
+  const [sectionData, setSectionData] = useState<DetailData[] | DetailData>({});
+  const [sectionLoading, setSectionLoading] = useState(false);
+  const [sectionError, setSectionError] = useState("");
+  const [realnameReview, setRealnameReview] = useState<RealnameReviewItem | null>(null);
+  const [basicDraft, setBasicDraft] = useState<BasicDraft>(() => basicDraftFrom({}, member));
+  const [savingBasic, setSavingBasic] = useState(false);
+  const [basicSaveError, setBasicSaveError] = useState("");
 
-  const nickname = member.nickname || "Lemon";
+  useEffect(() => {
+    if (!member.id) return;
+    void adminEndpoints.memberDetail(member.id)
+      .then((result) => {
+        setDetail(result);
+        setBasicDraft(basicDraftFrom(result, member));
+      })
+      .catch(() => setDetail({}));
+  }, [member.id]);
+
+  useEffect(() => {
+    if (!member.id) return;
+    void adminEndpoints.memberRealnameReview(member.id)
+      .then((result) => setRealnameReview(result.items.find((item) => item.user_id === member.id) ?? null))
+      .catch(() => setRealnameReview(null));
+  }, [member.id]);
+
+  const saveBasic = async () => {
+    if (!member.id) return;
+    setSavingBasic(true);
+    setBasicSaveError("");
+    try {
+      await adminEndpoints.updateMember(member.id, {
+        nickname: basicDraft.nickname.trim(),
+        gender: basicDraft.gender === "女" ? 2 : 1,
+        birthday: basicDraft.birthday || null,
+        constellation: basicDraft.constellation || null,
+        zodiac: basicDraft.zodiac || null,
+        height: basicDraft.height ? Number(basicDraft.height) : null,
+        weight: basicDraft.weight ? Number(basicDraft.weight) : null,
+        is_married: ({ "未婚": 1, "离异": 2, "丧偶": 3 } as Record<string, number>)[basicDraft.isMarried] ?? null,
+        hometown: basicDraft.hometown || null,
+        hometown_province_code: basicDraft.hometownProvinceCode || null,
+        hometown_city_code: basicDraft.hometownCityCode || null,
+        hometown_district_code: basicDraft.hometownDistrictCode || null,
+        residence: basicDraft.residence || null,
+        residence_province_code: basicDraft.residenceProvinceCode || null,
+        residence_city_code: basicDraft.residenceCityCode || null,
+        residence_district_code: basicDraft.residenceDistrictCode || null,
+        household: basicDraft.household || null,
+        household_province_code: basicDraft.householdProvinceCode || null,
+        household_city_code: basicDraft.householdCityCode || null,
+        household_district_code: basicDraft.householdDistrictCode || null,
+        education: basicDraft.education || null,
+        job: basicDraft.job || null,
+        income: basicDraft.income ? INCOME_VALUES[basicDraft.income] ?? Number(basicDraft.income) : null,
+        ethnicity: basicDraft.ethnicity || null,
+        house: basicDraft.house || null,
+        car: basicDraft.car || null,
+        smoking: basicDraft.smoking || null,
+        drinking: basicDraft.drinking || null,
+        religion: basicDraft.religion || null,
+        marriage_plan: basicDraft.marriagePlan || null,
+        school: basicDraft.school.trim() || null,
+        company: basicDraft.company.trim() || null,
+        match_status: memberStatusValue(basicDraft.matchStatus),
+        tags: basicDraft.tags,
+      });
+      const refreshed = await adminEndpoints.memberDetail(member.id);
+      setDetail(refreshed);
+      setBasicDraft(basicDraftFrom(refreshed, member));
+    } catch (error) {
+      setBasicSaveError(error instanceof Error ? error.message : "保存失败，请稍后重试");
+    } finally {
+      setSavingBasic(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!member.id) return;
+    const requests: Record<string, () => Promise<unknown>> = {
+      auth: () => adminEndpoints.memberCertifications(member.id!),
+      media: () => adminEndpoints.memberMedia(member.id!),
+      follow: () => adminEndpoints.memberFollowUps(member.id!, { page: 1, page_size: 50 }),
+      calls: () => adminEndpoints.memberCallRecords(member.id!, { page: 1, page_size: 50 }),
+      line: () => adminEndpoints.memberMatchRecords(member.id!, { page: 1, page_size: 50 }),
+      dating: () => adminEndpoints.memberDatingRecords(member.id!, { page: 1, page_size: 50 }),
+      activities: () => adminEndpoints.memberActivitySignups(member.id!, { page: 1, page_size: 50 }),
+      behavior: () => adminEndpoints.memberBehavior(member.id!, { page: 1, page_size: 50 }),
+      private: () => adminEndpoints.memberPrivateInfo(member.id!),
+      super: () => adminEndpoints.memberSuperInfo(member.id!),
+      source: () => adminEndpoints.memberSourceRecords(member.id!, { page: 1, page_size: 50 }),
+    };
+    const request = requests[tab];
+    if (!request) return;
+    let cancelled = false;
+    setSectionLoading(true);
+    setSectionError("");
+    void request()
+      .then((result) => {
+        if (!cancelled) setSectionData(result && typeof result === "object" ? result as DetailData : {});
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setSectionError(error instanceof Error ? error.message : "接口请求失败");
+      })
+      .finally(() => {
+        if (!cancelled) setSectionLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [member.id, tab]);
+
+  const nickname = (detail.nickname as string | null | undefined) || member.nickname || "未命名";
+  const profile = { ...member, ...detail };
+  const phone = profile.phone;
+  const wechat = profile.wechat;
+  const realnameStatus = profile.realname_status ?? profile.auth_status;
   const showFooter = ["basic", "intro", "requirement", "follow", "private", "super"].includes(tab);
 
   return (
@@ -291,8 +568,8 @@ export default function MemberDetailWorkspace({
         <section className="mdt-profile">
           <div className="mdt-profile-inner">
             <div className="mdt-avatar">
-              {member.avatar ? (
-                <img src={resolveMediaUrl(member.avatar)} alt="" />
+              {typeof profile.avatar === "string" && profile.avatar ? (
+                <img src={resolveMediaUrl(profile.avatar)} alt="" />
               ) : (
                 <span className="mdt-avatar-ph">
                   <UserRound className="size-14" strokeWidth={1.2} />
@@ -306,19 +583,19 @@ export default function MemberDetailWorkspace({
               <div className="mdt-name-row">
                 <span>{nickname}</span>
                 <span className="sep">/</span>
-                <span>B965945</span>
+                <span>{dataValue(profile.member_code ?? profile.code)}</span>
                 <span className="sep">/</span>
                 <span>
-                  薛家乐 <span className="mdt-badge">已实名</span>
+                  {dataValue(realnameReview?.real_name ?? profile.real_name)} <span className="mdt-badge">{realnameReview?.result_label ?? realnameLabel(realnameStatus)}</span>
                 </span>
                 <span className="sep">/</span>
-                <span>♡ 公开相亲</span>
+                <span>♡ {memberStatusLabel(profile.match_status)}</span>
               </div>
 
               <div className="mdt-contact-row">
                 <div className="mdt-contact">
                   <Phone className="size-5 text-[#f47b36]" />
-                  <strong>{showContact ? "13712347543" : "137****7543"}</strong>
+                  <strong>{showContact ? dataValue(phone) : maskContact(phone)}</strong>
                   <button type="button" className="mdt-link" onClick={() => setShowContact((v) => !v)}>
                     <Eye className="mr-1 inline size-3.5" />
                     {showContact ? "隐藏手机" : "查看手机"}
@@ -329,7 +606,7 @@ export default function MemberDetailWorkspace({
                 </div>
                 <div className="mdt-contact">
                   <MessageCircle className="size-5 text-[#22bf61]" />
-                  <strong>{showContact ? "13712347543" : "137****7543"}</strong>
+                  <strong>{showContact ? dataValue(wechat) : maskContact(wechat)}</strong>
                   <button type="button" className="mdt-link" onClick={() => setShowContact((v) => !v)}>
                     <Eye className="mr-1 inline size-3.5" />
                     {showContact ? "隐藏微信" : "查看微信"}
@@ -347,14 +624,14 @@ export default function MemberDetailWorkspace({
               </div>
 
               <div className="mdt-meta">
-                <span>ID：678</span>
-                <span>加入：2026-09-01 14:46:13</span>
-                <span>登记：自己注册</span>
-                <span>IP属地：浙江省宁波市鄞州区</span>
-                <span>最近登录：2026-09-01 14:45:22</span>
-                <span>跟进：芸希老师</span>
-                <span>推广：-</span>
-                <span>上次跟进：9天前</span>
+                <span>ID：{dataValue(profile.id)}</span>
+                <span>加入：{formatDateTime(profile.created_at)}</span>
+                <span>登记：{dataValue(profile.source_label ?? profile.source)}</span>
+                <span>IP属地：{dataValue(profile.ip_location)}</span>
+                <span>最近登录：{formatDateTime(profile.last_login_at)}</span>
+                <span>跟进：{dataValue(profile.matchmaker_name ?? profile.matchmaker_id)}</span>
+                <span>推广：{dataValue(profile.promoter_name ?? profile.promoter_id)}</span>
+                <span>上次跟进：{formatDateTime(profile.last_follow_at)}</span>
               </div>
             </div>
           </div>
@@ -376,13 +653,13 @@ export default function MemberDetailWorkspace({
 
         {/* 内容 */}
         <main className="mdt-body">
-          {tab === "basic" && <BasicTab />}
-          {tab === "auth" && <AuthTab />}
-          {tab === "media" && <MediaTab />}
+          {tab === "basic" && <BasicTab member={profile} draft={basicDraft} onDraftChange={setBasicDraft} onSave={() => void saveBasic()} saving={savingBasic} error={basicSaveError} />}
+          {tab === "auth" && <AuthTab member={profile} realnameReview={realnameReview} data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "media" && <MediaTab data={sectionData} loading={sectionLoading} error={sectionError} />}
           {tab === "intro" && <IntroTab />}
           {tab === "requirement" && <RequirementTab />}
-          {tab === "follow" && <FollowTab />}
-          {tab === "private" && <PrivateTab />}
+          {tab === "follow" && <FollowTab data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "private" && <PrivateTab data={sectionData} loading={sectionLoading} error={sectionError} />}
           {tab === "match" && (
             <MatchTab
               sub={matchTab}
@@ -390,20 +667,23 @@ export default function MemberDetailWorkspace({
               onOpenLibrary={() => setLibraryOpen(true)}
             />
           )}
-          {tab === "calls" && <CallsTab />}
-          {tab === "line" && <LineTab sub={lineTab} onSub={setLineTab} />}
-          {tab === "dating" && <DatingTab />}
-          {tab === "activities" && <ActivitiesTab />}
-          {tab === "behavior" && <BehaviorTab sub={behaviorTab} onSub={setBehaviorTab} />}
+          {tab === "calls" && <CallsTab data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "line" && <LineTab sub={lineTab} onSub={setLineTab} data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "dating" && <DatingTab data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "activities" && <ActivitiesTab data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "behavior" && <BehaviorTab sub={behaviorTab} onSub={setBehaviorTab} data={sectionData} loading={sectionLoading} error={sectionError} />}
           {tab === "super" && (
             <SuperTab
               topRecommend={topRecommend}
               newRecommend={newRecommend}
               onTopRecommend={setTopRecommend}
               onNewRecommend={setNewRecommend}
+              data={sectionData}
+              loading={sectionLoading}
+              error={sectionError}
             />
           )}
-          {tab === "source" && <SourceTab />}
+          {tab === "source" && <SourceTab data={sectionData} loading={sectionLoading} error={sectionError} />}
         </main>
 
         {showFooter ? (
@@ -426,13 +706,35 @@ export default function MemberDetailWorkspace({
 /* 基本资料                                                            */
 /* ------------------------------------------------------------------ */
 
-function BasicTab() {
+function BasicTab({
+  member,
+  draft,
+  onDraftChange,
+  onSave,
+  saving,
+  error,
+}: {
+  member: DetailData;
+  draft: BasicDraft;
+  onDraftChange: (value: BasicDraft) => void;
+  onSave: () => void;
+  saving: boolean;
+  error: string;
+}) {
+  const update = <K extends keyof BasicDraft>(key: K, value: BasicDraft[K]) => onDraftChange({ ...draft, [key]: value });
+  const updateRegion = (prefix: "hometown" | "residence" | "household", selection: RegionSelection) => onDraftChange({
+    ...draft,
+    [prefix]: selection.value,
+    [`${prefix}ProvinceCode`]: selection.provinceCode,
+    [`${prefix}CityCode`]: selection.cityCode,
+    [`${prefix}DistrictCode`]: selection.districtCode,
+  });
   return (
     <>
       <div className="mdt-field" style={{ marginBottom: 16 }}>
         <span className="mdt-label">状态</span>
         <span className="mdt-control">
-          <Radios name="mdt-status" options={STATUS_OPTIONS} value="公开相亲" />
+          <Radios name="mdt-status" options={STATUS_OPTIONS} value={draft.matchStatus} onChange={(value) => update("matchStatus", value)} />
         </span>
       </div>
 
@@ -441,7 +743,7 @@ function BasicTab() {
       <div className="mdt-field" style={{ margin: "18px 0" }}>
         <span className="mdt-label">标签</span>
         <span className="mdt-control" style={{ flexWrap: "wrap" }}>
-          <Checks options={TAG_OPTIONS} />
+          <Checks options={TAG_OPTIONS} checked={draft.tags} onChange={(value) => update("tags", value)} />
           <button type="button" className="mdt-link" style={{ marginLeft: 8 }}>
             标签管理
           </button>
@@ -450,89 +752,94 @@ function BasicTab() {
 
       <div className="mdt-grid3">
         <Field label="编号" required>
-          <Inp value="B965945" readOnly />
+          <Inp value={dataValue(member.member_code ?? member.code)} readOnly />
         </Field>
         <Field label="姓名" required>
-          <Inp value="薛家乐" />
+          <Inp value={dataValue(member.real_name)} readOnly />
         </Field>
         <Field label="性别" required>
-          <Radios name="mdt-gender" options={["男", "女"]} value="男" />
+          <Radios name="mdt-gender" options={["男", "女"]} value={draft.gender} onChange={(value) => update("gender", value)} />
         </Field>
 
         <Field label="生日" required>
-          <Inp value="1990-01-01" type="date" />
+          <Inp value={draft.birthday} type="date" onChange={(value) => update("birthday", value)} />
         </Field>
         <Field label="星座">
-          <Sel value="摩羯座" options={["白羊座", "金牛座", "双子座", "巨蟹座", "狮子座", "处女座", "天秤座", "天蝎座", "射手座", "摩羯座", "水瓶座", "双鱼座"]} />
+          <Sel value={draft.constellation} options={["白羊座", "金牛座", "双子座", "巨蟹座", "狮子座", "处女座", "天秤座", "天蝎座", "射手座", "摩羯座", "水瓶座", "双鱼座"]} onChange={(value) => update("constellation", value)} />
         </Field>
         <Field label="属相">
-          <Sel value="马" options={ZODIAC} />
+          <Sel value={draft.zodiac} options={ZODIAC} onChange={(value) => update("zodiac", value)} />
         </Field>
 
         <Field label="身高">
-          <Inp value="175" unit="cm" />
+          <Inp value={draft.height} unit="cm" onChange={(value) => update("height", value)} />
         </Field>
         <Field label="体重">
-          <Inp value="65" unit="kg" />
+          <Inp value={draft.weight} unit="kg" onChange={(value) => update("weight", value)} />
         </Field>
         <Field label="婚况">
-          <Sel value="未婚" options={["未婚", "离异", "丧偶"]} />
+          <Sel value={draft.isMarried} options={["未婚", "离异", "丧偶"]} onChange={(value) => update("isMarried", value)} />
         </Field>
 
         <Field label="家乡">
-          <Sel value="江苏省 / 南京市" placeholder="请选择" options={[]} />
+          <RegionSelect value={draft.hometown} provinceCode={draft.hometownProvinceCode} cityCode={draft.hometownCityCode} districtCode={draft.hometownDistrictCode} onChange={(value) => updateRegion("hometown", value)} />
         </Field>
         <Field label="现居">
-          <Sel value="江苏省 / 南京市" placeholder="请选择" options={[]} />
+          <RegionSelect value={draft.residence} provinceCode={draft.residenceProvinceCode} cityCode={draft.residenceCityCode} districtCode={draft.residenceDistrictCode} onChange={(value) => updateRegion("residence", value)} />
         </Field>
         <Field label="户口">
-          <Sel placeholder="请选择" options={[]} />
+          <RegionSelect value={draft.household} provinceCode={draft.householdProvinceCode} cityCode={draft.householdCityCode} districtCode={draft.householdDistrictCode} onChange={(value) => updateRegion("household", value)} />
         </Field>
 
         <Field label="学历">
-          <Sel value="大专" options={EDUCATION} />
+          <Sel value={draft.education} options={EDUCATION} onChange={(value) => update("education", value)} />
         </Field>
         <Field label="职业">
-          <Sel value="不限" options={["不限", ...OCCUPATION]} />
+          <Sel value={draft.job} options={["不限", ...OCCUPATION]} onChange={(value) => update("job", value)} />
         </Field>
         <Field label="收入">
-          <Sel value="8千-1万元" options={INCOME} />
+          <Sel value={draft.income} options={INCOME} onChange={(value) => update("income", value)} />
         </Field>
 
         <Field label="民族">
-          <Sel value="汉族" options={ETHNICITY} />
+          <Sel value={draft.ethnicity} options={ETHNICITY} onChange={(value) => update("ethnicity", value)} />
         </Field>
         <Field label="购房">
-          <Sel placeholder="请选择购房" options={["无房", "有房", "共有住房"]} />
+          <Sel value={draft.house} placeholder="请选择购房" options={["无房", "有房", "共有住房"]} onChange={(value) => update("house", value)} />
         </Field>
         <Field label="购车">
-          <Sel placeholder="请选择购车" options={["无车", "有车", "计划购车"]} />
+          <Sel value={draft.car} placeholder="请选择购车" options={["无车", "有车", "计划购车"]} onChange={(value) => update("car", value)} />
         </Field>
 
         <Field label="吸烟">
-          <Sel placeholder="请选择吸烟" options={["不吸烟", "偶尔吸烟", "经常吸烟"]} />
+          <Sel value={draft.smoking} placeholder="请选择吸烟" options={["不吸烟", "偶尔吸烟", "经常吸烟"]} onChange={(value) => update("smoking", value)} />
         </Field>
         <Field label="喝酒">
-          <Sel placeholder="请选择喝酒" options={["不喝酒", "偶尔喝酒", "经常喝酒"]} />
+          <Sel value={draft.drinking} placeholder="请选择喝酒" options={["不喝酒", "偶尔喝酒", "经常喝酒"]} onChange={(value) => update("drinking", value)} />
         </Field>
         <Field label="宗教">
-          <Sel value="无宗教信仰" options={["无宗教信仰", "佛教", "道教", "基督教", "伊斯兰教"]} />
+          <Sel value={draft.religion} options={["无宗教信仰", "佛教", "道教", "基督教", "伊斯兰教"]} onChange={(value) => update("religion", value)} />
         </Field>
 
         <Field label="结婚">
-          <Sel value="一年内结婚" options={MARRIAGE_TARGET} />
+          <Sel value={draft.marriagePlan} options={MARRIAGE_TARGET} onChange={(value) => update("marriagePlan", value)} />
         </Field>
         <Field label="学校">
-          <Inp placeholder="填写毕业学校" />
+          <Inp value={draft.school} placeholder="填写毕业学校" onChange={(value) => update("school", value)} />
         </Field>
         <Field label="单位">
-          <Inp placeholder="填写工作单位" />
+          <Inp value={draft.company} placeholder="填写工作单位" onChange={(value) => update("company", value)} />
         </Field>
 
         <Field label="登记">
           <Sel value="自己注册" options={["自己注册", "后台添加", "父母登记", "推广红娘录入"]} />
         </Field>
       </div>
+
+      <div className="mt-5 flex justify-end">
+        <button type="button" className="mdt-submit" disabled={saving} onClick={onSave}>{saving ? "提交中..." : "确定提交"}</button>
+      </div>
+      {error ? <p className="mt-3 text-right text-sm text-[#d4380d]">{error}</p> : null}
     </>
   );
 }
@@ -541,7 +848,13 @@ function BasicTab() {
 /* 认证信息                                                            */
 /* ------------------------------------------------------------------ */
 
-function AuthTab() {
+function AuthTab({ member, realnameReview, data, loading, error }: { member: DetailData; realnameReview: RealnameReviewItem | null; data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const certifications = Array.isArray(data) ? {} : data;
+  const certificationRows = [
+    ["婚况核实", certifications.marriage],
+    ["学历认证", certifications.education],
+    ["房产认证", certifications.house],
+  ] as const;
   return (
     <>
       <Notice>
@@ -551,19 +864,21 @@ function AuthTab() {
       <div className="mdt-auth-item">
         <div className="mdt-auth-title">实名认证</div>
         <div className="mdt-auth-line">
-          <span>姓名：薛家乐</span>
-          <span>身份证：330225200512******</span>
-          <span className="mdt-badge">认证成功</span>
-          <span className="mdt-auth-time">2026-09-01 14:48:19</span>
+          <span>姓名：{dataValue(realnameReview?.real_name ?? member.real_name)}</span>
+          <span>身份证：{dataValue(realnameReview?.id_card_masked)}</span>
+          <span>认证状态：<span className="mdt-badge">{realnameReview?.result_label ?? realnameLabel(member.realname_status ?? member.auth_status)}</span></span>
+          <span className="mdt-auth-time">{formatDateTime(realnameReview?.created_at ?? member.realname_reviewed_at ?? member.auth_reviewed_at)}</span>
         </div>
       </div>
 
-      {["婚况核实", "学历认证", "房产认证", "会员承诺"].map((title) => (
-        <div key={title} className="mdt-auth-item">
-          <div className="mdt-auth-title">{title}</div>
-          <div className="mdt-auth-none">暂无信息</div>
-        </div>
-      ))}
+      <ApiState loading={loading} error={error}>
+        {certificationRows.map(([title, item]) => {
+          const detail = item && typeof item === "object" ? item as DetailData : null;
+          return <div key={title} className="mdt-auth-item"><div className="mdt-auth-title">{title}</div>{detail ? <div className="mdt-auth-line"><span className="mdt-badge">{certificationLabel(detail.status)}</span><span>提交：{formatDateTime(detail.submitted_at)}</span><span>审核：{formatDateTime(detail.reviewed_at)}</span>{detail.fail_reason ? <span>原因：{dataValue(detail.fail_reason)}</span> : null}</div> : <div className="mdt-auth-none">暂无信息</div>}</div>;
+        })}
+      </ApiState>
+
+      <div className="mdt-auth-item"><div className="mdt-auth-title">会员承诺</div><div className="mdt-auth-none">暂无信息</div></div>
 
       <div className="mdt-auth-item">
         <div className="mdt-auth-title">证件留档</div>
@@ -581,7 +896,8 @@ function AuthTab() {
 /* 照片视频                                                            */
 /* ------------------------------------------------------------------ */
 
-function MediaTab() {
+function MediaTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const media = dataItems(data);
   return (
     <>
       <div className="mdt-row-end">
@@ -608,7 +924,146 @@ function MediaTab() {
         <Plus className="size-5" />
         上传视频
       </button>
+      <ApiState loading={loading} error={error}>
+        {media.length > 0 ? <table className="mdt-table" style={{ marginTop: 14 }}><tbody>{media.map((item, index) => <tr key={String(item.id ?? index)}><td>{dataValue(item.media_type ?? item.type)}</td><td>{dataValue(item.status ?? item.review_status)}</td><td>{dataValue(item.created_at)}</td></tr>)}</tbody></table> : <Empty />}
+      </ApiState>
     </>
+  );
+}
+
+function RegionSelect({
+  value,
+  provinceCode: initialProvinceCode = "",
+  cityCode: initialCityCode = "",
+  districtCode: initialDistrictCode = "",
+  onChange,
+}: {
+  value: string;
+  provinceCode?: string;
+  cityCode?: string;
+  districtCode?: string;
+  onChange: (value: RegionSelection) => void;
+}) {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const [provinces, setProvinces] = useState<Region[]>([]);
+  const [cities, setCities] = useState<Region[]>([]);
+  const [districts, setDistricts] = useState<Region[]>([]);
+  const [provinceCode, setProvinceCode] = useState(initialProvinceCode);
+  const [cityCode, setCityCode] = useState(initialCityCode);
+  const [districtCode, setDistrictCode] = useState(initialDistrictCode);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    void adminApi<{ items: Region[] }>("regions/provinces")
+      .then((result) => setProvinces(result.items))
+      .catch(() => setProvinces([]));
+  }, []);
+
+  useEffect(() => {
+    setProvinceCode(initialProvinceCode);
+    setCityCode(initialCityCode);
+    setDistrictCode(initialDistrictCode);
+  }, [initialCityCode, initialDistrictCode, initialProvinceCode]);
+
+  useEffect(() => {
+    if (!provinceCode) {
+      setCities([]);
+      return;
+    }
+    void adminApi<{ items: Region[] }>("regions/cities", { query: { province_code: regionCode(provinceCode, 2) } })
+      .then((result) => setCities(result.items))
+      .catch(() => setCities([]));
+  }, [provinceCode]);
+
+  useEffect(() => {
+    if (!cityCode) {
+      setDistricts([]);
+      return;
+    }
+    void adminApi<{ items: Region[] }>("regions/districts", { query: { city_code: regionCode(cityCode, 4) } })
+      .then((result) => setDistricts(result.items))
+      .catch(() => setDistricts([]));
+  }, [cityCode]);
+
+  useEffect(() => {
+    if (!value || provinces.length === 0 || provinceCode) return;
+    const names = value.split(/\s*[/,，]\s*/).filter(Boolean);
+    const province = provinces.find((item) => item.name === names[0]);
+    if (province) setProvinceCode(province.code);
+  }, [provinceCode, provinces, value]);
+
+  useEffect(() => {
+    if (!value || cities.length === 0 || cityCode) return;
+    const names = value.split(/\s*[/,，]\s*/).filter(Boolean);
+    const city = cities.find((item) => item.name === names[1]);
+    if (city) setCityCode(city.code);
+  }, [cities, cityCode, value]);
+
+  useEffect(() => {
+    if (!value || districts.length === 0 || districtCode) return;
+    const names = value.split(/\s*[/,，]\s*/).filter(Boolean);
+    const district = districts.find((item) => item.name === names[2]);
+    if (district) setDistrictCode(district.code);
+  }, [districtCode, districts, value]);
+
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  const emit = (nextProvince: string, nextCity: string, nextDistrict: string) => {
+    const names = [
+      provinces.find((item) => item.code === nextProvince)?.name,
+      cities.find((item) => item.code === nextCity)?.name,
+      districts.find((item) => item.code === nextDistrict)?.name,
+    ].filter(Boolean);
+    onChange({
+      value: names.join(" / "),
+      provinceCode: nextProvince,
+      cityCode: nextCity,
+      districtCode: nextDistrict,
+    });
+  };
+
+  const selectProvince = (next: string) => {
+    setProvinceCode(next);
+    setCityCode("");
+    setDistrictCode("");
+    emit(next, "", "");
+  };
+
+  const selectCity = (next: string) => {
+    setCityCode(next);
+    setDistrictCode("");
+    emit(provinceCode, next, "");
+  };
+
+  const selectDistrict = (next: string) => {
+    setDistrictCode(next);
+    emit(provinceCode, cityCode, next);
+    setOpen(false);
+  };
+
+  return (
+    <span className="mdt-region-picker" ref={rootRef}>
+      <button type="button" className={`mdt-region-trigger${open ? " open" : ""}`} aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+        {value || "请选择省 / 市 / 区"}
+      </button>
+      {open && <span className="mdt-region-panel">
+        <span className="mdt-region-column">
+          {provinces.map((item) => <button type="button" key={item.code} className={item.code === provinceCode ? "active" : ""} onClick={() => selectProvince(item.code)}>{item.name}<i /></button>)}
+        </span>
+        <span className="mdt-region-column">
+          {provinceCode ? cities.map((item) => <button type="button" key={item.code} className={item.code === cityCode ? "active" : ""} onClick={() => selectCity(item.code)}>{item.name}<i /></button>) : <span className="mdt-region-placeholder">请选择省</span>}
+        </span>
+        <span className="mdt-region-column">
+          {cityCode ? districts.map((item) => <button type="button" key={item.code} className={item.code === districtCode ? "active" : ""} onClick={() => selectDistrict(item.code)}>{item.name}</button>) : <span className="mdt-region-placeholder">请选择市</span>}
+        </span>
+      </span>}
+    </span>
   );
 }
 
@@ -748,7 +1203,8 @@ function RequirementTab() {
 /* 服务跟进                                                            */
 /* ------------------------------------------------------------------ */
 
-function FollowTab() {
+function FollowTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const records = dataItems(data);
   return (
     <div className="mdt-follow">
       <div className="mdt-follow-left">
@@ -801,10 +1257,11 @@ function FollowTab() {
             </select>
           </span>
         </div>
-        <div className="mdt-record">
+        <ApiState loading={loading} error={error}>
+        {records.length === 0 ? <Empty /> : records.map((record, index) => <div className="mdt-record" key={String(record.id ?? index)}>
           <div className="mdt-record-head">
-            <span className="mdt-record-time">2026-09-01 14:46:54</span>
-            <span className="mdt-record-by">芸希老师</span>
+            <span className="mdt-record-time">{dataValue(record.created_at)}</span>
+            <span className="mdt-record-by">{dataValue(record.operator_name ?? record.admin_name ?? record.method)}</span>
             <span className="mdt-record-ops">
               <button type="button" className="mdt-link">
                 <Pencil className="mr-1 inline size-3" />
@@ -817,11 +1274,10 @@ function FollowTab() {
             </span>
           </div>
           <div className="mdt-record-body">
-            与会：曾浩蓝（lily|曾浩蓝|G396140），2026年09月01日牵线成功
-            <br />
-            注：本条记录由系统自动生成
+            {dataValue(record.content ?? record.remark ?? record.note)}
           </div>
-        </div>
+        </div>)}
+        </ApiState>
       </div>
     </div>
   );
@@ -831,9 +1287,13 @@ function FollowTab() {
 /* 私密信息                                                            */
 /* ------------------------------------------------------------------ */
 
-function PrivateTab() {
+function PrivateTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const info = Array.isArray(data) ? {} : data;
   return (
     <div className="mdt-stack">
+      <ApiState loading={loading} error={error}>
+        {Object.keys(info).length > 0 && <div className="mdt-notice">已加载私密资料：{Object.entries(info).filter(([key]) => !["id", "user_id"].includes(key)).slice(0, 6).map(([key, value]) => `${key}：${dataValue(value)}`).join("；")}</div>}
+      </ApiState>
       <Notice>
         以下信息默认不对外公开。 可设置修改为对外展示并要求会员填写
         <button type="button" className="mdt-link" style={{ marginLeft: 6 }}>
@@ -1163,7 +1623,8 @@ function MatchTab({
 /* 通话 / 牵线 / 约会 / 活动报名                                        */
 /* ------------------------------------------------------------------ */
 
-function CallsTab() {
+function CallsTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const records = dataItems(data);
   return (
     <>
       <div className="mdt-check-line">
@@ -1184,13 +1645,15 @@ function CallsTab() {
             ))}
           </tr>
         </thead>
+        {records.length > 0 && <tbody>{records.map((record, index) => <tr key={String(record.id ?? index)}><td>{dataValue(record.status ?? record.status_label)}</td><td>{dataValue(record.call_count ?? record.times)}</td><td>{dataValue(record.agent_name ?? record.operator_name)}</td><td>{dataValue(record.started_at ?? record.created_at)}</td><td>{dataValue(record.ended_at ?? record.hangup_at)}</td><td>{dataValue(record.duration ?? record.duration_seconds)}</td><td>{dataValue(record.recording_url ?? record.record_url)}</td><td>{dataValue(record.summary ?? record.content ?? record.remark)}</td></tr>)}</tbody>}
       </table>
-      <Empty />
+      <ApiState loading={loading} error={error}>{records.length === 0 ? <Empty /> : null}</ApiState>
     </>
   );
 }
 
-function LineTab({ sub, onSub }: { sub: string; onSub: (key: string) => void }) {
+function LineTab({ sub, onSub, data, loading, error }: { sub: string; onSub: (key: string) => void; data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const records = dataItems(data);
   return (
     <>
       <div className="mdt-line-head">
@@ -1220,12 +1683,13 @@ function LineTab({ sub, onSub }: { sub: string; onSub: (key: string) => void }) 
           </tr>
         </thead>
       </table>
-      <Empty />
+      <ApiState loading={loading} error={error}>{records.length === 0 ? <Empty /> : <table className="mdt-table"><tbody>{records.map((record, index) => <tr key={String(record.id ?? index)}><td>{dataValue(record.nickname ?? record.target_nickname ?? record.to_member_name)}</td><td>{dataValue(record.created_at ?? record.match_at)}</td><td>{dataValue(record.status ?? record.status_label)}</td><td>-</td></tr>)}</tbody></table>}</ApiState>
     </>
   );
 }
 
-function DatingTab() {
+function DatingTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const records = dataItems(data);
   return (
     <>
       <table className="mdt-table">
@@ -1237,12 +1701,13 @@ function DatingTab() {
           </tr>
         </thead>
       </table>
-      <Empty />
+      <ApiState loading={loading} error={error}>{records.length === 0 ? <Empty /> : <table className="mdt-table"><tbody>{records.map((record, index) => <tr key={String(record.id ?? index)}><td>{dataValue(record.count ?? record.times)}</td><td>{dataValue(record.date ?? record.created_at ?? record.dating_at)}</td><td>{dataValue(record.target_nickname ?? record.nickname)}</td><td>{dataValue(record.status ?? record.status_label)}</td></tr>)}</tbody></table>}</ApiState>
     </>
   );
 }
 
-function ActivitiesTab() {
+function ActivitiesTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const records = dataItems(data);
   return (
     <>
       <Notice>该会员报名参加过下面的活动，方便红娘跟进回访</Notice>
@@ -1255,12 +1720,13 @@ function ActivitiesTab() {
           </tr>
         </thead>
       </table>
-      <Empty />
+      <ApiState loading={loading} error={error}>{records.length === 0 ? <Empty /> : <table className="mdt-table"><tbody>{records.map((record, index) => <tr key={String(record.id ?? index)}><td>{dataValue(record.created_at ?? record.signup_at)}</td><td>{dataValue(record.activity_name ?? record.name ?? record.title)}</td></tr>)}</tbody></table>}</ApiState>
     </>
   );
 }
 
-function BehaviorTab({ sub, onSub }: { sub: string; onSub: (key: string) => void }) {
+function BehaviorTab({ sub, onSub, data, loading, error }: { sub: string; onSub: (key: string) => void; data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const records = dataItems(data);
   const subTabs = [
     ["viewed", "浏览过谁"],
     ["viewedBy", "被谁浏览"],
@@ -1293,7 +1759,7 @@ function BehaviorTab({ sub, onSub }: { sub: string; onSub: (key: string) => void
           </tr>
         </thead>
       </table>
-      <Empty />
+      <ApiState loading={loading} error={error}>{records.length === 0 ? <Empty /> : <table className="mdt-table"><tbody>{records.map((record, index) => <tr key={String(record.event_id ?? record.id ?? index)}><td>{dataValue(record.target_nickname ?? record.nickname)}</td><td>{dataValue(record.browse_times ?? record.detail)}</td><td>{dataValue(record.occurred_at ?? record.created_at)}</td><td>{dataValue(record.event_type ?? record.category)}</td></tr>)}</tbody></table>}</ApiState>
     </>
   );
 }
@@ -1307,14 +1773,24 @@ function SuperTab({
   newRecommend,
   onTopRecommend,
   onNewRecommend,
+  data,
+  loading,
+  error,
 }: {
   topRecommend: boolean;
   newRecommend: boolean;
   onTopRecommend: (value: boolean) => void;
   onNewRecommend: (value: boolean) => void;
+  data: DetailData | DetailData[];
+  loading: boolean;
+  error: string;
 }) {
+  const info = Array.isArray(data) ? {} : data;
   return (
     <div className="mdt-stack">
+      <ApiState loading={loading} error={error}>
+        {Object.keys(info).length > 0 && <div className="mdt-notice">已加载超级管理数据：{Object.entries(info).filter(([key]) => !["id", "user_id"].includes(key)).slice(0, 6).map(([key, value]) => `${key}：${dataValue(value)}`).join("；")}</div>}
+      </ApiState>
       <Field label="账号绑定" required>
         <span className="mdt-bind">
           <span className="mdt-bind-tag">
@@ -1434,24 +1910,22 @@ function SuperTab({
 /* 信息溯源                                                            */
 /* ------------------------------------------------------------------ */
 
-function SourceTab() {
-  const items = [
-    ["2026-09-01 14:46:13", "会员录入·自己注册"],
-    ["2026-09-01 14:46:13", "会员分派给:芸希老师"],
-    ["2026-09-01 14:46:29", "会员审核通过"],
-  ];
+function SourceTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+  const items = dataItems(data).map((item) => [dataValue(item.created_at ?? item.occurred_at ?? item.time), dataValue(item.content ?? item.action ?? item.remark ?? item.detail)]);
   return (
     <>
       <Notice>信息溯源记录了本条会员信息从录入、审核、红娘变更、意向变更等行为的变动记录。</Notice>
-      <div className="mdt-timeline" style={{ marginTop: 22 }}>
-        {items.map(([time, text]) => (
-          <div key={text} className="mdt-tl-item">
+      <ApiState loading={loading} error={error}>
+      {items.length === 0 ? <Empty /> : <div className="mdt-timeline" style={{ marginTop: 22 }}>
+        {items.map(([time, text], index) => (
+          <div key={`${time}-${index}`} className="mdt-tl-item">
             <span className="mdt-tl-dot" />
             <div className="mdt-tl-time">{time}</div>
             <div className="mdt-tl-text">{text}</div>
           </div>
         ))}
-      </div>
+      </div>}
+      </ApiState>
     </>
   );
 }
