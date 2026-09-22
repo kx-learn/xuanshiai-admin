@@ -218,6 +218,9 @@ export default function Page() {
           <label className="vlr-select">
             <select value={operator} onChange={(e) => setOperator(e.target.value)}>
               <option value="">全部操作人</option>
+              <option value="matchmaker">红娘</option>
+              <option value="admin">后台</option>
+              <option value="member">会员</option>
             </select>
             <ChevronDown className="vlr-caret" />
           </label>
@@ -241,7 +244,11 @@ export default function Page() {
           <label className="vlr-select">
             <select value={searchBy} onChange={(e) => setSearchBy(e.target.value)}>
               <option value="nick">按申请人昵称搜</option>
-              <option value="code">按编号搜</option>
+              <option value="applicant_phone">按申请人手机搜</option>
+              <option value="applicant_code">按申请人编号搜</option>
+              <option value="target_nick">按被牵线人昵称搜</option>
+              <option value="target_phone">按被牵线人手机搜</option>
+              <option value="target_code">按被牵线人编号搜</option>
             </select>
             <ChevronDown className="vlr-caret" />
           </label>
@@ -252,6 +259,22 @@ export default function Page() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
+          <label className="vlr-select">
+            <select defaultValue="" aria-label="支付状态">
+              <option value="">全部支付状态</option>
+              <option value="paid">已支付</option>
+              <option value="unpaid">未支付</option>
+            </select>
+            <ChevronDown className="vlr-caret" />
+          </label>
+          <label className="vlr-select">
+            <select defaultValue="" aria-label="分配状态">
+              <option value="">全部分配状态</option>
+              <option value="unassigned">未分配</option>
+              <option value="assigned">已分配</option>
+            </select>
+            <ChevronDown className="vlr-caret" />
+          </label>
           <button type="button" className="vlr-btn primary" onClick={() => undefined}>
             搜索
           </button>

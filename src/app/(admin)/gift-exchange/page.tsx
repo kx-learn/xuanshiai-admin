@@ -123,6 +123,7 @@ export default function GiftExchangePage() {
               onChange={(e) => setSearchMode(e.target.value as "gift" | "applicant")}
             >
               <option value="gift">按礼品搜</option>
+              <option value="user">按用户搜</option>
               <option value="applicant">按申请人搜</option>
             </select>
             <input

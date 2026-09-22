@@ -37,6 +37,9 @@ const STATUS_OPTS = ["不限", "公开相亲", "委托红娘", "完全私密", "
 const GENDER_OPTS = ["不限", "男", "女"];
 const HEAD_OPTS = ["会员头像", "自定义通用头像"];
 const QR_OPTS = ["普通H5二维码", "公众号临时二维码", "公众号永久有效二维码", "指定二维码"];
+const LEVEL_OPTS = ["不限", "普通会员", "VIP"];
+const CERT_OPTS = ["不限", "已实名认证", "未实名认证", "已学历认证", "已房产认证"];
+const TEMPLATE_OPTS = ["常规模版", "A4打印专用"];
 
 const chipGroups: ChipGroupDef[] = [
   { id: "marriage", label: "婚姻状态", options: ["未婚", "离异未育", "离异不带孩", "离异带女孩", "离异带男孩", "丧偶"], defaultSelected: [] },
@@ -59,6 +62,9 @@ export default function ToolLovecardPage() {
   const [gender, setGender] = useState("不限");
   const [headMode, setHeadMode] = useState("会员头像");
   const [qrcode, setQrcode] = useState("普通H5二维码");
+  const [level, setLevel] = useState("不限");
+  const [cert, setCert] = useState("不限");
+  const [template, setTemplate] = useState("常规模版");
   const [batch, setBatch] = useState("第1-50条");
   const [chipState, setChipState] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(chipGroups.map((g) => [g.id, g.defaultSelected]))
@@ -101,6 +107,9 @@ export default function ToolLovecardPage() {
             gender,
             head_mode: headMode,
             qrcode,
+            level,
+            cert,
+            template,
             batch,
             chips: chipState,
           },
@@ -281,6 +290,42 @@ export default function ToolLovecardPage() {
                       </div>
                     </div>
                   ))}
+
+                  <div className="tlc-row">
+                    <label className="tlc-label">会员级别</label>
+                    <div className="tlc-options">
+                      {LEVEL_OPTS.map((o) => (
+                        <label key={o} className={`tlc-radio ${level === o ? "active" : ""}`}>
+                          <input type="radio" name="level" value={o} checked={level === o} onChange={() => setLevel(o)} />
+                          <span>{o}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="tlc-row">
+                    <label className="tlc-label">认证状态</label>
+                    <div className="tlc-options">
+                      {CERT_OPTS.map((o) => (
+                        <label key={o} className={`tlc-radio ${cert === o ? "active" : ""}`}>
+                          <input type="radio" name="cert" value={o} checked={cert === o} onChange={() => setCert(o)} />
+                          <span>{o}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="tlc-row">
+                    <label className="tlc-label">海报模版</label>
+                    <div className="tlc-options">
+                      {TEMPLATE_OPTS.map((o) => (
+                        <label key={o} className={`tlc-radio ${template === o ? "active" : ""}`}>
+                          <input type="radio" name="template" value={o} checked={template === o} onChange={() => setTemplate(o)} />
+                          <span>{o}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="tlc-row">
                     <label className="tlc-label">海报头像</label>

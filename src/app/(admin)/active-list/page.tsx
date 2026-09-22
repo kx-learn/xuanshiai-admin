@@ -294,6 +294,11 @@ export default function ActiveListPage() {
         </div>
 
         <div className="al-filters">
+          <select className="al-input al-select" defaultValue="title" aria-label="搜索类型">
+            <option value="title">按活动标题搜</option>
+            <option value="nick">按昵称搜</option>
+            <option value="phone">按手机搜</option>
+          </select>
           <input className="al-input" placeholder="请输入关键字搜索" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadList()} />
           <button className="finord-btn finord-btn-primary al-search-btn" onClick={() => loadList()}>搜索</button>
         </div>

@@ -82,7 +82,7 @@ export default function LovePartnerBonusDetailsPage() {
 
         <div className="lpbd-filters">
           <select className="lpbd-select" value={ruleId} onChange={(e) => setRuleId(e.target.value)}>
-            <option value="">请选择事件</option>
+            <option value="">全部事件</option>
             {options.events.map((event) => (
               <option key={event.id} value={event.id}>{event.name}</option>
             ))}
@@ -96,7 +96,7 @@ export default function LovePartnerBonusDetailsPage() {
           </div>
           <input
             className="lpbd-input"
-            placeholder="请输入合伙人昵称"
+            placeholder="请输入合伙红娘名称"
             value={partnerName}
             list="lpbd-partner-filter"
             onChange={(e) => setPartnerName(e.target.value)}

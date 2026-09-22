@@ -35,6 +35,7 @@ export default function CustomerFollowUpPage() {
   const [keyword, setKeyword] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [followTab, setFollowTab] = useState<"record" | "call">("record");
 
   const load = useCallback(async (nextPage = 1, size = 20) => {
     setLoading(true);
@@ -115,6 +116,21 @@ export default function CustomerFollowUpPage() {
       <section className="admin-card overflow-hidden">
         <header className="follow-header"><h2>跟进全览</h2><div><button><Download size={15} />导出EXCEL</button><button><Upload size={15} />导入历史跟进</button></div></header>
         <div className="follow-filters">
+          <div className="follow-tabs" role="tablist">
+            {[["record", "跟进记录"], ["call", "通话记录"]].map(([value, label]) => (
+              <button
+                key={value}
+                role="tab"
+                aria-selected={followTab === value}
+                className={`follow-tab${followTab === value ? " active" : ""}`}
+                onClick={() => setFollowTab(value as "record" | "call")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <select defaultValue=""><option value="">客户意向：不限</option><option>不限</option></select>
+          <select defaultValue=""><option value="">加上了吗?</option><option>不限</option><option>未添加</option><option>已加上</option><option>没加上</option></select>
           <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="请输入会员昵称/姓名/手机" />
           <button className="search-btn" onClick={() => void load(1)}>搜索</button>
           <label className="date-filter date-range-picker">

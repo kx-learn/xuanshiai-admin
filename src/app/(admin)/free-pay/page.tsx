@@ -35,6 +35,10 @@ type ItemDraft = {
   cover_url: string | null;
   sort: number;
   enabled: boolean;
+  amount_type: string;
+  reward_mode: string;
+  share_title: string;
+  share_desc: string;
 };
 
 const EMPTY_ITEM: ItemDraft = {
@@ -42,6 +46,10 @@ const EMPTY_ITEM: ItemDraft = {
   title: "",
   category_id: 0,
   amount: 0,
+  amount_type: "固定金额",
+  reward_mode: "统一设置",
+  share_title: "",
+  share_desc: "",
   promoter_reward_amount: 0,
   service_reward_amount: 0,
   partner_reward_amount: 0,
@@ -152,6 +160,10 @@ export default function FreePayPage() {
       cover_url: typeof extra.cover_url === "string" ? (extra.cover_url as string) : item.image_url ?? null,
       sort: typeof extra.sort === "number" ? (extra.sort as number) : item.sort ?? 100,
       enabled: item.status === 1,
+      amount_type: typeof extra.amount_type === "string" ? (extra.amount_type as string) : "固定金额",
+      reward_mode: typeof extra.reward_mode === "string" ? (extra.reward_mode as string) : "统一设置",
+      share_title: typeof extra.share_title === "string" ? (extra.share_title as string) : "",
+      share_desc: typeof extra.share_desc === "string" ? (extra.share_desc as string) : "",
     });
     setItemDrawer(true);
   };
@@ -188,6 +200,10 @@ export default function FreePayPage() {
         partner_reward_amount: itemDraft.partner_reward_amount,
         store_reward_amount: itemDraft.store_reward_amount,
         cover_url: itemDraft.cover_url,
+        amount_type: itemDraft.amount_type,
+        reward_mode: itemDraft.reward_mode,
+        share_title: itemDraft.share_title.trim(),
+        share_desc: itemDraft.share_desc.trim(),
       },
     };
     try {
@@ -298,9 +314,9 @@ export default function FreePayPage() {
             <div className="finord-section-title fp-title">收款项目</div>
             <div className="finord-filters fp-filters">
               <div className="finord-searchbox">
-                <span className="finord-search-label">类目:</span>
+                <span className="finord-search-label">收款类目：</span>
                 <select className="finord-select" onChange={() => loadItems()}>
-                  <option value="">不限</option>
+                  <option value="">收款类目：不限</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -418,10 +434,30 @@ export default function FreePayPage() {
                 </select>
               </div>
               <div className="fp-row">
+                <span className="fp-label">金额类型</span>
+                <div className="fp-content">
+                  <select className="fp-select" value={itemDraft.amount_type} onChange={(e) => setItemDraft((cur) => ({ ...cur, amount_type: e.target.value }))}>
+                    <option value="固定金额">固定金额</option>
+                    <option value="按百分比">按百分比</option>
+                  </select>
+                </div>
+              </div>
+              <div className="fp-row">
                 <span className="fp-label">＊收款金额</span>
                 <div className="fp-content">
                   <input type="number" min={0} className="fp-input fp-input-num" value={itemDraft.amount} onChange={(e) => setItemDraft((cur) => ({ ...cur, amount: Math.max(0, Number(e.target.value) || 0) }))} />
-                  <span className="fp-unit">元</span>
+                  <span className="fp-unit">{itemDraft.amount_type === "按百分比" ? "%" : "元"}</span>
+                </div>
+              </div>
+              <div className="fp-row">
+                <span className="fp-label">分成设置</span>
+                <div className="fp-content">
+                  <select className="fp-select" value={itemDraft.reward_mode} onChange={(e) => setItemDraft((cur) => ({ ...cur, reward_mode: e.target.value }))}>
+                    <option value="统一设置">统一设置</option>
+                    <option value="独立设置">独立设置</option>
+                    <option value="使用本类目默认统一内容">使用本类目默认统一内容</option>
+                    <option value="按级别设置分成">按级别设置分成</option>
+                  </select>
                 </div>
               </div>
               {[
@@ -474,6 +510,14 @@ export default function FreePayPage() {
               <div className="fp-row">
                 <span className="fp-label">显示排序</span>
                 <input type="number" className="fp-input fp-input-num" value={itemDraft.sort} onChange={(e) => setItemDraft((cur) => ({ ...cur, sort: Number(e.target.value) || 0 }))} />
+              </div>
+              <div className="fp-row">
+                <span className="fp-label">分享标题</span>
+                <input className="fp-input fp-input-wide" placeholder="请输入分享标题" value={itemDraft.share_title} onChange={(e) => setItemDraft((cur) => ({ ...cur, share_title: e.target.value }))} maxLength={20} />
+              </div>
+              <div className="fp-row">
+                <span className="fp-label">分享描述</span>
+                <input className="fp-input fp-input-wide" placeholder="请输入描述" value={itemDraft.share_desc} onChange={(e) => setItemDraft((cur) => ({ ...cur, share_desc: e.target.value }))} maxLength={30} />
               </div>
             </div>
           </div>

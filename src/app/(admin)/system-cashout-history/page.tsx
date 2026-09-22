@@ -151,13 +151,13 @@ export default function SystemCashoutHistoryPage() {
             ))}
           </div>
           <select className="finord-select" disabled>
-            <option>全部支付类型</option>
-            <option>自动提现</option>
-            <option>人工转账</option>
+            <option>全部提现方式</option>
+            <option>微信零钱</option>
+            <option>线下支付</option>
           </select>
           <input
             className="finord-search-input crh-search-input"
-            placeholder="请输入账号/收款人"
+            placeholder="请输入账号昵称"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />

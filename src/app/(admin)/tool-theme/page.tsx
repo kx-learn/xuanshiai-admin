@@ -22,6 +22,8 @@ type Zone = {
   online: boolean;
   status: boolean;
   sort_order: number;
+  filter_gender?: string;
+  filter_edu?: string;
 };
 
 type ZoneConfig = {
@@ -306,6 +308,41 @@ export default function ToolThemePage() {
                   <div className="tz-info">① 根据您设置的条件实时自动筛选出数据并显示在该分区中</div>
                 </div>
               </div>
+
+              {draft.data_mode === "auto" && (
+                <div className="tz-row">
+                  <span className="tz-label">筛选条件</span>
+                  <div className="tz-content">
+                    <div className="tz-filter-row">
+                      <span className="tz-filter-label">性别：</span>
+                      <select
+                        className="tz-select"
+                        value={draft.filter_gender ?? ""}
+                        onChange={(e) => setDraft((cur) => cur ? { ...cur, filter_gender: e.target.value } : cur)}
+                      >
+                        <option value="">性别：不限</option>
+                        <option value="male">性别：男</option>
+                        <option value="female">性别：女</option>
+                      </select>
+                      <span className="tz-filter-label">学历：</span>
+                      <select
+                        className="tz-select"
+                        value={draft.filter_edu ?? ""}
+                        onChange={(e) => setDraft((cur) => cur ? { ...cur, filter_edu: e.target.value } : cur)}
+                      >
+                        <option value="">学历：不限</option>
+                        <option value="none">不限制</option>
+                        <option value="off">不启用</option>
+                      </select>
+                    </div>
+                    <input
+                      className="tz-input tz-input-wide"
+                      placeholder="按昵称/手机/姓名"
+                      defaultValue=""
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="tz-row tz-row-top">
                 <span className="tz-label">头部背景</span>

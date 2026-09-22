@@ -32,7 +32,7 @@ const PAGE_TYPE_OPTIONS = ["单页", "引导页"] as const;
 const FIELD_OPTIONS = ["昵称", "性别", "头像", "出生", "职业", "婚况", "学历", "身高", "体重", "收入", "现居", "籍贯", "民族", "手机", "微信"];
 const REQUIRED_FIELDS = new Set(["昵称", "性别", "手机"]);
 const DATA_POS_OPTIONS = ["保存到客源线索", "保存到会员资料（并自动注册用户账号）"];
-const PHONE_OPTIONS = ["无需验证（手机号直接填写无需验证）", "需验证（手机号码需要进行验证码验真息才可以提交）"];
+const PHONE_OPTIONS = ["无需验证（手机号直接填写无需验证）", "需验证（手机号码需要进行验证码验真后才可以提交）"];
 const ASSIGN_OPTIONS = ["待分派", "分派给指定红娘"];
 
 const CLL_TOOLBAR: { icon: React.ReactNode; title: string }[] = [
@@ -96,7 +96,7 @@ const EMPTY_DRAFT: LandingDraft = {
   share_icon: "",
   share_desc: "",
   data_pos: "保存到客源线索",
-  phone_ver: "需验证（手机号码需要进行验证码验真息才可以提交）",
+  phone_ver: "需验证（手机号码需要进行验证码验真后才可以提交）",
   assign_mode: "待分派",
   promoter: "",
   redirect_url: "",
@@ -159,7 +159,7 @@ export default function CustomerLandingPage() {
       share_icon: typeof extra.share_icon === "string" ? extra.share_icon : "",
       share_desc: typeof extra.share_desc === "string" ? extra.share_desc : (item.subtitle ?? ""),
       data_pos: typeof extra.data_pos === "string" ? extra.data_pos : "保存到客源线索",
-      phone_ver: typeof extra.phone_ver === "string" ? extra.phone_ver : "需验证（手机号码需要进行验证码验真息才可以提交）",
+      phone_ver: typeof extra.phone_ver === "string" ? extra.phone_ver : "需验证（手机号码需要进行验证码验真后才可以提交）",
       assign_mode: typeof extra.assign_mode === "string" ? extra.assign_mode : "待分派",
       promoter: typeof extra.promoter === "string" ? extra.promoter : "",
       redirect_url: typeof extra.redirect_url === "string" ? extra.redirect_url : "",

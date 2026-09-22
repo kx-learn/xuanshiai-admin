@@ -105,14 +105,14 @@ export default function Page() {
         <div className="cdd-filters">
           <div className="cdd-select">
             <select defaultValue="">
-              <option value="">请选择门店</option>
+              <option value="">所有门店</option>
               <option value="total">总店</option>
             </select>
             <ChevronDown className="cdd-caret" size={14} />
           </div>
           <div className="cdd-select">
             <select value={matchmakerId} onChange={(e) => setMatchmakerId(e.target.value)}>
-              <option value="">请选择红娘</option>
+              <option value="">全部红娘</option>
               {options.matchmakers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}

@@ -102,6 +102,7 @@ const emptyForm: FormState = {
 
 export default function LoveUserVipUnderlinePage() {
   const [activeTab, setActiveTab] = useState<"all" | OfflineVipProgress>("all");
+  const [searchType, setSearchType] = useState("按昵称搜");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -442,7 +443,16 @@ export default function LoveUserVipUnderlinePage() {
             </label>
           </div>
           <div className="lvip-searchbox">
-            <span className="lvip-search-label">按昵称搜</span>
+            <label className="lvip-select">
+              <select value={searchType} onChange={(event) => setSearchType(event.target.value)}>
+                <option>按昵称搜</option>
+                <option>按编号搜</option>
+                <option>按姓名搜</option>
+                <option>按手机搜</option>
+                <option>按套餐搜</option>
+              </select>
+              <span className="lvip-caret" />
+            </label>
             <input
               type="text"
               placeholder="请输入"

@@ -140,10 +140,18 @@ export default function SystemFinanceOrderPage() {
             <option value="1">已支付</option>
           </select>
           <select className="finord-select" disabled>
+            <option>全部支付事项</option>
+            <option>活动报名</option>
+            <option>线上VIP</option>
+            <option>线下VIP</option>
+            <option>充值</option>
+          </select>
+          <select className="finord-select" disabled>
             <option>全部支付方式</option>
-            <option>微信</option>
-            <option>支付宝</option>
-            <option>余额</option>
+            <option>微信支付</option>
+            <option>支付宝支付</option>
+            <option>余额支付</option>
+            <option>后台支付</option>
           </select>
           <select className="finord-select" disabled>
             <option>按下单时间</option>
@@ -165,7 +173,11 @@ export default function SystemFinanceOrderPage() {
             />
           </div>
           <div className="finord-searchbox">
-            <span className="finord-search-label">按订单号搜</span>
+            <select className="finord-search-label" aria-label="搜索类型" defaultValue="order">
+              <option value="order">按订单号搜</option>
+              <option value="payer">按付款人搜</option>
+              <option value="activity">按活动搜</option>
+            </select>
             <input
               className="finord-search-input"
               placeholder="请输入"

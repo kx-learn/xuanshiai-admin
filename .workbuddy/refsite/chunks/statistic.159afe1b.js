@@ -1,0 +1,1 @@
+import{d as t,h as e,p as o}from"./index.182ac1d0.js";import{_ as r}from"./Statistics.02e5f95e.js";import"./useEcharts.31d143fb.js";import"./echarts.8f161c7d.js";const n=t({__name:"statistic",setup(a){return(s,p)=>(e(),o(r,{isPage:!0}))}});export{n as default};

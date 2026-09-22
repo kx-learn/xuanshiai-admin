@@ -170,8 +170,10 @@ export default function PoploveMatchmakerDistributionDetailsPage() {
             </div>
           </div>
           <div className="pdd-select">
-            <select defaultValue="">
-              <option value="">按关键字搜</option>
+            <select defaultValue="keyword">
+              <option value="keyword">按关键字搜</option>
+              <option value="matchmaker_id">按红娘ID搜</option>
+              <option value="buyer_nick">按购买账号昵称搜</option>
             </select>
             <ChevronDown className="pdd-caret" size={14} />
           </div>

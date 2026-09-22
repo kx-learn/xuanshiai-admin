@@ -41,6 +41,25 @@ function SendDrawer({ tplList, onAddNew, onClose, onPick }: {
           </div>
 
           <div className="flex items-center gap-2 pb-3">
+            <select
+              className="h-8 rounded border border-[#d9d9d9] bg-white px-2 text-sm"
+              aria-label="群发分组"
+              defaultValue=""
+            >
+              <option value="">请选择分组</option>
+              <option value="all">全部粉丝</option>
+              <option value="member">已注册会员</option>
+              <option value="unregistered">未注册粉丝</option>
+            </select>
+            <select
+              className="h-8 rounded border border-[#d9d9d9] bg-white px-2 text-sm"
+              aria-label="链接类型"
+              defaultValue="empty"
+            >
+              <option value="empty">空</option>
+              <option value="miniprogram">小程序</option>
+              <option value="web">网页</option>
+            </select>
             <input
               className="h-8 flex-1 rounded border border-[#d9d9d9] px-2 text-sm"
               placeholder="输入公众号平台模板编号"

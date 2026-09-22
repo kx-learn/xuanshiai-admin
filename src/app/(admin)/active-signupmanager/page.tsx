@@ -149,10 +149,10 @@ export default function ActiveSignupmanagerPage() {
         {/* 筛选条 */}
         <div className="sm-filters">
           <div className="sm-filters-row">
-            <select className="sm-select" value={gender} onChange={(e) => setGender(e.target.value)}><option>全部</option><option>男</option><option>女</option></select>
-            <select className="sm-select" value={audit} onChange={(e) => setAudit(e.target.value)}><option>全部</option><option>待审</option><option>通过</option><option>未通过</option></select>
-            <select className="sm-select" value={pay} onChange={(e) => setPay(e.target.value)}><option>全部</option><option>免费</option><option>已支付</option><option>未支付</option></select>
-            <select className="sm-select" value={checkin} onChange={(e) => setCheckin(e.target.value)}><option>全部</option><option>已签到</option><option>未签到</option></select>
+            <select className="sm-select" value={gender} onChange={(e) => setGender(e.target.value)}><option value="全部">性别：全部</option><option value="男">性别：男</option><option value="女">性别：女</option></select>
+            <select className="sm-select" value={audit} onChange={(e) => setAudit(e.target.value)}><option value="全部">审核：全部</option><option value="待审">审核：待审</option><option value="未通过">审核：未通过</option><option value="通过">审核：通过</option></select>
+            <select className="sm-select" value={pay} onChange={(e) => setPay(e.target.value)}><option value="全部">支付：全部</option><option value="已支付">支付：已支付</option><option value="未支付">支付：未支付</option></select>
+            <select className="sm-select" value={checkin} onChange={(e) => setCheckin(e.target.value)}><option value="全部">签到：全部</option><option value="已签到">签到：已签</option><option value="未签到">签到：未签</option></select>
             <label className="sm-radio">
               <input type="radio" name="signupTab" value="全部" checked={signupTab === "全部"} onChange={() => setSignupTab("全部")} />
               <span>全部</span>
@@ -165,7 +165,7 @@ export default function ActiveSignupmanagerPage() {
             <input className="sm-date" type="date" />
             <span className="sm-text-muted">结束日期</span>
             <input className="sm-date" type="date" />
-            <select className="sm-select" value={searchBy} onChange={(e) => setSearchBy(e.target.value)}><option>按昵称搜</option><option>按手机搜</option></select>
+            <select className="sm-select" value={searchBy} onChange={(e) => setSearchBy(e.target.value)}><option>按昵称搜</option><option>按手机搜</option><option>按姓名搜</option></select>
             <input className="sm-input" placeholder="请输入" value={search} onChange={(e) => setSearch(e.target.value)} />
             <button className="finord-btn finord-btn-primary sm-search-btn">搜索</button>
           </div>

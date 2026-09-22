@@ -230,6 +230,9 @@ function AddMatchmakerDrawer({
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [commission, setCommission] = useState("不参与");
   const [editContact, setEditContact] = useState("不允许");
+  const [dataScope, setDataScope] = useState("仅显示自己名下会员信息");
+  const [contactScope, setContactScope] = useState("仅显示自己名下会员的联系方式");
+  const [dispatchPerm, setDispatchPerm] = useState("不允许分派会员、客源给其他红娘");
   const [timedLock, setTimedLock] = useState(false);
 
   const [avatar, setAvatar] = useState<string | null>(row?.avatar ?? null);
@@ -420,8 +423,9 @@ function AddMatchmakerDrawer({
           <div className="bm-row">
             <span className="bm-label">＊红娘角色</span>
             <select className="bm-select bm-select-wide" value={roleTag} onChange={(e) => setRoleTag(e.target.value as "super" | "normal")}>
-              <option value="normal">普通红娘</option>
-              <option value="super">超级红娘</option>
+              <option value="">请选择红娘角色</option>
+              <option value="normal">分店-普通红娘</option>
+              <option value="super">分店-店长红娘</option>
             </select>
           </div>
 
@@ -429,7 +433,7 @@ function AddMatchmakerDrawer({
           <div className="bm-row">
             <span className="bm-label">＊隶属门店</span>
             <select className="bm-select bm-select-wide" value={storeSel} onChange={(e) => setStoreSel(e.target.value)}>
-              <option value="">请选择隶属门店</option>
+              <option value="">请选择隶属分店</option>
               {stores.map((s) => (
                 <option key={s.id} value={String(s.id)}>{s.display_name || s.name}</option>
               ))}
@@ -440,14 +444,11 @@ function AddMatchmakerDrawer({
           <div className="bm-row">
             <span className="bm-label">分成级别</span>
             <div className="bm-content">
-              <div className="bm-radio-row">
-                {["不参与", "允许"].map((o) => (
-                  <label key={o} className={`bm-radio ${commission === o ? "active" : ""}`}>
-                    <input type="radio" name="commission" value={o} checked={commission === o} onChange={() => setCommission(o)} />
-                    <span>{o}</span>
-                  </label>
-                ))}
-              </div>
+              <select className="bm-select bm-select-wide" value={commission} onChange={(e) => setCommission(e.target.value)}>
+                <option value="">请选择分成级别</option>
+                <option value="不参与">不参与</option>
+                <option value="允许">允许</option>
+              </select>
               <div className="bm-info">① 分店的红娘分成将由分店自行在分店平台中设置与结算</div>
             </div>
           </div>
@@ -465,6 +466,51 @@ function AddMatchmakerDrawer({
                 ))}
               </div>
               <div className="bm-info">① 若设置为"不允许"则红娘在其红娘平台中无法修改客户的手机号码和微信（包括客源线索、会员CRM）</div>
+            </div>
+          </div>
+
+          {/* 会员数据范围 */}
+          <div className="bm-row">
+            <span className="bm-label">会员数据范围</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["仅显示自己名下会员信息", "显示店内的全部会员信息"].map((o) => (
+                  <label key={o} className={`bm-radio ${dataScope === o ? "active" : ""}`}>
+                    <input type="radio" name="dataScope" value={o} checked={dataScope === o} onChange={() => setDataScope(o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 联系方式范围 */}
+          <div className="bm-row">
+            <span className="bm-label">联系方式范围</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["仅显示自己名下会员的联系方式", "显示店内的全部会员的联系方式"].map((o) => (
+                  <label key={o} className={`bm-radio ${contactScope === o ? "active" : ""}`}>
+                    <input type="radio" name="contactScope" value={o} checked={contactScope === o} onChange={() => setContactScope(o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 分派权限 */}
+          <div className="bm-row">
+            <span className="bm-label">分派权限</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["允许分派会员、客源给其他红娘", "不允许分派会员、客源给其他红娘"].map((o) => (
+                  <label key={o} className={`bm-radio ${dispatchPerm === o ? "active" : ""}`}>
+                    <input type="radio" name="dispatchPerm" value={o} checked={dispatchPerm === o} onChange={() => setDispatchPerm(o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 

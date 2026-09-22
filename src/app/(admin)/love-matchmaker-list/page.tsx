@@ -256,7 +256,7 @@ export default function LoveMatchmakerListPage() {
         <div className="hm-filters">
           <input
             className="hm-input"
-            placeholder="请输入红娘昵称/账号/手机"
+            placeholder="请输入红娘称呼/账号/手机"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => {
@@ -452,6 +452,7 @@ export default function LoveMatchmakerListPage() {
 
 function ReportDrawer({ row, onClose }: { row: MatchmakerStaffItem; onClose: () => void }) {
   const [range, setRange] = useState(last30Range());
+  const [reportType, setReportType] = useState<"日报" | "月报" | "年报">("日报");
   const [report, setReport] = useState<MatchmakerWorkReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -512,6 +513,17 @@ function ReportDrawer({ row, onClose }: { row: MatchmakerStaffItem; onClose: () 
           </div>
 
           <div className="hm-report-filters">
+            <div className="hm-select">
+              <select
+                value={reportType}
+                onChange={(e) => setReportType(e.target.value as "日报" | "月报" | "年报")}
+              >
+                <option value="日报">日报</option>
+                <option value="月报">月报</option>
+                <option value="年报">年报</option>
+              </select>
+              <ChevronDown className="hm-caret" size={14} />
+            </div>
             <div className="hm-report-date">
               <input
                 type="date"
@@ -529,6 +541,11 @@ function ReportDrawer({ row, onClose }: { row: MatchmakerStaffItem; onClose: () 
             <div className="hm-select">
               <select defaultValue="">
                 <option value="">默认排序</option>
+                <option>线上分成(高-低)</option>
+                <option>线下业绩(高-低)</option>
+                <option>约会安排(高-低)</option>
+                <option>客源线索新增(多-少)</option>
+                <option>会员CRM新增(多-少)</option>
               </select>
               <ChevronDown className="hm-caret" size={14} />
             </div>
@@ -598,6 +615,9 @@ function AddMatchmakerDrawer({
   const [roleTag, setRoleTag] = useState<"super" | "normal">("normal");
   const [commissionLevelId, setCommissionLevelId] = useState<string>("");
   const [contactEditable, setContactEditable] = useState(true);
+  const [dataScope, setDataScope] = useState("仅显示自己名下会员信息");
+  const [contactScope, setContactScope] = useState("仅显示自己名下会员的联系方式");
+  const [dispatchPerm, setDispatchPerm] = useState("不允许分派会员、客源给其他红娘");
 
   const [customSlogan, setCustomSlogan] = useState(false);
   const [sloganSelect, setSloganSelect] = useState("");
@@ -921,8 +941,8 @@ function AddMatchmakerDrawer({
                 onChange={(e) => setRoleTag(e.target.value as "super" | "normal")}
               >
                 <option value="">请选择红娘角色</option>
-                <option value="super">超级红娘</option>
-                <option value="normal">普通红娘</option>
+                <option value="super">总店-超级红娘</option>
+                <option value="normal">总店-普通红娘</option>
               </select>
             </div>
           </div>
@@ -967,6 +987,51 @@ function AddMatchmakerDrawer({
               </div>
               <div className="bm-info">
                 ① 若设置为“不允许”则红娘在其红娘平台中无法修改客户的手机号码和微信（包括客源线索、会员CRM）
+              </div>
+            </div>
+          </div>
+
+          {/* 会员数据范围 */}
+          <div className="bm-row">
+            <span className="bm-label">会员数据范围</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["仅显示自己名下会员信息", "显示店内的全部会员信息"].map((o) => (
+                  <label key={o} className={`bm-radio ${dataScope === o ? "active" : ""}`}>
+                    <input type="radio" name="dataScope" value={o} checked={dataScope === o} onChange={() => setDataScope(o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 联系方式范围 */}
+          <div className="bm-row">
+            <span className="bm-label">联系方式范围</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["仅显示自己名下会员的联系方式", "显示店内的全部会员的联系方式"].map((o) => (
+                  <label key={o} className={`bm-radio ${contactScope === o ? "active" : ""}`}>
+                    <input type="radio" name="contactScope" value={o} checked={contactScope === o} onChange={() => setContactScope(o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 分派权限 */}
+          <div className="bm-row">
+            <span className="bm-label">分派权限</span>
+            <div className="bm-content">
+              <div className="bm-radio-row">
+                {["允许分派会员、客源给其他红娘", "不允许分派会员、客源给其他红娘"].map((o) => (
+                  <label key={o} className={`bm-radio ${dispatchPerm === o ? "active" : ""}`}>
+                    <input type="radio" name="dispatchPerm" value={o} checked={dispatchPerm === o} onChange={() => setDispatchPerm(o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>

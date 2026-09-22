@@ -62,6 +62,7 @@ export default function ShortVideoTipPage() {
         <div className="svt-filters">
           <select className="svt-select" value={searchBy} onChange={(e) => setSearchBy(e.target.value)}>
             <option value="video">按标题搜</option>
+            <option value="nick">按昵称搜</option>
             <option value="tipper">按打赏用户</option>
             <option value="receiver">按受赏用户</option>
           </select>

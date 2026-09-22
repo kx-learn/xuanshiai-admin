@@ -11,6 +11,7 @@
 
 - **改长文件只用 Edit 精确替换，绝不用 Write 整文件覆盖。** Write 仅用于新建文件。曾因 Write 覆盖把 2914 行的 `admin-endpoints.ts` 冲成 10 行。
 - 表格密集对齐、必须有勾选列、分页用 `au-page-btn`/`au-page-num` 紧凑样式、箭头一律 CSS 绘制（禁用 `⌄` `›` 等 Unicode 字形）。详见 `AGENTS.md`。
+- **写弹层/下拉内部按钮样式前，先全局搜带 `!important` 的宽泛规则**（如 `.customer-lead-page .lead-tabs > div:last-child button { color:#fff !important }`）。这类高特异性规则会静默污染弹层子元素（曾把下拉菜单文字染成白色，白底白字"看不见"）。覆盖时新选择器特异性必须 ≥ 原规则且带 `!important`，单靠类选择器压不过。悬浮下拉建议加 `::after` 透明桥接块（`top:-6px;height:6px`），避免鼠标移过间隙触发 mouseleave 闪烁。
 
 ## 接口封装约定
 

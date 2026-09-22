@@ -33,7 +33,7 @@ const columns = [
 ];
 
 const scopes = ["所有坐席"];
-const filterBehaviors = ["按昵称搜", "按号码搜"];
+const filterBehaviors = ["按昵称搜", "按号码搜", "按手机搜", "按编号搜"];
 
 export default function Page() {
   const domain = useConfigDomain<Dict>("outbound_call_records", DEFAULTS as Dict);

@@ -300,7 +300,11 @@ export default function Page() {
           <label className="lvi-select">
             <select value={searchBy} onChange={(e) => setSearchBy(e.target.value)}>
               <option value="nick">按提交人昵称搜</option>
-              <option value="code">按编号搜</option>
+              <option value="code">按提交人编号搜</option>
+              <option value="phone">按提交人手机搜</option>
+              <option value="target_nick">按想约见人昵称搜</option>
+              <option value="target_code">按想约见人编号搜</option>
+              <option value="target_phone">按想约见人手机搜</option>
             </select>
             <ChevronDown className="lvi-caret" />
           </label>
@@ -337,7 +341,9 @@ export default function Page() {
           </label>
           <label className="lvi-select">
             <select value={exactStatus} onChange={(e) => { setExactStatus(e.target.value); setStatusGroup(""); }}>
-              <option value="">精确状态：不限</option>
+              <option value="">状态：不限</option>
+              <option value="SUBMITTED">状态：待处理</option>
+              <option value="CONTACTED">状态：已处理</option>
               {(Object.keys(STATUS_LABEL) as MeetingRequestStatus[]).map((key) => (
                 <option key={key} value={key}>{STATUS_LABEL[key]}</option>
               ))}

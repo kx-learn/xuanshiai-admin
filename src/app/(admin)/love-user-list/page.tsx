@@ -488,10 +488,10 @@ export default function LoveUserListPage() {
             onChange={(auth_status) => setDraft({ ...draft, auth_status })}
             label="审核：不限"
             options={[
-              ["0", "未认证"],
-              ["1", "审核中"],
+              ["0", "待审核"],
+              ["1", "未通过"],
               ["2", "已通过"],
-              ["3", "未通过"],
+              ["3", "已到店核验"],
             ]}
           />
           <Select
@@ -508,7 +508,14 @@ export default function LoveUserListPage() {
             label="客户意向：不限"
             options={["高意向", "中意向", "低意向"]}
           />
-          <StaticSelect label="登记：不限" />
+          <StaticSelect
+            label="登记：不限"
+            options={["后台添加", "红娘录入", "批量导入", "自己注册", "落地页", "父母登记", "线索入库", "活动入库", "找搭子"]}
+          />
+          <StaticSelect
+            label="门店：不限"
+            options={["总店"]}
+          />
           <StaticSelect label="推广红娘" />
           <Select
             value={draft.gender}
@@ -534,7 +541,21 @@ export default function LoveUserListPage() {
                 label="会员级别：不限"
                 options={[["true", "VIP"], ["false", "普通会员"]]}
               />
-              <StaticSelect label="实名：不限" />
+              <StaticSelect label="实名：不限" options={["已实名", "未实名"]} />
+              <StaticSelect label="线下VIP：不限" options={["线下VIP：是", "线下VIP：不是"]} />
+              <StaticSelect label="置顶推广：不限" options={["置顶中", "未置顶"]} />
+              <StaticSelect label="新人推荐：不限" options={["推荐中"]} />
+              <StaticSelect label="活动报名：不限" options={["已报名", "未报名"]} />
+              <StaticSelect label="宗教：不限" />
+              <StaticSelect label="车子：不限（多选）" />
+              <StaticSelect label="级别：不限（多选）" options={["普通会员", "VIP-", "VIP-", "VIP-"]} />
+              <StaticSelect label="标签：不限（多选）" />
+              <StaticSelect label="户口：不限" />
+              <StaticSelect label="家乡：不限" />
+              <StaticSelect label="房子：不限（多选）" />
+              <StaticSelect label="民族：不限（多选）" />
+              <StaticSelect label="星座：不限" />
+              <StaticSelect label="属相：不限" />
             </>
           )}
         </div>
@@ -552,9 +573,12 @@ export default function LoveUserListPage() {
             <label className="relative flex h-8 items-center border border-r-0 border-[#d9d9d9] bg-white text-xs text-[#595959]">
               <select className="h-full appearance-none bg-transparent py-0 pl-3 pr-7 outline-none">
                 <option>智能搜索</option>
-                <option>昵称</option>
-                <option>手机号</option>
-                <option>会员编号</option>
+                <option>按手机搜</option>
+                <option>按微信搜</option>
+                <option>按编号搜</option>
+                <option>按ID搜</option>
+                <option>按昵称搜</option>
+                <option>按姓名搜</option>
               </select>
               <span className="pointer-events-none absolute right-3 top-3 size-1.5 rotate-45 border-b border-r border-[#8c8c8c]" />
             </label>
@@ -594,10 +618,12 @@ export default function LoveUserListPage() {
                 }}
                 className="h-8 border border-[#d9d9d9] bg-white px-2 text-xs"
               >
-                <option value="created_at">注册时间</option>
-                <option value="last_login_at">最后登录</option>
-                <option value="last_follow_at">最后跟进</option>
-                <option value="next_follow_at">下次跟进</option>
+                <option value="created_at">排序：注册时间</option>
+                <option value="entered_at">排序：录入时间</option>
+                <option value="last_login_at">排序：登录时间</option>
+                <option value="last_follow_at">排序：跟进时间</option>
+                <option value="assigned_at">排序：分派时间</option>
+                <option value="fetched_at">排序：捞取时间</option>
               </select>
             </label>
           </div>
@@ -1250,6 +1276,11 @@ export default function LoveUserListPage() {
                 <div className="smart-drawer-field"><div className="smart-drawer-field-label">购车</div><select defaultValue=""><option value="" disabled>请选择购车</option></select></div>
                 <div className="smart-drawer-field"><div className="smart-drawer-field-label">吸烟</div><select defaultValue=""><option value="" disabled>请选择吸烟</option></select></div>
                 <div className="smart-drawer-field"><div className="smart-drawer-field-label">喝酒</div><select defaultValue=""><option value="" disabled>请选择喝酒</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">星座</div><select defaultValue=""><option value="" disabled>请选择星座</option>{["未知","魔羯座","水瓶座","双鱼座","白羊座","金牛座","双子座","巨蟹座","狮子座","处女座","天秤座","天蝎座","射手座"].map((x) => <option key={x}>{x}</option>)}</select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">民族</div><select defaultValue=""><option value="" disabled>请选择民族</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">宗教</div><select defaultValue=""><option value="" disabled>请选择宗教</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">结婚意向</div><select defaultValue=""><option value="" disabled>请选择结婚意向</option></select></div>
+                <div className="smart-drawer-field"><div className="smart-drawer-field-label">来源</div><select defaultValue=""><option value="" disabled>请选择来源</option>{["后台添加","红娘录入","批量导入","自己注册","落地页","父母登记","线索入库","活动入库","找搭子"].map((x) => <option key={x}>{x}</option>)}</select></div>
               </div>
             </div>
           </div>

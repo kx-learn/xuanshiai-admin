@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BarChart3, FileDown, Plus, Search } from "lucide-react";
@@ -49,6 +49,11 @@ const statuses: Record<string, string> = {
   CLOSED: "已关闭",
 };
 const intent = (n: number) => ["", "低", "中", "高"][n] || "-";
+type QuickRow = { name: string; gender: "男" | "女"; phone: string; wechat: string; desc: string; source: string };
+const emptyQuickRow = (): QuickRow => ({ name: "", gender: "男", phone: "", wechat: "", desc: "", source: "" });
+const NICK_A = ["爱笑", "温柔", "阳光", "元气", "暖心", "文艺", "俏皮", "知性", "浪漫", "安静"];
+const NICK_B = ["小天使", "小星球", "向日葵", "柠檬", "月光", "清风", "小鹿", "星辰", "桃子", "海豚"];
+const genNickname = () => `${NICK_A[Math.floor(Math.random() * NICK_A.length)]}${NICK_B[Math.floor(Math.random() * NICK_B.length)]}${Math.floor(Math.random() * 90) + 10}`;
 const daysSince = (date: string) => Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 86400000));
 const isToday = (date: string) => {
   const d = new Date(date);
@@ -79,6 +84,12 @@ export default function Page() {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [quickRows, setQuickRows] = useState<QuickRow[]>([emptyQuickRow()]);
+  const [createSource, setCreateSource] = useState("抖音");
+  const createNameRef = useRef<HTMLInputElement>(null);
+  const createPhoneRef = useRef<HTMLInputElement>(null);
+  const createWechatRef = useRef<HTMLInputElement>(null);
+  const createDescRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const [simpleSetOpen, setSimpleSetOpen] = useState(false);
   const [simpleFields, setSimpleFields] = useState([
@@ -267,6 +278,70 @@ export default function Page() {
       setSaving(false);
     }
   };
+  const updateQuickRow = (index: number, patch: Partial<QuickRow>) =>
+    setQuickRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  const addQuickRow = () => setQuickRows((rows) => (rows.length >= 10 ? rows : [...rows, emptyQuickRow()]));
+  const removeQuickRow = (index: number) =>
+    setQuickRows((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : [emptyQuickRow()]));
+  const submitQuick = async () => {
+    if (saving) return;
+    const valid = quickRows.filter((r) => r.name.trim() && (r.phone.trim() || r.wechat.trim()));
+    if (valid.length === 0) {
+      setMessage("每行至少填写称呼，且手机/微信至少填写1个");
+      return;
+    }
+    setSaving(true);
+    try {
+      for (const row of valid) {
+        await adminEndpoints.createCustomerLead({
+          name: row.name.trim(),
+          phone: row.phone.trim() || null,
+          wechat: row.wechat.trim() || null,
+          source: row.source || "抖音",
+          intention_level: 1,
+          remark: row.desc.trim() || null,
+        });
+      }
+      setQuickOpen(false);
+      setQuickRows([emptyQuickRow()]);
+      setMessage(`成功录入 ${valid.length} 条客源线索`);
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const submitCreate = async () => {
+    if (saving) return;
+    const name = createNameRef.current?.value.trim() || "";
+    if (!name) {
+      setMessage("请填写昵称");
+      return;
+    }
+    setSaving(true);
+    try {
+      await adminEndpoints.createCustomerLead({
+        name,
+        phone: createPhoneRef.current?.value.trim() || null,
+        wechat: createWechatRef.current?.value.trim() || null,
+        source: createSource,
+        intention_level: 1,
+        remark: createDescRef.current?.value.trim() || null,
+      });
+      setCreateOpen(false);
+      if (createNameRef.current) createNameRef.current.value = "";
+      if (createPhoneRef.current) createPhoneRef.current.value = "";
+      if (createWechatRef.current) createWechatRef.current.value = "";
+      if (createDescRef.current) createDescRef.current.value = "";
+      setMessage("客源线索已添加");
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  };
   const exportCsv = () => {
     const csv = [
       "客源ID,称呼,手机,微信,来源,意向,状态",
@@ -330,7 +405,7 @@ export default function Page() {
               {addMenuOpen && (
                 <div className="lead-add-menu">
                   <button type="button" className="lead-add-menu-item" onClick={() => { setCreateOpen(true); setAddMenuOpen(false); }}>单条录入</button>
-                  <button type="button" className="lead-add-menu-item" onClick={() => { setQuickOpen(true); setAddMenuOpen(false); }}>10条快录</button>
+                  <button type="button" className="lead-add-menu-item" onClick={() => { setQuickRows([emptyQuickRow()]); setQuickOpen(true); setAddMenuOpen(false); }}>10条快录</button>
                   <button type="button" className="lead-add-menu-item" onClick={() => { router.push("/love-customer-batch-import"); setAddMenuOpen(false); }}>批量导入</button>
                 </div>
               )}
@@ -341,28 +416,47 @@ export default function Page() {
           </div>
         </div>
         <div className="lead-filter-grid grid gap-3 pt-4 md:grid-cols-4 xl:grid-cols-8">
-          {[ 
-            "审核状态：不限",
-            "分派跟进：不限",
-            "客源状态：不限",
-            "录入红娘：不限",
-            "推广红娘",
-            "录入管理员：不限",
-          ].map((label) => (
+          {([
+            ["审核状态：不限", ["不限", "待核", "无效", "有效"]],
+            ["分派跟进：不限", ["不限", "待分派"]],
+            ["录入红娘：不限", ["不限"]],
+            ["录入管理员：不限", ["不限"]],
+            ["客户性别：不限", ["不限", "男", "女"]],
+            ["入库情况：不限", ["不限", "已入库", "未入库"]],
+          ] as const).map(([label, options]) => (
             <select
               key={label}
               defaultValue=""
               className="h-10 rounded border border-[#ddd] bg-white px-3 text-left text-sm text-[#9aa1ad]"
             >
-              <option value="">{label}</option><option>不限</option><option>已设置</option><option>未设置</option>
+              <option value="">{label}</option>
+              {options.map((option) => <option key={option}>{option}</option>)}
             </select>
           ))}
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"><option value="">客源状态：不限</option>{Object.entries(statuses).map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
-          <input value={source} onChange={(e) => setSource(e.target.value)} placeholder="客户来源" className="h-10 rounded border border-[#ddd] px-3 text-sm placeholder:text-[#9aa1ad]" />
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"
+          >
+            <option value="">客户来源：不限</option>
+            {["抖音", "微信群", "本地群", "身边朋友", "同行群", "朋友圈", "朋友介绍", "QQ", "其他渠道", "落地页"].map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+          <input placeholder="推广红娘" className="h-10 rounded border border-[#ddd] px-3 text-sm placeholder:text-[#9aa1ad]" />
         </div>
         <button className="lead-more-filters" onClick={() => setShowMoreFilters((value) => !value)}>{showMoreFilters ? "收起选项" : "更多选项"}<span className="lead-chevron" /></button>
         {showMoreFilters && <div className="lead-extra-filters">
-          {["客户性别：不限", "年龄：不限", "身高：不限", "职业：不限", "学历：不限", "家乡：不限", "现居：不限", "婚况：不限", "入库情况：不限"].map((label) => <select key={label} defaultValue="" className="lead-filter-select"><option value="">{label}</option><option>不限</option><option>已填写</option></select>)}
+          {([
+            ["客户意向：不限", ["不限"]],
+            ["年龄：不限", ["不限"]],
+            ["身高：不限", ["不限"]],
+            ["职业：不限", ["不限"]],
+            ["学历：不限", ["不限"]],
+            ["家乡：不限", ["不限"]],
+            ["现居：不限", ["不限"]],
+            ["婚况：不限", ["不限"]],
+            ["加上了吗?", ["不限", "未添加", "已加上", "没加上"]],
+          ] as const).map(([label, options]) => <select key={label} defaultValue="" className="lead-filter-select"><option value="">{label}</option>{options.map((option) => <option key={option}>{option}</option>)}</select>)}
           <input placeholder="标签：不限（多选）" />
           <div className="lead-date-ranges">
             <DateRangePicker label="录" startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-full max-w-[300px]" />
@@ -371,7 +465,19 @@ export default function Page() {
           <label><input type="checkbox" /> 隐藏今日已跟进</label><label><input type="checkbox" /> 隐藏今日已通话</label><label><input type="checkbox" /> 有电话</label><label><input type="checkbox" /> 有微信</label>
         </div>}
         <div className="lead-search-row flex flex-wrap items-end gap-3 py-4">
-          <div className="flex items-end"><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="请输入称呼/微信号/手机号/ID" className="h-10 w-[430px] rounded border border-[#ddd] px-3 text-sm placeholder:text-[#b4bac5]" /></div>
+          <div className="flex items-end">
+            <select
+              className="h-10 rounded border border-r-0 border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"
+              aria-label="搜索类型"
+            >
+              <option>智能搜索</option>
+              <option>按昵称</option>
+              <option>按手机</option>
+              <option>按微信搜</option>
+              <option>按编号搜</option>
+            </select>
+            <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="请输入称呼/微信号/手机号/ID" className="h-10 w-[350px] rounded border border-[#ddd] px-3 text-sm placeholder:text-[#b4bac5]" />
+          </div>
           <div className="flex items-end gap-2">
             <button
               onClick={() => void load()}
@@ -391,7 +497,7 @@ export default function Page() {
               重置
             </button>
           </div>
-          <span className="pb-2 text-sm">排序：录入时间</span>
+          <select defaultValue="" className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"><option value="">排序：录入时间</option><option>排序：分派时间</option><option>排序：捞取时间</option></select>
           <div className="lead-mode-switch">{viewMode === "simple" && <button className="lead-settings" aria-label="简洁模式设置" onClick={() => setSimpleSetOpen(true)}>⚙</button>}<button className={viewMode === "simple" ? "active" : ""} onClick={() => setViewMode("simple")}>简洁</button><button className={viewMode === "professional" ? "active" : ""} onClick={() => setViewMode("professional")}>专业</button></div>
         </div>
         <div className="lead-metrics-grid grid grid-cols-2 gap-3 md:grid-cols-6">
@@ -536,22 +642,24 @@ export default function Page() {
               <div className="flex items-center gap-2"><span className="lc-create-head-x" onClick={() => setQuickOpen(false)}>✕</span><h2>极速录入</h2></div>
               <div className="lc-quick-head-actions">
                 <button type="button" className="lc-quick-cancel" onClick={() => setQuickOpen(false)}>取消</button>
-                <button type="button" className="lc-quick-submit">确定提交</button>
+                <button type="button" className="lc-quick-submit" disabled={saving} onClick={() => void submitQuick()}>{saving ? "提交中..." : "确定提交"}</button>
               </div>
             </div>
             <div className="lc-quick-body">
               <div className="lc-quick-notice"><div className="lc-quick-notice-title">💡 须知</div><div>可以一次性极速录入10条客源线索</div></div>
-              <div className="lc-quick-row">
-                <div className="lc-quick-cell"><input className="w-name" placeholder="请输入" /></div>
-                <div className="lc-quick-cell"><button type="button" className="lc-quick-auto">自动生成</button></div>
-                <div className="lc-quick-cell lc-quick-gender"><label><input type="radio" name="lc-q-g-1" defaultChecked />男</label><label><input type="radio" name="lc-q-g-1" />女</label></div>
-                <div className="lc-quick-cell"><input className="w-mobile" placeholder="手机和微信至少填写1个" /></div>
-                <div className="lc-quick-cell"><input className="w-wechat" placeholder="手机和微信至少填写1个" /></div>
-                <div className="lc-quick-cell"><input className="w-desc" placeholder="请输入描述" /></div>
-                <div className="lc-quick-cell"><select className="w-source" defaultValue=""><option value="" disabled>线索来源</option>{["抖音","微信群","本地群","朋友圈","落地页"].map((x) => <option key={x}>{x}</option>)}</select></div>
-                <div className="lc-quick-cell"><button type="button" className="lc-quick-del">删除</button></div>
-              </div>
-              <button type="button" className="lc-quick-add">+ 再加一条</button>
+              {quickRows.map((row, index) => (
+                <div className="lc-quick-row" key={index}>
+                  <div className="lc-quick-cell"><input className="w-name" placeholder="请输入" value={row.name} onChange={(e) => updateQuickRow(index, { name: e.target.value })} /></div>
+                  <div className="lc-quick-cell"><button type="button" className="lc-quick-auto" onClick={() => updateQuickRow(index, { name: genNickname() })}>自动生成</button></div>
+                  <div className="lc-quick-cell lc-quick-gender"><label><input type="radio" name={`lc-q-g-${index}`} checked={row.gender === "男"} onChange={() => updateQuickRow(index, { gender: "男" })} />男</label><label><input type="radio" name={`lc-q-g-${index}`} checked={row.gender === "女"} onChange={() => updateQuickRow(index, { gender: "女" })} />女</label></div>
+                  <div className="lc-quick-cell"><input className="w-mobile" placeholder="手机和微信至少填写1个" value={row.phone} onChange={(e) => updateQuickRow(index, { phone: e.target.value })} /></div>
+                  <div className="lc-quick-cell"><input className="w-wechat" placeholder="手机和微信至少填写1个" value={row.wechat} onChange={(e) => updateQuickRow(index, { wechat: e.target.value })} /></div>
+                  <div className="lc-quick-cell"><input className="w-desc" placeholder="请输入描述" value={row.desc} onChange={(e) => updateQuickRow(index, { desc: e.target.value })} /></div>
+                  <div className="lc-quick-cell"><select className="w-source" value={row.source} onChange={(e) => updateQuickRow(index, { source: e.target.value })}><option value="" disabled>线索来源</option>{["抖音","微信群","本地群","朋友圈","落地页"].map((x) => <option key={x}>{x}</option>)}</select></div>
+                  <div className="lc-quick-cell"><button type="button" className="lc-quick-del" onClick={() => removeQuickRow(index)}>删除</button></div>
+                </div>
+              ))}
+              <button type="button" className="lc-quick-add" onClick={addQuickRow} disabled={quickRows.length >= 10}>+ 再加一条{quickRows.length >= 10 ? "（已达10条上限）" : ""}</button>
             </div>
           </div>
         </div>
@@ -566,8 +674,8 @@ export default function Page() {
               <div className="lc-create-form">
                 <div className="lc-create-chips">
                   <span className="lc-create-field-label" style={{ minWidth: 40 }}>来源</span>
-                  {["抖音","微信群","本地群","身边朋友","同行群","朋友圈","朋友介绍","QQ","其他渠道","落地页"].map((label, idx) => (
-                    <label key={label} className={"lc-create-chip" + (idx === 0 ? " active" : "")}><input type="radio" name="lc-create-source" defaultChecked={idx === 0} />{label}</label>
+                  {["抖音","微信群","本地群","身边朋友","同行群","朋友圈","朋友介绍","QQ","其他渠道","落地页"].map((label) => (
+                    <label key={label} className={"lc-create-chip" + (createSource === label ? " active" : "")}><input type="radio" name="lc-create-source" checked={createSource === label} onChange={() => setCreateSource(label)} />{label}</label>
                   ))}
                   <span className="lc-create-chip-mgr">管理来源</span>
                 </div>
@@ -579,9 +687,9 @@ export default function Page() {
                   <span className="lc-create-chip-mgr">管理标签</span>
                 </div>
                 <div className="lc-create-row">
-                  <div className="lc-create-field"><div className="lc-create-field-label">手机</div><input placeholder="请输入手机号" /></div>
-                  <div className="lc-create-field"><div className="lc-create-field-label">微信</div><input placeholder="请输入微信号" /></div>
-                  <div className="lc-create-field"><div className="lc-create-field-label"><span className="req">*</span>昵称</div><div className="lc-create-field-with-btn"><input placeholder="请输入" /><button type="button" className="lc-create-auto-btn">自动生成</button></div></div>
+                  <div className="lc-create-field"><div className="lc-create-field-label">手机</div><input ref={createPhoneRef} placeholder="请输入手机号" /></div>
+                  <div className="lc-create-field"><div className="lc-create-field-label">微信</div><input ref={createWechatRef} placeholder="请输入微信号" /></div>
+                  <div className="lc-create-field"><div className="lc-create-field-label"><span className="req">*</span>昵称</div><div className="lc-create-field-with-btn"><input ref={createNameRef} placeholder="请输入" /><button type="button" className="lc-create-auto-btn" onClick={() => { if (createNameRef.current) createNameRef.current.value = genNickname(); }}>自动生成</button></div></div>
                 </div>
                 <div className="lc-create-row">
                   <div className="lc-create-field"><div className="lc-create-field-label">性别</div><div className="lc-create-radio-inline"><label><input type="radio" name="lc-create-gender" defaultChecked />男</label><label><input type="radio" name="lc-create-gender" />女</label></div></div>
@@ -613,11 +721,11 @@ export default function Page() {
                   <div className="lc-create-field"><div className="lc-create-field-label">学校</div><div className="lc-create-field-with-btn"><input placeholder="填写毕业学校" /><span className="lc-create-input-unit" style={{ borderRadius: "6px", borderLeft: "1px solid #d9dde6", minWidth: 32 }}>⊕</span></div></div>
                   <div className="lc-create-field"><div className="lc-create-field-label">单位</div><div className="lc-create-field-with-btn"><input placeholder="填写工作单位" /><span className="lc-create-input-unit" style={{ borderRadius: "6px", borderLeft: "1px solid #d9dde6", minWidth: 32 }}>⊕</span></div></div>
                 </div>
-                <div className="lc-create-field"><div className="lc-create-field-label">描述</div><textarea rows={3} placeholder="仅限500字，尽可能的将了解到的信息进行一段描述" /></div>
+                <div className="lc-create-field"><div className="lc-create-field-label">描述</div><textarea ref={createDescRef} rows={3} placeholder="仅限500字，尽可能的将了解到的信息进行一段描述" /></div>
                 <div className="lc-create-notice"><span className="lc-create-notice-dot">●</span>本内容仅红娘和后台可见，在入库到"会员CRM"后，显示在该客户的"会员资料-自我介绍"页中的"客源描述"中</div>
                 <div className="lc-create-field"><div className="lc-create-field-label">照片</div><div className="lc-create-upload">＋ 上传图片</div></div>
                 <div className="lc-create-assign"><span className="lc-create-field-label" style={{ minWidth: 40 }}>分派</span><label><input type="radio" name="lc-create-assign" defaultChecked />不分派</label><label><input type="radio" name="lc-create-assign" />智能分派</label></div>
-                <div className="lc-create-submit-row"><button type="button" className="lc-create-submit">确定提交</button></div>
+                <div className="lc-create-submit-row"><button type="button" className="lc-create-submit" disabled={saving} onClick={() => void submitCreate()}>{saving ? "提交中..." : "确定提交"}</button></div>
               </div>
             </div>
           </div>

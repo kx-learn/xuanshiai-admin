@@ -18,6 +18,11 @@ const SEND_TARGETS = [
   "所有推广红娘",
   "指定活动报名名单",
   "互动活动报名嘉宾",
+  "互选活动报名嘉宾",
+  "全部客源线索",
+  "全部未入库的客源线索",
+  "最近1个月录入的客源线索",
+  "自定义手机号",
 ];
 
 type TplDef = { id: string; text: string };
@@ -231,6 +236,7 @@ function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSucce
   const [taskName, setTaskName] = useState("");
   const [target, setTarget] = useState("所有注册用户");
   const [tplId, setTplId] = useState("Q1329");
+  const [customPhones, setCustomPhones] = useState("");
 
   const submit = async () => {
     if (!taskName.trim()) {
@@ -248,7 +254,8 @@ function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSucce
           extra: {
             target,
             tpl_id: tplId,
-            phone_count: 0,
+            custom_phones: customPhones.trim(),
+            phone_count: target === "自定义手机号" ? customPhones.split(/[,，\s]+/).filter(Boolean).length : 0,
             sent_count: 0,
             fail_count: 0,
           },
@@ -288,7 +295,7 @@ function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSucce
 
           <div className="sms-form-row">
             <span className="sms-form-label">＊任务名称</span>
-            <input className="sms-input sms-input-wide" placeholder="自定义任务名称,限制20字符" value={taskName} onChange={(e) => setTaskName(e.target.value)} maxLength={20} />
+            <input className="sms-input sms-input-wide" placeholder="自定义任务名称，限制20汉字" value={taskName} onChange={(e) => setTaskName(e.target.value)} maxLength={20} />
           </div>
 
           <div className="sms-form-row sms-form-row-top">
@@ -299,6 +306,29 @@ function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSucce
               ))}
             </div>
           </div>
+
+          {target === "自定义手机号" && (
+            <div className="sms-form-row sms-form-row-top">
+              <span className="sms-form-label">＊手机号</span>
+              <div className="sms-tpl-wrap">
+                <div className="sms-tpl-bar">
+                  <span className="sms-tpl-bar-dot">●</span>
+                  <span>已提取的手机号，可编辑</span>
+                </div>
+                <textarea
+                  className="sms-textarea"
+                  rows={3}
+                  placeholder="多个手机号请用逗号隔开"
+                  value={customPhones}
+                  onChange={(e) => setCustomPhones(e.target.value)}
+                />
+                <div className="sms-form-row">
+                  <input className="sms-input" placeholder="输入手机" value="" onChange={() => undefined} />
+                  <button type="button" className="finord-btn sms-cancel">上传文件</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="sms-form-row sms-form-row-top">
             <span className="sms-form-label">＊短信模板</span>

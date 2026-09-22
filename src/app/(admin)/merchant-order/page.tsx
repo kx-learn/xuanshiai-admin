@@ -11,7 +11,7 @@ const breadcrumb = getBreadcrumb("商家联盟", "订单管理");
 
 const columns = ["ID", "下单商品", "商家", "下单人", "下单时间", "订单状态", "订单金额", "方式/时间", "核销状态", "操作"];
 
-const ORDER_STATUS: Record<string, string> = { pending: "待支付", paid: "已支付", used: "已核销", cancelled: "已取消" };
+const ORDER_STATUS: Record<string, string> = { pending: "未支付", paid: "已支付", used: "已消费", cancelled: "已取消" };
 const VERIFY_STATUS: Record<string, string> = { pending: "未核销", verified: "已核销" };
 
 const fmt = (v: string | null | undefined) => (v ? v.replace("T", " ").slice(0, 16) : "-");
@@ -105,16 +105,16 @@ export default function MerchantOrderPage() {
               {merchants.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
             <select className="mo-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">订单状态</option>
+              <option value="">全部订单状态</option>
               {Object.entries(ORDER_STATUS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
             <select className="mo-select" value={verifyStatus} onChange={(e) => setVerifyStatus(e.target.value)}>
-              <option value="">核销状态</option>
+              <option value="">全部核销状态</option>
               <option value="pending">未核销</option>
-              <option value="verified">已核销</option>
+              <option value="verified">已消费</option>
             </select>
             <div className="mo-searchbox">
-              <input className="mo-input" placeholder="按商品关键词" value={productKeyword} onChange={(e) => setProductKeyword(e.target.value)} />
+              <input className="mo-input" placeholder="全部商品" value={productKeyword} onChange={(e) => setProductKeyword(e.target.value)} />
             </div>
             <div className="mo-searchbox">
               <input className="mo-input" placeholder="按订单号" value={orderNo} onChange={(e) => setOrderNo(e.target.value)} />

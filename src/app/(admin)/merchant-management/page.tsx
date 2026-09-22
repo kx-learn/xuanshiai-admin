@@ -182,10 +182,10 @@ export default function MerchantManagementPage() {
 
         <div className="mm-filters">
           <select className="mm-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">按商家分类</option>
+            <option value="">所有分类</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <input className="mm-input" placeholder="按商家名称" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} />
+          <input className="mm-input" placeholder="输入昵称关键词" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} />
           <button className="finord-btn finord-btn-primary mm-search-btn" onClick={() => load()}>搜索</button>
         </div>
 

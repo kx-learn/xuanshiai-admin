@@ -180,11 +180,19 @@ export default function WechatAutoreplyPage() {
             <div className="ar-card-tools">
               {activeTab === "keyword" ? (
                 <div className="ar-search">
+                  <select className="ar-search-select" defaultValue="contain" aria-label="匹配方式">
+                    <option value="contain">包含</option>
+                    <option value="equal">等于</option>
+                  </select>
+                  <select className="ar-search-select" defaultValue="text" aria-label="回复类型">
+                    <option value="text">文字</option>
+                    <option value="link">链接</option>
+                  </select>
                   <input
                     className="ar-search-input"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="请输入关键词"
+                    placeholder="输入关键词"
                   />
                   <button type="button" className="ar-search-btn" title="搜索">🔍</button>
                 </div>

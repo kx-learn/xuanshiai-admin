@@ -140,12 +140,17 @@ export default function ShortVideoListPage() {
             <input type="radio" name="searchMode" defaultChecked />
             <span>按标题搜</span>
           </label>
+          <label className="svl-radio">
+            <input type="radio" name="searchMode" />
+            <span>按昵称搜</span>
+          </label>
           <input className="svl-input" placeholder="请输入" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} />
           <button className="finord-btn finord-btn-primary svl-search-btn" onClick={() => load()}>搜索</button>
           <select className="svl-select svl-time-select" value={orderBy} onChange={(e) => setOrderBy(e.target.value)}>
             <option value="">按发布时间</option>
-            <option value="views">按播放数</option>
-            <option value="likes">按点赞数</option>
+            <option value="views">按播放量高-低</option>
+            <option value="likes">按点赞量高-低</option>
+            <option value="comments">按评论量高-低</option>
           </select>
         </div>
 

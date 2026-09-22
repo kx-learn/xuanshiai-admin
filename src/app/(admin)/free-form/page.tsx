@@ -134,15 +134,22 @@ export default function FreeFormPage() {
             <button className="finord-btn finord-btn-primary" onClick={() => void load(1)}>搜索</button>
           </div>
           <div className="finord-searchbox">
-            <span className="finord-search-label">性别:</span>
+            <span className="finord-search-label">性别：</span>
             <select
               className="finord-select"
               value={gender}
               onChange={(e) => setGender(e.target.value)}
             >
-              <option value="">不限</option>
-              <option value="male">男</option>
-              <option value="female">女</option>
+              <option value="">性别：不限</option>
+              <option value="male">性别：男</option>
+              <option value="female">性别：女</option>
+            </select>
+          </div>
+          <div className="finord-searchbox">
+            <span className="finord-search-label">客户来源：</span>
+            <select className="finord-select" defaultValue="">
+              <option value="">客户来源：不限</option>
+              {["抖音", "微信群", "本地群", "身边朋友", "同行群", "朋友圈", "朋友介绍", "QQ", "其他渠道", "落地页"].map((option) => <option key={option} value={option}>{option}</option>)}
             </select>
           </div>
           <div className="ff-landing-wrap">

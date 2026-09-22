@@ -1,0 +1,917 @@
+[
+ {
+  "path": "/",
+  "title": "首页",
+  "chunk": "Home.1ac3832c.js"
+ },
+ {
+  "path": "/home",
+  "title": "概览",
+  "chunk": "Home.1ac3832c.js"
+ },
+ {
+  "path": "/reg-user",
+  "title": "平台账号",
+  "chunk": "index.11e112ae.js"
+ },
+ {
+  "path": "/reg-user-all",
+  "title": "账号管理",
+  "chunk": "index.11e112ae.js"
+ },
+ {
+  "path": "/reg-user-log",
+  "title": "登录日志",
+  "chunk": "log.56203ae6.js"
+ },
+ {
+  "path": "/love-customer-wrap",
+  "title": "客源线索",
+  "chunk": "list.55f5f3b0.js"
+ },
+ {
+  "path": "/love-customer-list-wrap",
+  "title": "线索管理",
+  "chunk": "list.55f5f3b0.js"
+ },
+ {
+  "path": "/love-customer-list",
+  "title": "线索管理",
+  "chunk": "list.55f5f3b0.js"
+ },
+ {
+  "path": "/love-user-list-abandon",
+  "title": "弃海记录",
+  "chunk": "listabandon.b6618053.js"
+ },
+ {
+  "path": "/love-customer-import",
+  "title": "客源批量导入",
+  "chunk": "import.08a89726.js"
+ },
+ {
+  "path": "/love-customer-statistics",
+  "title": "数据报表",
+  "chunk": "statistic.159afe1b.js"
+ },
+ {
+  "path": "/customer-follow-up",
+  "title": "跟进全览",
+  "chunk": "followUp.6f59d8a7.js"
+ },
+ {
+  "path": "/love-customer-import-Follow",
+  "title": "导入历史跟进",
+  "chunk": "importFollow.e7ba5e90.js"
+ },
+ {
+  "path": "/love-customer-config",
+  "title": "功能配置",
+  "chunk": "config.b08ead75.js"
+ },
+ {
+  "path": "/love-user-wrap",
+  "title": "会员CRM",
+  "chunk": "list.237db09e.js"
+ },
+ {
+  "path": "/love-user-list-wrap",
+  "title": "资料管理",
+  "chunk": "list.237db09e.js"
+ },
+ {
+  "path": "/love-user-list",
+  "title": "会员资料",
+  "chunk": "list.237db09e.js"
+ },
+ {
+  "path": "/love-user-abandon",
+  "title": "弃海记录",
+  "chunk": "listabandon.7b758b2f.js"
+ },
+ {
+  "path": "/love-user-vip",
+  "title": "线上VIP",
+  "chunk": "vip.1458f812.js"
+ },
+ {
+  "path": "/love-user-vip-underline",
+  "title": "线下VIP",
+  "chunk": "vipunderline.2522fa66.js"
+ },
+ {
+  "path": "/love-user-import",
+  "title": "会员资料批量导入",
+  "chunk": "import.83783f3f.js"
+ },
+ {
+  "path": "/love-user-auth",
+  "title": "会员认证",
+  "chunk": "real.5b85db74.js"
+ },
+ {
+  "path": "/love-user-real",
+  "title": "实名认证",
+  "chunk": "real.5b85db74.js"
+ },
+ {
+  "path": "/love-user-commitment",
+  "title": "会员承诺",
+  "chunk": "commitment.7f1d5288.js"
+ },
+ {
+  "path": "/love-user-maritalstatus",
+  "title": "婚姻状况",
+  "chunk": "maritalstatus.b979971c.js"
+ },
+ {
+  "path": "/love-user-houseauth",
+  "title": "房产认证",
+  "chunk": "houseauth.e3e35cfb.js"
+ },
+ {
+  "path": "/love-user-educationauth",
+  "title": "学历认证",
+  "chunk": "educationauth.fc96f7be.js"
+ },
+ {
+  "path": "/love-user-otherauth",
+  "title": "其他认证",
+  "chunk": "otherauth.b0d32cd2.js"
+ },
+ {
+  "path": "/content-verify",
+  "title": "内容核查",
+  "chunk": "selfintroduction.bd7d0a64.js"
+ },
+ {
+  "path": "/love-user-selfintroduction",
+  "title": "个人介绍",
+  "chunk": "selfintroduction.bd7d0a64.js"
+ },
+ {
+  "path": "/love-user-headpics",
+  "title": "头像",
+  "chunk": "headpics.d2762914.js"
+ },
+ {
+  "path": "/love-user-photo",
+  "title": "照片",
+  "chunk": "photo.d7268517.js"
+ },
+ {
+  "path": "/love-user-video",
+  "title": "视频",
+  "chunk": "video.cc6b3a38.js"
+ },
+ {
+  "path": "/love-user-behavior",
+  "title": "线上行为",
+  "chunk": "view.70af7bd7.js"
+ },
+ {
+  "path": "/love-user-view",
+  "title": "浏览记录",
+  "chunk": "view.70af7bd7.js"
+ },
+ {
+  "path": "/love-user-fav",
+  "title": "收藏记录",
+  "chunk": "fav.f38e4528.js"
+ },
+ {
+  "path": "/love-user-ones",
+  "title": "线上爆灯",
+  "chunk": "popuplarones.98577601.js"
+ },
+ {
+  "path": "/love-gift-record",
+  "title": "赠送礼物",
+  "chunk": "record.45131acd.js"
+ },
+ {
+  "path": "/love-report",
+  "title": "网友举报",
+  "chunk": "report.ed9e49d2.js"
+ },
+ {
+  "path": "/love-user-statistics",
+  "title": "数据报表",
+  "chunk": "statistics.13ed4ac5.js"
+ },
+ {
+  "path": "/love-user-follow-up",
+  "title": "跟进全览",
+  "chunk": "followUp.66e12dc6.js"
+ },
+ {
+  "path": "/love-user-import-Follow",
+  "title": "导入历史跟进",
+  "chunk": "importFollow.37dfce10.js"
+ },
+ {
+  "path": "/vip-wrap",
+  "title": "会员服务",
+  "chunk": "linerecord.7d2f3df4.js"
+ },
+ {
+  "path": "/vip-line-record",
+  "title": "红娘牵线",
+  "chunk": "linerecord.7d2f3df4.js"
+ },
+ {
+  "path": "/love-interview",
+  "title": "约见申请",
+  "chunk": "interview.bca0c6b0.js"
+ },
+ {
+  "path": "/love-appointment",
+  "title": "约会管理",
+  "chunk": "appointment.9c0e7de7.js"
+ },
+ {
+  "path": "/vip-popularize-record",
+  "title": "推广管理",
+  "chunk": "popularizerecord.49cd286b.js"
+ },
+ {
+  "path": "/love-matchmaker-wrap",
+  "title": "总店红娘",
+  "chunk": "list.4c33b74a.js"
+ },
+ {
+  "path": "/love-matchmaker-list",
+  "title": "红娘管理",
+  "chunk": "list.4c33b74a.js"
+ },
+ {
+  "path": "/love-matchmaker-apportion-wrap",
+  "title": "分派配置",
+  "chunk": "apportion.6113df7d.js"
+ },
+ {
+  "path": "/love-matchmaker-apportion",
+  "title": "分派配置",
+  "chunk": "apportion.6113df7d.js"
+ },
+ {
+  "path": "/love-matchmaker-apportion2",
+  "title": "分派配置",
+  "chunk": "apportion2.a911f08f.js"
+ },
+ {
+  "path": "/love-matchmaker-distribution",
+  "title": "分成配置",
+  "chunk": "distribution.7aa8dae0.js"
+ },
+ {
+  "path": "/love-matchmaker-distribution-details",
+  "title": "分成明细",
+  "chunk": "distributionDetails.8e700a0f.js"
+ },
+ {
+  "path": "/branch-manage",
+  "title": "分店管理",
+  "chunk": "BranchConfig.ef720f7a.js"
+ },
+ {
+  "path": "/branch-config",
+  "title": "分站配置",
+  "chunk": "BranchConfig.ef720f7a.js"
+ },
+ {
+  "path": "/mendian-list",
+  "title": "门店管理",
+  "chunk": "mendian.be8609e5.js"
+ },
+ {
+  "path": "/branch-matchmaker-list",
+  "title": "分店红娘",
+  "chunk": "BranchMatchMarkerList.a8541e14.js"
+ },
+ {
+  "path": "/branch-report-list",
+  "title": "分店报表",
+  "chunk": "BranchReport.c8f66e95.js"
+ },
+ {
+  "path": "/branch-distribuion-list",
+  "title": "分成明细",
+  "chunk": "BranchDistribution.dbc4225e.js"
+ },
+ {
+  "path": "/poplove-matchmaker-wrap",
+  "title": "推广红娘",
+  "chunk": "list.9dabe8fa.js"
+ },
+ {
+  "path": "/poplove-matchmaker-list",
+  "title": "红娘管理",
+  "chunk": "list.9dabe8fa.js"
+ },
+ {
+  "path": "/poplove-matchmaker-distribution",
+  "title": "分成配置",
+  "chunk": "distribution.dbbe9a39.js"
+ },
+ {
+  "path": "/poplove-matchmaker-distribution-details",
+  "title": "分成明细",
+  "chunk": "distributionDetails.0636a89a.js"
+ },
+ {
+  "path": "/love-partner-wrap",
+  "title": "合伙红娘",
+  "chunk": "config.b7ac996d.js"
+ },
+ {
+  "path": "/love-partner-config",
+  "title": "功能配置",
+  "chunk": "config.b7ac996d.js"
+ },
+ {
+  "path": "/love-partner-bonus-config",
+  "title": "分成配置",
+  "chunk": "bonusConfig.73236dd5.js"
+ },
+ {
+  "path": "/love-partner-list",
+  "title": "合伙人管理",
+  "chunk": "list.28596c9f.js"
+ },
+ {
+  "path": "/love-partner-relation-manage",
+  "title": "团队关系",
+  "chunk": "relationManage.7081989e.js"
+ },
+ {
+  "path": "/love-partner-bonus-details",
+  "title": "分成明细",
+  "chunk": "bonusDetails.8f8d2eef.js"
+ },
+ {
+  "path": "/active-wrap",
+  "title": "活动报名",
+  "chunk": "config.31e5e058.js"
+ },
+ {
+  "path": "/active-config",
+  "title": "参数配置",
+  "chunk": "config.31e5e058.js"
+ },
+ {
+  "path": "/active-list",
+  "title": "活动管理",
+  "chunk": "list.e36e690d.js"
+ },
+ {
+  "path": "/active-signupmanager",
+  "title": "报名管理",
+  "chunk": "signup.82194129.js"
+ },
+ {
+  "path": "/mutual-selection-activities",
+  "title": "互选活动",
+  "chunk": "list.778ecb14.js"
+ },
+ {
+  "path": "/mutual-selection-activities-list",
+  "title": "活动管理",
+  "chunk": "list.778ecb14.js"
+ },
+ {
+  "path": "/mutual-selection-activities-record",
+  "title": "互选记录",
+  "chunk": "Record.2269276f.js"
+ },
+ {
+  "path": "/merchant-wrap",
+  "title": "商家联盟",
+  "chunk": "Manual.75f3c54c.js"
+ },
+ {
+  "path": "/active-alliance",
+  "title": "运营方案",
+  "chunk": "Manual.75f3c54c.js"
+ },
+ {
+  "path": "/merchant-alliance-config",
+  "title": "功能配置",
+  "chunk": "Config.3cda52b6.js"
+ },
+ {
+  "path": "/merchant-management",
+  "title": "商家管理",
+  "chunk": "MerchantManagement.e12227bf.js"
+ },
+ {
+  "path": "/merchant-product",
+  "title": "商品管理",
+  "chunk": "MerchantProduct.215c7b8d.js"
+ },
+ {
+  "path": "/merchant-order",
+  "title": "订单管理",
+  "chunk": "MerchantOrder.a79a2755.js"
+ },
+ {
+  "path": "/short-video-wrap",
+  "title": "短视频",
+  "chunk": "config.6cf1a08f.js"
+ },
+ {
+  "path": "/short-video-config",
+  "title": "参数配置",
+  "chunk": "config.6cf1a08f.js"
+ },
+ {
+  "path": "/short-video-list",
+  "title": "视频管理",
+  "chunk": "index.ac4549b4.js"
+ },
+ {
+  "path": "/short-video-red-packet",
+  "title": "红包记录",
+  "chunk": "redpacket.d2f45138.js"
+ },
+ {
+  "path": "/short-video-comment",
+  "title": "评论管理",
+  "chunk": "comment.025f5c01.js"
+ },
+ {
+  "path": "/short-video-homepage",
+  "title": "会员主页",
+  "chunk": "homepage.645e661f.js"
+ },
+ {
+  "path": "/short-video-tip",
+  "title": "打赏管理",
+  "chunk": "tip.8c534c41.js"
+ },
+ {
+  "path": "/tool-wrap",
+  "title": "运营工具",
+  "chunk": "index.1857e9e6.js"
+ },
+ {
+  "path": "/free-pay",
+  "title": "自由收款",
+  "chunk": "index.1857e9e6.js"
+ },
+ {
+  "path": "/matchmaker-good-news-configuration",
+  "title": "栏目配置",
+  "chunk": "ColumnConfig.d404360e.js"
+ },
+ {
+  "path": "/matchmaker-good-news-manage",
+  "title": "喜讯管理",
+  "chunk": "NewsManage.770c833a.js"
+ },
+ {
+  "path": "/matchmaker-good-news-pennant-manage",
+  "title": "锦旗管理",
+  "chunk": "PennantManage.674d3385.js"
+ },
+ {
+  "path": "/partner-community",
+  "title": "栏目配置",
+  "chunk": "ColumnConfig.e6de0eb9.js"
+ },
+ {
+  "path": "/column-configuration",
+  "title": "栏目配置",
+  "chunk": "ColumnConfig.e6de0eb9.js"
+ },
+ {
+  "path": "/group-manage",
+  "title": "社群管理",
+  "chunk": "GroupManage.99c84a8b.js"
+ },
+ {
+  "path": "/sign-manage",
+  "title": "报名管理",
+  "chunk": "SignManage.97d261a9.js"
+ },
+ {
+  "path": "/interactive-messages",
+  "title": "互动消息",
+  "chunk": "FunctionSetting.c433785d.js"
+ },
+ {
+  "path": "/interactive-messages-function",
+  "title": "功能设置",
+  "chunk": "FunctionSetting.c433785d.js"
+ },
+ {
+  "path": "/interactive-messages-content",
+  "title": "内容设置",
+  "chunk": "ContentSetting.ee9abf2c.js"
+ },
+ {
+  "path": "/interactive-messages-list",
+  "title": "消息记录",
+  "chunk": "MessageRecord.42468681.js"
+ },
+ {
+  "path": "/sales-library",
+  "title": "销售匹配库",
+  "chunk": "index.102742da.js"
+ },
+ {
+  "path": "/single-page",
+  "title": "内容单页",
+  "chunk": "index.a285f50c.js"
+ },
+ {
+  "path": "/landinglage-wrap",
+  "title": "超级获客",
+  "chunk": "index.2c206ab2.js"
+ },
+ {
+  "path": "/customer-landing",
+  "title": "落地页",
+  "chunk": "index.2c206ab2.js"
+ },
+ {
+  "path": "/free-form",
+  "title": "自由表单",
+  "chunk": "freeForm.2764aefd.js"
+ },
+ {
+  "path": "/tool-lovecard",
+  "title": "批量资料卡",
+  "chunk": "index.9461d385.js"
+ },
+ {
+  "path": "/tool-theme",
+  "title": "会员分区",
+  "chunk": "index.3ef6e32d.js"
+ },
+ {
+  "path": "/sms-group",
+  "title": "短信群发",
+  "chunk": "smsgroup.b4afffef.js"
+ },
+ {
+  "path": "/love-gift-wrap",
+  "title": "送礼物",
+  "chunk": "list.066f0c6b.js"
+ },
+ {
+  "path": "/love-gift-list",
+  "title": "礼物管理",
+  "chunk": "list.066f0c6b.js"
+ },
+ {
+  "path": "/love-gift-record2",
+  "title": "赠送礼物",
+  "chunk": "record2.76d10cb3.js"
+ },
+ {
+  "path": "/generate-tool",
+  "title": "推文助手",
+  "chunk": "tool.f973ed5c.js"
+ },
+ {
+  "path": "/qrcode-wrap",
+  "title": "吸粉二维码",
+  "chunk": "list.59edbc2f.js"
+ },
+ {
+  "path": "/qrcode-list",
+  "title": "二维码管理",
+  "chunk": "list.59edbc2f.js"
+ },
+ {
+  "path": "/gift-wrap",
+  "title": "积分商城",
+  "chunk": "list.80bce75b.js"
+ },
+ {
+  "path": "/gift-list",
+  "title": "礼品管理",
+  "chunk": "list.80bce75b.js"
+ },
+ {
+  "path": "/gift-exchange",
+  "title": "兑换管理",
+  "chunk": "exchange.ae9f3906.js"
+ },
+ {
+  "path": "/finance-wrap",
+  "title": "财务管理",
+  "chunk": "config.65c001ca.js"
+ },
+ {
+  "path": "/finance-config",
+  "title": "系统配置",
+  "chunk": "config.65c001ca.js"
+ },
+ {
+  "path": "/system-finance-order",
+  "title": "收入明细",
+  "chunk": "order.a420a10f.js"
+ },
+ {
+  "path": "/system-credit-history",
+  "title": "积分明细",
+  "chunk": "credit.e279d4a9.js"
+ },
+ {
+  "path": "/system-cashout-history",
+  "title": "余额提现",
+  "chunk": "cashout.f98bf352.js"
+ },
+ {
+  "path": "/finance-statistic",
+  "title": "统计报表",
+  "chunk": "statistic.c6a922b1.js"
+ },
+ {
+  "path": "/e-contract-wrap",
+  "title": "电子合同",
+  "chunk": "list.1852e767.js"
+ },
+ {
+  "path": "/e-contract-list",
+  "title": "合同管理",
+  "chunk": "list.1852e767.js"
+ },
+ {
+  "path": "/e-contract-template",
+  "title": "模板管理",
+  "chunk": "template.6b30f570.js"
+ },
+ {
+  "path": "/e-contract-yinzhang",
+  "title": "印章管理",
+  "chunk": "yinzhang.2f2f23f8.js"
+ },
+ {
+  "path": "/e-contract-config",
+  "title": "合同配置",
+  "chunk": "config.64835ffd.js"
+ },
+ {
+  "path": "/system-Manage",
+  "title": "系统管理",
+  "chunk": "basic.62ee40b1.js"
+ },
+ {
+  "path": "/system-setting-basic-wrap",
+  "title": "系统配置",
+  "chunk": "basic.62ee40b1.js"
+ },
+ {
+  "path": "/system-setting-basic",
+  "title": "基本信息",
+  "chunk": "basic.62ee40b1.js"
+ },
+ {
+  "path": "/system-setting-regconfig",
+  "title": "注册访问",
+  "chunk": "regconfig.8e6efd8c.js"
+ },
+ {
+  "path": "/system-setting-files",
+  "title": "文件存储",
+  "chunk": "files.f5470c87.js"
+ },
+ {
+  "path": "/system-setting-payconfig",
+  "title": "支付配置",
+  "chunk": "payconfig.89369721.js"
+ },
+ {
+  "path": "/system-setting-watermark",
+  "title": "图片水印",
+  "chunk": "watermark.b0efac17.js"
+ },
+ {
+  "path": "/system-setting-poster",
+  "title": "海报配置",
+  "chunk": "poster.48496bec.js"
+ },
+ {
+  "path": "/system-setting-region",
+  "title": "自定义区域",
+  "chunk": "region.d8aff95a.js"
+ },
+ {
+  "path": "/system-setting-adconfig-wrap",
+  "title": "广告管理",
+  "chunk": "index.081dbcd5.js"
+ },
+ {
+  "path": "/system-setting-adconfig",
+  "title": "全部广告",
+  "chunk": "index.081dbcd5.js"
+ },
+ {
+  "path": "/system-setting-adconfig-add",
+  "title": "添加广告",
+  "chunk": "addadv.f47c63c0.js"
+ },
+ {
+  "path": "/out-call-wrap",
+  "title": "电话外呼",
+  "chunk": "platform.44549c8a.js"
+ },
+ {
+  "path": "/outbound-call-platform",
+  "title": "外呼平台",
+  "chunk": "platform.44549c8a.js"
+ },
+ {
+  "path": "/out-call-list",
+  "title": "外呼状态",
+  "chunk": "list.26ed4609.js"
+ },
+ {
+  "path": "/out-call-record",
+  "title": "呼叫记录",
+  "chunk": "record.35880e26.js"
+ },
+ {
+  "path": "/system-setting-sms",
+  "title": "短信系统",
+  "chunk": "signature.149d06ec.js"
+ },
+ {
+  "path": "/system-setting-sms-signature",
+  "title": "签名配置",
+  "chunk": "signature.149d06ec.js"
+ },
+ {
+  "path": "/system-setting-sms-notices",
+  "title": "通知配置",
+  "chunk": "notices.33abfca5.js"
+ },
+ {
+  "path": "/system-setting-sms-group",
+  "title": "短信群发",
+  "chunk": "smsgroup.b4afffef.js"
+ },
+ {
+  "path": "/system-setting-sms-record",
+  "title": "发送记录",
+  "chunk": "record.f35ba46c.js"
+ },
+ {
+  "path": "/system-setting-user-wrap",
+  "title": "后台账号",
+  "chunk": "adduser.69480410.js"
+ },
+ {
+  "path": "/system-setting-admin-adduser",
+  "title": "添加账号",
+  "chunk": "adduser.69480410.js"
+ },
+ {
+  "path": "/system-setting-admin-user",
+  "title": "账号管理",
+  "chunk": "user.ed4dbd41.js"
+ },
+ {
+  "path": "/system-setting-admin-group",
+  "title": "权限分组",
+  "chunk": "group.a162a46d.js"
+ },
+ {
+  "path": "/system-setting-admin-log",
+  "title": "系统日志",
+  "chunk": "log.bc688d45.js"
+ },
+ {
+  "path": "/platform-wrap",
+  "title": "平台配置",
+  "chunk": "config.e50ca721.js"
+ },
+ {
+  "path": "/platform-config",
+  "title": "基本配置",
+  "chunk": "config.e50ca721.js"
+ },
+ {
+  "path": "/platform-navconfig",
+  "title": "导航配置",
+  "chunk": "navconfig.1017ab8f.js"
+ },
+ {
+  "path": "/platform-page",
+  "title": "平台布局",
+  "chunk": "page.a34696cc.js"
+ },
+ {
+  "path": "/power-config",
+  "title": "权限配置",
+  "chunk": "power.64877c1c.js"
+ },
+ {
+  "path": "/platform-content",
+  "title": "内容配置",
+  "chunk": "content.12a77ebe.js"
+ },
+ {
+  "path": "/platform-base",
+  "title": "基础数据",
+  "chunk": "base.9087ea0e.js"
+ },
+ {
+  "path": "/platform-payconfig",
+  "title": "收费配置",
+  "chunk": "payconfig.3c3e386e.js"
+ },
+ {
+  "path": "/wechat-wrap",
+  "title": "公众号",
+  "chunk": "config.86088aed.js"
+ },
+ {
+  "path": "/wechat-config",
+  "title": "参数配置",
+  "chunk": "config.86088aed.js"
+ },
+ {
+  "path": "/wechat-fans",
+  "title": "关注粉丝",
+  "chunk": "fans.1cac0abd.js"
+ },
+ {
+  "path": "/wechat-menu",
+  "title": "菜单配置",
+  "chunk": "menu.7f2f6ecb.js"
+ },
+ {
+  "path": "/wechat-autoreply-wrap",
+  "title": "自动回复",
+  "chunk": "autoreply.45a548b5.js"
+ },
+ {
+  "path": "/wechat-autoreply",
+  "title": "自动回复",
+  "chunk": "autoreply.45a548b5.js"
+ },
+ {
+  "path": "/wechat-keylist",
+  "title": "触发关键词统计",
+  "chunk": "keylist.fc81c555.js"
+ },
+ {
+  "path": "/wechat-template",
+  "title": "模板消息",
+  "chunk": "template.d7e1fb4f.js"
+ },
+ {
+  "path": "/wechat-send",
+  "title": "消息群发",
+  "chunk": "send.e4b1707f.js"
+ },
+ {
+  "path": "/miniprogram-wrap",
+  "title": "小程序",
+  "chunk": "miniprogram.45ac13d5.js"
+ },
+ {
+  "path": "/miniprogram-config",
+  "title": "参数配置",
+  "chunk": "miniprogram.45ac13d5.js"
+ },
+ {
+  "path": "/plugin-center",
+  "title": "应用中心",
+  "chunk": "index.9a570e66.js"
+ },
+ {
+  "path": "/operate-center",
+  "title": "婚创学苑",
+  "chunk": "index.2ee4ef70.js"
+ },
+ {
+  "path": "/system-service",
+  "title": "官方服务",
+  "chunk": "index.32baf3a9.js"
+ },
+ {
+  "path": "/system-feedback",
+  "title": "工单反馈",
+  "chunk": "index.32baf3a9.js"
+ },
+ {
+  "path": "/system-notices",
+  "title": "使用手册",
+  "chunk": "index.24960f10.js"
+ },
+ {
+  "path": "/system-empower",
+  "title": "软件授权",
+  "chunk": "empower.8e9f0d37.js"
+ },
+ {
+  "path": "/user",
+  "title": "登录",
+  "chunk": "Login.36a91246.js"
+ }
+]

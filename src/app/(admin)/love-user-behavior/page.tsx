@@ -93,6 +93,7 @@ function SearchBar({
         >
           <option value="nick">按昵称搜</option>
           <option value="code">按编号搜</option>
+          <option value="phone">按手机搜</option>
         </select>
         <ChevronDown className="lub-caret" />
       </label>
@@ -262,6 +263,7 @@ export default function LoveUserBehaviorPage() {
                 >
                   <option value="nick">按昵称搜</option>
                   <option value="code">按编号搜</option>
+                  <option value="phone">按手机搜</option>
                 </select>
                 <ChevronDown className="lub-caret" />
               </label>

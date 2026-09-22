@@ -53,7 +53,7 @@ export default function ShortVideoRedPacketPage() {
               <button key={t.label} className={`rpk-tab ${tab === t.value ? "active" : ""}`} onClick={() => setTab(t.value)}>{t.label}</button>
             ))}
           </div>
-          <select className="rpk-select"><option>按昵称搜</option></select>
+          <select className="rpk-select"><option>按昵称搜</option><option>按视频搜</option></select>
           <input className="rpk-input" placeholder="请输入" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} />
           <button className="finord-btn finord-btn-primary rpk-search-btn" onClick={() => load()}>搜索</button>
         </div>
