@@ -7180,6 +7180,15 @@ button.au-page-num.active { border-color: #3658f7; background: #3658f7; color: #
 .lub-g-i { background: linear-gradient(135deg, #e5e9f2, #bcc6da); }
 .lub-g-j { background: linear-gradient(135deg, #ece0d6, #cbb49f); }
 
+/* 服务端分页：计数靠左，控件靠右；页码/翻页复用 .au-page-btn / .au-page-num */
+.lub-pager { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; padding: 16px 0 4px; }
+.lub-pager-total { color: #8c8c8c; font-size: 13px; }
+.lub-pager .lub-pager-total:first-child { margin-right: auto; }
+
+/* 勾选后的批量操作条 */
+.lub-bulkbar { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 14px; border: 1px solid #d9dde6; border-radius: 4px; background: #fafbff; color: #545a69; font-size: 13px; }
+.lub-bulk-count { color: #3658f7; font-weight: 500; }
+
 /* ==================== 会员CRM · 数据报表 ==================== */
 .ustat-card { background: #fff; padding: 14px 20px 24px; }
 .ustat-tabs { display: flex; align-items: center; gap: 26px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 18px; flex-wrap: wrap; }
