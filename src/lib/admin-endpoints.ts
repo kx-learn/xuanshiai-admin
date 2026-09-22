@@ -4,6 +4,8 @@ import type { ConfigSnapshot, Dict } from "@/lib/platform-config";
 export type PageQuery = { page?: number; page_size?: number; status?: number | string; keyword?: string };
 export type ReviewPayload = { status?: number; reason?: string; result?: string; action?: string; hide_content?: boolean; restore_content?: boolean };
 export type AdminListQuery = PageQuery & Record<string, string | number | undefined>;
+/** 值允许为数组的列表查询（多选筛选用重复 query key 传递，如 occupations / tags） */
+export type AdminListQueryMulti = PageQuery & Record<string, string | number | string[] | undefined>;
 export type JsonBody = Record<string, unknown>;
 export type DashboardQuery = { from?: string; to?: string };
 
@@ -44,6 +46,145 @@ export interface MeetingDirectPayload {
   sms_remind: boolean;
   met: boolean;
 }
+
+/** 约见申请状态机：SUBMITTED → CONTACTED → ACCEPTED → （排期生成约会记录）；SUBMITTED/CONTACTED → DECLINED/CLOSED */
+export type MeetingRequestStatus = "SUBMITTED" | "CONTACTED" | "ACCEPTED" | "DECLINED" | "CLOSED";
+/** Admin 可写入的申请状态（SUBMITTED 是用户初始态，不由后台设置） */
+export type MeetingRequestReviewStatus = "CONTACTED" | "ACCEPTED" | "DECLINED" | "CLOSED";
+export const MEETING_REQUEST_STATUS_LABEL: Record<MeetingRequestStatus, string> = {
+  SUBMITTED: "待处理",
+  CONTACTED: "已联系",
+  ACCEPTED: "已接受",
+  DECLINED: "已拒绝",
+  CLOSED: "已关闭",
+};
+/** 拒绝或关闭申请时后端强制要求 reason（422），且会退还已扣次数 */
+export const MEETING_REQUEST_REASON_REQUIRED: MeetingRequestReviewStatus[] = ["DECLINED", "CLOSED"];
+/** 后端允许被修改的申请状态（其余返回 409） */
+export const MEETING_REQUEST_EDITABLE_STATUSES: MeetingRequestStatus[] = ["SUBMITTED", "CONTACTED", "ACCEPTED"];
+/** 只有 ACCEPTED 的申请才能排期，否则 409 */
+export const MEETING_REQUEST_SCHEDULABLE_STATUS: MeetingRequestStatus = "ACCEPTED";
+
+export interface MeetingRequestRecord {
+  id: number;
+  user_id: number;
+  target_user_id: number;
+  service_id: number | null;
+  matchmaker_id: number | null;
+  organization_id: number | null;
+  status: MeetingRequestStatus;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  user_nickname: string | null;
+  user_member_code: string | null;
+  target_nickname: string | null;
+  target_member_code: string | null;
+  matchmaker_name: string | null;
+}
+
+export interface MeetingRequestPage {
+  items: MeetingRequestRecord[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+/** 约会记录状态：CHECKED_IN / COMPLETED 计入「成功见面」 */
+export type MeetingRecordStatus = "SCHEDULED" | "REMINDED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+export const MEETING_RECORD_STATUS_LABEL: Record<MeetingRecordStatus, string> = {
+  SCHEDULED: "待见面",
+  REMINDED: "已提醒",
+  CHECKED_IN: "已见面",
+  COMPLETED: "已完成",
+  CANCELLED: "已取消",
+  NO_SHOW: "未见面",
+};
+/** 后端 met 参数映射：met=wait 未见面（含取消/爽约），met=met 已见面 */
+export const MEETING_MET_STATUSES: MeetingRecordStatus[] = ["CHECKED_IN", "COMPLETED"];
+
+export interface MeetingRecordItem {
+  id: number;
+  request_id: number;
+  organizer_id: number;
+  organization_id: number | null;
+  scheduled_at: string | null;
+  location: string | null;
+  status: MeetingRecordStatus;
+  cancel_reason: string | null;
+  member_visible: number;
+  sms_remind: number;
+  created_at: string;
+  updated_at: string;
+  from_user_id: number | null;
+  from_nickname: string | null;
+  to_user_id: number | null;
+  to_nickname: string | null;
+  organizer_name: string | null;
+  feedback_count: number;
+}
+
+export interface MeetingRecordPage {
+  items: MeetingRecordItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+/** 约会排期请求体：organizer_id / scheduled_at / location 必填 */
+export interface MeetingSchedulePayload {
+  organizer_id: number;
+  organization_id?: number;
+  scheduled_at: string;
+  location: string;
+  member_visible?: boolean;
+  sms_remind?: boolean;
+}
+
+/** 约会记录更新：全部字段可选，但至少传一个 */
+export interface MeetingRecordUpdatePayload extends Record<string, unknown> {
+  scheduled_at?: string;
+  location?: string;
+  status?: MeetingRecordStatus;
+  cancel_reason?: string;
+  member_visible?: boolean;
+  sms_remind?: boolean;
+}
+
+/** 会员维度约会记录（会员详情用）：from/to 始终标识双方会员 */
+export interface MemberDatingRecordItem {
+  id: number;
+  request_id: number;
+  scheduled_at: string | null;
+  location: string | null;
+  status: MeetingRecordStatus;
+  cancel_reason: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  from_user_id: number;
+  from_nickname: string | null;
+  to_user_id: number;
+  to_nickname: string | null;
+}
+
+export interface MemberDatingRecordPage {
+  items: MemberDatingRecordItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+/** 会员详情约会记录分组：all 全部 / waiting 待见面 / not_met 未见面 / met 成功见面 */
+export type MemberDatingGroup = "all" | "waiting" | "not_met" | "met";
+
+export interface MeetingRequestOptions {
+  matchmakers?: { id: number; nickname: string | null; phone?: string | null }[];
+  candidates?: { id: number; nickname: string | null; phone: string | null; gender?: string | null }[];
+}
+
 export type PromotionPayStatus = "unpaid" | "paid" | "refunded";
 export type PromotionOrderStatus = "pending" | "processing" | "done" | "cancelled";
 export interface PromotionOrder {
@@ -1074,6 +1215,8 @@ export interface AdminBootstrap {
 }
 
 const list = (path: string, query: AdminListQuery = {}) => adminApi(path, { method: "GET", query });
+/** 同 list，但允许数组值（重复 query key），用于多选筛选接口 */
+const listMulti = (path: string, query: AdminListQueryMulti = {}) => adminApi(path, { method: "GET", query: query as AdminListQuery });
 const create = (path: string, body: JsonBody) => adminApi(path, { method: "POST", body });
 const update = (path: string, body: JsonBody) => adminApi(path, { method: "PATCH", body });
 
@@ -1371,6 +1514,78 @@ export interface MemberFollowUpListPage {
   page_size: number;
   total: number;
   has_more: boolean;
+}
+
+/** 单条会员跟进记录：POST /admin/members/{member_id}/follow-ups/media 的返回体 */
+export interface MemberFollowUpRecord {
+  id: number;
+  user_id: number;
+  method: string;
+  content: string;
+  next_follow_at: string | null;
+  created_by: number;
+  created_at: string;
+  images: string[];
+  voice_url: string | null;
+  voice_duration_sec: number | null;
+  matchmaker_name: string | null;
+}
+
+/**
+ * 推荐名单记录。
+ * - 新增接口 POST /admin/members/{member_id}/recommendations 返回该结构的精简版
+ * - 查询接口 GET /admin/members/{member_id}/recommend-history 的 items 在此基础上多出
+ *   查看/喜欢/跳过状态与 target_*（被推荐会员）字段
+ */
+export interface MemberRecommendationRecord {
+  id: number;
+  user_id: number;
+  recommend_user_id: number;
+  recommend_date: string;
+  match_score: number;
+  match_reason: string | null;
+  recommend_source: string;
+  created_at: string | null;
+  is_viewed?: boolean;
+  is_liked?: boolean;
+  is_passed?: boolean;
+  target_user_id?: number | null;
+  target_nickname?: string | null;
+  target_avatar?: string | null;
+}
+
+/** 单条牵线记录：GET /admin/members/{member_id}/match-records 的 items 元素 */
+export interface MemberMatchRecordItem {
+  id: number;
+  from_user_id: number;
+  to_user_id: number;
+  /** 相对于当前会员的对方昵称；昵称为空时为 null */
+  target_nickname: string | null;
+  message: string | null;
+  status: number;
+  responded_at: string | null;
+  created_at: string | null;
+}
+
+/** 牵线记录分页结构 */
+export interface MemberMatchRecordPage {
+  items: MemberMatchRecordItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+/**
+ * 会员牵线次数账户：GET /admin/members/{member_id}/match-quota
+ * 无额度账户时三个计数均为 0 且 updated_at 为 null（这不是错误）。
+ */
+export interface MemberMatchQuota {
+  user_id: number;
+  available_count: number;
+  used_count: number;
+  refunded_count: number;
+  updated_at: string | null;
 }
 
 export interface MemberFollowUpSummary {
@@ -2299,13 +2514,104 @@ export const adminEndpoints = {
   users: (query: AdminListQuery = {}) => list("admin/matchmaker/members", query),
   user: (id: number | string) => adminApi(`admin/matchmaker/members/${id}`),
   memberDetail: (id: number | string) => adminApi<Record<string, unknown>>(`admin/matchmaker/members/${id}`),
-  memberMedia: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/media`),
+  /**
+   * 会员媒体原始记录：GET /admin/members/{member_id}/media-records
+   * 注：原路径 `/media` 被同形的媒体审核列表接口遮蔽，后端已把本接口改名让位。
+   */
+  memberMedia: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/media-records`),
+  /**
+   * 资料扩展字段（性格标签/爱好/MBTI/自我介绍/红娘说）：
+   * GET /admin/members/profile-ext/{user_id}（matchmaker.member.read）
+   * 静态前缀 `profile-ext` 在前，不受 `/{member_id}/...` 形态的同名路由影响。
+   */
+  memberProfileExt: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/profile-ext/${id}`),
+  /**
+   * 更新资料扩展字段：PUT /admin/members/profile-ext/{user_id}（matchmaker.member.manage，写审计 member.profile_ext.update）
+   * 增量更新（没传的不动）；性格标签传 [] 清空。
+   */
+  updateMemberProfileExt: (userId: number | string, body: JsonBody) =>
+    adminApi<Record<string, unknown>>(`admin/members/profile-ext/${userId}`, { method: "PUT", body }),
+  /**
+   * 择偶要求：GET /admin/members/preference/{user_id}（matchmaker.member.read）
+   * 返回年龄/身高区间 + 收入/学历/职业/婚况/住房/吸烟/喝酒/结婚计划单选 + 补充说明。
+   */
+  memberPreference: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/preference/${id}`),
+  /**
+   * 更新择偶要求：PUT /admin/members/preference/{user_id}（matchmaker.member.manage，写审计 member.preference.update）
+   * 增量更新；单选字段为后台 UI 白名单枚举。
+   */
+  updateMemberPreference: (userId: number | string, body: JsonBody) =>
+    adminApi<Record<string, unknown>>(`admin/members/preference/${userId}`, { method: "PUT", body }),
   memberFollowUps: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/follow-ups`, query),
+  /**
+   * 新增跟进（文字 + 图片 + 录音）：POST /admin/members/{member_id}/follow-ups/media（multipart/form-data）
+   * - method 必填：PHONE / WECHAT / VISIT / OTHER
+   * - content ≤2000 字，与图片/录音至少提供一项
+   * - images 最多 9 张（JPG/PNG，单张 ≤5MB，后端统一转 webp），voice 单个 ≤20MB
+   * - next_follow_at 为 ISO 日期时间；matchmaker_id 缺省记当前操作账号（传错/停用报 422）
+   * - 写审计 member.follow_up.create
+   */
+  createMemberFollowUpMedia: (id: number | string, form: FormData) =>
+    adminApi<MemberFollowUpRecord>(`admin/members/${id}/follow-ups/media`, { method: "POST", body: form }),
   memberCallRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/call-records`, query),
   memberMatchRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/match-records`, query),
-  memberDatingRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/dating-records`, query),
+  /**
+   * 会员剩余牵线次数：GET /admin/members/{member_id}/match-quota（matchmaker.member.read）
+   * 只读，不创建账户、不扣次数；**无额度账户不算错误**，统一返回 0 值且 updated_at 为 null。
+   * 可与牵线记录接口并行调用。
+   */
+  memberMatchQuota: (id: number | string) => adminApi<MemberMatchQuota>(`admin/members/${id}/match-quota`),
+  /** 会员维度约会记录：status_group=all|waiting|not_met|met，另支持 status 精确过滤 */
+  memberDatingRecords: (id: number | string, query: AdminListQuery = {}) =>
+    list(`admin/members/${id}/dating-records`, query) as Promise<MemberDatingRecordPage>,
+  memberMeetingRequests: (id: number | string, query: AdminListQuery = {}) =>
+    list(`admin/members/${id}/meeting-requests`, query) as Promise<MeetingRequestPage>,
   memberActivitySignups: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/activity-signups`, query),
-  memberPrivateInfo: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/private-info`),
+  /**
+   * 会员私密资料：GET /admin/members/private-info/{user_id}（matchmaker.member.read）
+   * 静态段 `private-info` 在前，不受 `/{member_id}/...` 形态的同名路由影响。
+   */
+  memberPrivateInfo: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/private-info/${id}`),
+  /**
+   * 私密资料更新：PUT /admin/members/private-info/{user_id}（matchmaker.member.manage，写审计 member.private_info.update）
+   * - 全字段可选、至少传一个（空 body → 422）；增量更新，没传的不动；传 "" 表示清空该字段
+   * - 仅 `only_child` 有枚举校验（未知/独生/非独生），其余单选后端原样存中文
+   * - 长度上限：感情文本 200 字、other_members/family_members 255 字、other_info 1000 字，超长 422
+   * - 成功返回更新后的完整对象，可直接回填表单
+   */
+  updateMemberPrivateInfo: (userId: number | string, body: JsonBody) =>
+    adminApi<Record<string, unknown>>(`admin/members/private-info/${userId}`, { method: "PUT", body }),
+  /**
+   * 已推荐名单（历史推荐记录）：GET /admin/members/{member_id}/recommend-history（matchmaker.member.read）
+   * 注：后端已把这条从 `/recommendations` 改名让位，避免遮蔽「按条件筛选推荐候选人」接口
+   * （`admin/members/{user_id}/recommendations`，见 listMemberRecommendCandidates）。
+   */
+  memberRecommendations: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/recommend-history`, query),
+  /**
+   * 手工添加推荐名单：POST /admin/members/{member_id}/recommendations（matchmaker.member.manage）
+   * - `member_id` = 被推荐给谁（接收方）；`recommend_user_id` = 要推荐的会员
+   * - `recommend_date` 可选，缺省后端取当天；`match_reason` 可选，≤255 字
+   * - 不能推荐给自己（422）；同一会员同一天重复推荐（409）
+   * - 201 返回新建记录（含 id / recommend_source=manual / match_score=0）
+   */
+  createMemberRecommendation: (
+    memberId: number | string,
+    body: { recommend_user_id: number; recommend_date?: string; match_reason?: string },
+  ) => create(`admin/members/${memberId}/recommendations`, body) as Promise<MemberRecommendationRecord>,
+  /**
+   * 智能匹配——按条件筛选推荐候选人：GET /admin/members/{user_id}/recommendations（matchmaker.member.read）
+   * - 全部条件可选，不传即不限；`respect_preference` 默认 true（自动套用该会员已存择偶要求）
+   * - `vip_filter` 取值：all / offline_vip / online_vip / store_verified / exclude_abandoned（枚举严格，传错 422）
+   * - 多选参数 `occupations` / `tags` 用重复 query key；会员未填性别时 422
+   * - 返回 items + preference（芯片数据，值为 null 表示「不限」）
+   */
+  listMemberRecommendCandidates: (userId: number | string, query: AdminListQueryMulti = {}) =>
+    listMulti(`admin/members/${userId}/recommendations`, query),
+  /**
+   * 见过哪些人：GET /admin/members/{user_id}/met-members（matchmaker.member.read）
+   * 返回与该会员发生过牵线（match_apply）的对手方名单，按牵线时间倒序分页。
+   */
+  memberMetMembers: (userId: number | string, query: AdminListQuery = {}) => list(`admin/members/${userId}/met-members`, query),
   memberSuperInfo: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/super-info`),
   memberSourceRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/source-records`, query),
   memberBehavior: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/behavior`, query),
@@ -2391,19 +2697,23 @@ export const adminEndpoints = {
   grantAdmin: (body: { user_id: number; permissions: string[] }) => adminApi("admin/users/grant", { method: "POST", body }),
   serviceRequests: (query: PageQuery = {}) => adminApi("admin/matchmaker/service-requests", { method: "GET", query }),
   updateServiceRequest: (serviceId: number | string, body: Record<string, unknown>) => adminApi(`admin/matchmaker/service-requests/${serviceId}`, { method: "PATCH", body }),
-  scheduleMeeting: (requestId: number | string, body: Record<string, unknown>) => adminApi(`admin/matchmaker/meetings/requests/${requestId}/schedule`, { method: "POST", body }),
-  meetingRequestOptions: () => adminApi("admin/matchmaker/meetings/options"),
+  scheduleMeeting: (requestId: number | string, body: MeetingSchedulePayload) =>
+    adminApi<MeetingRecordItem>(`admin/matchmaker/meetings/requests/${requestId}/schedule`, { method: "POST", body }),
+  meetingRequestOptions: () => adminApi<MeetingRequestOptions>("admin/matchmaker/meetings/options"),
   meetingRequestDelete: (requestId: number | string) => adminApi(`admin/matchmaker/meetings/requests/${requestId}`, { method: "DELETE" }),
   meetingDelete: (meetingId: number | string) => adminApi(`admin/matchmaker/meetings/${meetingId}`, { method: "DELETE" }),
-  meetingRequests: (query: AdminListQuery = {}) => list("admin/matchmaker/meetings/requests", query),
-  meetingRequest: (requestId: number | string) => adminApi(`admin/matchmaker/meetings/requests/${requestId}`),
-  updateMeetingRequest: (requestId: number | string, body: JsonBody) => update(`admin/matchmaker/meetings/requests/${requestId}`, body),
-  meetings: (query: AdminListQuery = {}) => list("admin/matchmaker/meetings", query),
+  meetingRequests: (query: AdminListQuery = {}) => list("admin/matchmaker/meetings/requests", query) as Promise<MeetingRequestPage>,
+  meetingRequest: (requestId: number | string) => adminApi<MeetingRequestRecord>(`admin/matchmaker/meetings/requests/${requestId}`),
+  /** 审核约见申请：DECLINED / CLOSED 必须带 reason，否则 422；非 SUBMITTED/CONTACTED/ACCEPTED 状态 409 */
+  updateMeetingRequest: (requestId: number | string, body: { status: MeetingRequestReviewStatus; reason?: string }) =>
+    update(`admin/matchmaker/meetings/requests/${requestId}`, body) as Promise<MeetingRequestRecord>,
+  meetings: (query: AdminListQuery = {}) => list("admin/matchmaker/meetings", query) as Promise<MeetingRecordPage>,
   meetingStatistics: () => adminApi<MeetingStatistics>("admin/matchmaker/meetings/statistics"),
   createMeetingDirect: (body: MeetingDirectPayload) =>
-    adminApi("admin/matchmaker/meetings", { method: "POST", body }),
-  meeting: (id: number | string) => adminApi(`admin/matchmaker/meetings/${id}`),
-  updateMeeting: (id: number | string, body: JsonBody) => update(`admin/matchmaker/meetings/${id}`, body),
+    adminApi<MeetingRecordItem>("admin/matchmaker/meetings", { method: "POST", body }),
+  meeting: (id: number | string) => adminApi<MeetingRecordItem>(`admin/matchmaker/meetings/${id}`),
+  updateMeeting: (id: number | string, body: MeetingRecordUpdatePayload) =>
+    update(`admin/matchmaker/meetings/${id}`, body) as Promise<MeetingRecordItem>,
   meetingFeedback: (id: number | string) => adminApi<Record<string, unknown>[]>(`admin/matchmaker/meetings/${id}/feedback`),
   matchRecords: (query: AdminListQuery = {}) => list("admin/matchmaker/match-records", query),
   createMatchRecord: (body: { from_love_user_id: number; to_love_user_id: number; create_time: string; complete_time: string; line_status: 1 | 2 }) =>
