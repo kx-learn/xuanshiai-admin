@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -53,6 +54,7 @@ export default function FreeFormPage() {
   const [landingId, setLandingId] = useState("");
   const [landings, setLandings] = useState<{ id: number; title: string }[]>([]);
   const [fieldOpen, setFieldOpen] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -95,7 +97,7 @@ export default function FreeFormPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -163,7 +165,7 @@ export default function FreeFormPage() {
           <table className="finord-table ff-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th><th>ID</th>
                 <th>称呼</th>
                 <th>性别</th>
                 <th>手机号</th>
@@ -178,6 +180,7 @@ export default function FreeFormPage() {
                 const extra = r.extra ?? {};
                 return (
                   <tr key={r.id}>
+                    <td><input type="checkbox" aria-label={`选择表单记录 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td>{r.id}</td>
                     <td>{typeof extra.name === "string" ? extra.name : r.title}</td>
                     <td>{typeof extra.gender === "string" ? (extra.gender === "male" ? "男" : extra.gender === "female" ? "女" : extra.gender) : "-"}</td>
@@ -195,7 +198,7 @@ export default function FreeFormPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="ecl-empty">
+                  <td colSpan={9} className="ecl-empty">
                     <div className="ecl-empty-inner">
                       <div className="ecl-empty-icon">▤</div>
                       <div className="ecl-empty-text">暂无数据</div>
@@ -207,14 +210,7 @@ export default function FreeFormPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {fieldOpen && <FieldManagerDrawer onClose={() => setFieldOpen(false)} />}
@@ -233,7 +229,7 @@ function FieldManagerDrawer({ onClose }: { onClose: () => void }) {
             <span className="tlc-panel-title">字段管理</span>
           </div>
           <div className="ffm-head-actions">
-            <button className="finord-btn finord-btn-primary" onClick={() => showConfigToast("新建字段功能敬请期待", "ok")}>＋ 新建字段</button>
+            <button className="finord-btn finord-btn-primary" onClick={() => showConfigToast("当前后端未提供新建字段接口", "error")}>＋ 新建字段</button>
           </div>
         </div>
         <div className="tlc-panel-body ffm-body">
@@ -259,7 +255,7 @@ function FieldManagerDrawer({ onClose }: { onClose: () => void }) {
                     <td>{r.guide}</td>
                     <td>{r.type}</td>
                     <td className={r.required ? "ffm-yes" : "ffm-no"}>{r.required ? "是" : "否"}</td>
-                    <td><a className="finord-link" onClick={(e) => { e.preventDefault(); showConfigToast("编辑字段功能敬请期待", "ok"); }}>编辑</a></td>
+                    <td><button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供字段编辑接口", "error")}>编辑</button></td>
                   </tr>
                 ))}
               </tbody>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type {
@@ -103,6 +104,7 @@ const emptyForm: FormState = {
 export default function LoveUserVipUnderlinePage() {
   const [activeTab, setActiveTab] = useState<"all" | OfflineVipProgress>("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [options, setOptions] = useState<OfflineVipOptions>(emptyOptions);
@@ -110,7 +112,7 @@ export default function LoveUserVipUnderlinePage() {
   const [rows, setRows] = useState<OfflineVipItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -186,7 +188,7 @@ export default function LoveUserVipUnderlinePage() {
   useEffect(() => { void loadList(); }, [loadList]);
   useEffect(() => { void loadStats(); void loadOptions(); }, [loadStats, loadOptions]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const resetForm = () => setForm(emptyForm);
 
@@ -466,6 +468,7 @@ export default function LoveUserVipUnderlinePage() {
             </colgroup>
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((row) => row.id))} /></th>
                 {columns.map((col) => (
                   <th key={col.title}>{col.title}</th>
                 ))}
@@ -474,7 +477,7 @@ export default function LoveUserVipUnderlinePage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length}>
+                  <td colSpan={columns.length + 1}>
                     <div className="lvip-empty">
                       <Inbox className="lvip-empty-icon" strokeWidth={1.2} />
                       <span>加载中…</span>
@@ -483,7 +486,7 @@ export default function LoveUserVipUnderlinePage() {
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length}>
+                  <td colSpan={columns.length + 1}>
                     <div className="lvip-empty">
                       <Inbox className="lvip-empty-icon" strokeWidth={1.2} />
                       <span>暂无数据</span>
@@ -491,7 +494,8 @@ export default function LoveUserVipUnderlinePage() {
                   </td>
                 </tr>
               ) : rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className={selected.includes(row.id) ? "selected" : undefined}>
+                  <td><input type="checkbox" aria-label={`选择线下VIP会员 ${row.id}`} checked={selected.includes(row.id)} onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])} /></td>
                   <td>{row.id}</td>
                   <td>
                     <button
@@ -517,26 +521,7 @@ export default function LoveUserVipUnderlinePage() {
           </table>
         </div>
 
-        <footer className="member-followup-pagination">
-          <span>共 {total} 条</span>
-          <div>
-            <button
-              type="button"
-              aria-label="上一页"
-              className="pagination-arrow previous"
-              disabled={page <= 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-            ><i /></button>
-            <button type="button" className="pagination-number active">{page}</button>
-            <button
-              type="button"
-              aria-label="下一页"
-              className="pagination-arrow next"
-              disabled={page >= totalPages}
-              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-            ><i /></button>
-          </div>
-        </footer>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </section>
 
       {drawerOpen && (

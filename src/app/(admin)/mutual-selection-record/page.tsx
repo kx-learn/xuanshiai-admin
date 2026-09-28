@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type MutualOptions, type MutualRecordItem } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -24,6 +25,10 @@ export default function MutualSelectionRecordPage() {
   const [options, setOptions] = useState<MutualOptions>({ activities: [], actors: [] });
   const [rows, setRows] = useState<MutualRecordItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
   useEffect(() => {
     adminEndpoints.mutualRecordOptions().then(setOptions).catch(() => undefined);
@@ -33,24 +38,27 @@ export default function MutualSelectionRecordPage() {
     setLoading(true);
     try {
       const res = await adminEndpoints.mutualRecordList({
-        page: 1,
-        page_size: 50,
+        page,
+        page_size: pageSize,
         activity_id: activityId ? Number(activityId) : undefined,
         actor_id: actorId ? Number(actorId) : undefined,
         keyword: keyword || undefined,
         result: STATUS_MAP[status],
       });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [activityId, actorId, keyword, status]);
+  }, [activityId, actorId, keyword, status, page, pageSize]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const fmt = (v: string | null) => (v ? v.replace("T", " ").slice(0, 16) : "-");
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -96,12 +104,14 @@ export default function MutualSelectionRecordPage() {
           <table className="finord-table mr-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
+                  <td><input type="checkbox" aria-label={`选择记录 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                   <td>{fmt(r.created_at)}</td>
                   <td>{r.from_nickname || r.from_user_id}</td>
                   <td>{r.action_label || r.action}</td>
@@ -112,7 +122,7 @@ export default function MutualSelectionRecordPage() {
               ))}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} className="mr-empty">
+                  <td colSpan={columns.length + 1} className="mr-empty">
                     <div className="mr-empty-inner">
                       <div className="mr-empty-icon">📦</div>
                       <div className="mr-empty-text">暂无数据</div>
@@ -123,6 +133,7 @@ export default function MutualSelectionRecordPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

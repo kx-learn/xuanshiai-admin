@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast, uploadAdminImage } from "@/lib/platform-config";
 
@@ -147,8 +148,6 @@ export default function QrcodeWrapPage() {
     setSelected((cur) => cur.includes(id) ? cur.filter((v) => v !== id) : [...cur, id]);
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
-
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -223,10 +222,10 @@ export default function QrcodeWrapPage() {
                     <td className="fq-time">{(r.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
                     <td className="fq-num">{typeof extra.push_count === "number" ? extra.push_count : 0}</td>
                     <td className="fq-num">{typeof extra.follow_count === "number" ? extra.follow_count : 0}</td>
-                    <td><a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("二维码预览敬请期待", "ok"); }}>查看</a></td>
+                    <td><button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供二维码预览接口", "error")}>查看</button></td>
                     <td>
                       <div className="fq-ops">
-                        <a className="fq-op" onClick={(e) => { e.preventDefault(); showConfigToast("数据统计敬请期待", "ok"); }}>数据统计</a>
+                        <button className="fq-op" type="button" onClick={() => showConfigToast("当前后端未提供二维码统计接口", "error")}>数据统计</button>
                         <a className="fq-op" onClick={(e) => { e.preventDefault(); openEdit(r); }}>延期</a>
                         <a className="fq-op fq-op-del" onClick={(e) => { e.preventDefault(); void remove(r.id); }}>删除</a>
                       </div>
@@ -248,14 +247,7 @@ export default function QrcodeWrapPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {drawerOpen && (

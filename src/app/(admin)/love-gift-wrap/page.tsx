@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast, uploadAdminImage } from "@/lib/platform-config";
 
@@ -54,6 +55,7 @@ export default function LoveGiftWrapPage() {
   const [payFilter, setPayFilter] = useState<"全部" | "已支付" | "未支付">("全部");
   const [addOpen, setAddOpen] = useState(false);
   const [draft, setDraft] = useState<GiftDraft>(EMPTY_DRAFT);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -68,6 +70,7 @@ export default function LoveGiftWrapPage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -142,7 +145,7 @@ export default function LoveGiftWrapPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -189,7 +192,8 @@ export default function LoveGiftWrapPage() {
           <div className="gift-table-wrap">
             <table className="finord-table gift-table">
               <thead>
-                <tr>
+              <tr>
+                  <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                   <th>ID</th>
                   <th>礼物名称</th>
                   <th>礼物单位</th>
@@ -205,7 +209,8 @@ export default function LoveGiftWrapPage() {
                 {rows.map((r, idx) => {
                   const extra = r.extra ?? {};
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                      <td><input type="checkbox" aria-label={`选择礼物 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                       <td>{r.id}</td>
                       <td>{r.title}</td>
                       <td>{typeof extra.unit === "string" ? extra.unit : (r.subtitle ?? "-")}</td>
@@ -230,7 +235,7 @@ export default function LoveGiftWrapPage() {
                 })}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="ecl-empty">
+                      <td colSpan={10} className="ecl-empty">
                       <div className="ecl-empty-inner">
                         <div className="ecl-empty-icon">▤</div>
                         <div className="ecl-empty-text">暂无数据</div>
@@ -260,6 +265,7 @@ export default function LoveGiftWrapPage() {
               <table className="finord-table gift-table gift-table-wide">
                 <thead>
                   <tr>
+                    <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                     <th>ID</th>
                     <th>赠送礼物</th>
                     <th>赠送数量</th>
@@ -277,7 +283,8 @@ export default function LoveGiftWrapPage() {
                   {rows.map((r) => {
                     const extra = r.extra ?? {};
                     return (
-                      <tr key={r.id}>
+                      <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                        <td><input type="checkbox" aria-label={`选择赠送记录 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                         <td>{r.id}</td>
                         <td>{r.title}</td>
                         <td>{typeof extra.qty === "string" ? extra.qty : "1个"}</td>
@@ -310,7 +317,7 @@ export default function LoveGiftWrapPage() {
                   })}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={11} className="ecl-empty">
+                      <td colSpan={12} className="ecl-empty">
                         <div className="ecl-empty-inner">
                           <div className="ecl-empty-icon">▤</div>
                           <div className="ecl-empty-text">暂无数据</div>
@@ -324,14 +331,7 @@ export default function LoveGiftWrapPage() {
           </>
         )}
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {addOpen && (

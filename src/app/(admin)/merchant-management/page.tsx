@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, Plus, Image as ImageIcon, Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Quote, List, ListOrdered, Link2, Smile, Code, Heading1, Heading2, RotateCcw, RotateCw, Maximize2, Minus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type MerchantItem, type MerchantCategoryItem } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -66,6 +67,10 @@ export default function MerchantManagementPage() {
   const [keyword, setKeyword] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState<Form>(EMPTY_FORM);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
   useEffect(() => {
     adminEndpoints.merchantCategoryList().then(setCategories).catch(() => undefined);
@@ -75,19 +80,21 @@ export default function MerchantManagementPage() {
     setLoading(true);
     try {
       const res = await adminEndpoints.merchantList({
-        page: 1, page_size: 50,
+        page, page_size: pageSize,
         category_id: categoryId ? Number(categoryId) : undefined,
         keyword: keyword || undefined,
       });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [categoryId, keyword]);
+  }, [categoryId, keyword, page, pageSize]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const openAdd = () => { setForm(EMPTY_FORM); setAddOpen(true); };
   const openEdit = (r: MerchantItem) => {
@@ -159,6 +166,7 @@ export default function MerchantManagementPage() {
     const t = window.prompt("请输入标签");
     if (t) set("tags", [...form.tags, t]);
   };
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -193,12 +201,14 @@ export default function MerchantManagementPage() {
           <table className="finord-table mm-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
+                  <td><input type="checkbox" aria-label={`选择商家 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                   <td>{r.id}</td>
                   <td>{r.name}</td>
                   <td>{r.category_name || "-"}</td>
@@ -223,7 +233,7 @@ export default function MerchantManagementPage() {
               ))}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} className="mm-empty">
+                  <td colSpan={columns.length + 1} className="mm-empty">
                     <div className="mm-empty-inner">
                       <div className="mm-empty-icon">📦</div>
                       <div className="mm-empty-text">暂无数据</div>
@@ -234,6 +244,7 @@ export default function MerchantManagementPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
 
       {addOpen && (

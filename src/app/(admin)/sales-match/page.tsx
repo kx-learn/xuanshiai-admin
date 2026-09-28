@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { useConfigDomain, showConfigToast } from "@/lib/platform-config";
@@ -63,6 +64,7 @@ export default function SalesMatchPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [cfgOpen, setCfgOpen] = useState(false);
   const [draft, setDraft] = useState<SaleDraft>(EMPTY_DRAFT);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -81,6 +83,7 @@ export default function SalesMatchPage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -160,7 +163,7 @@ export default function SalesMatchPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -181,7 +184,7 @@ export default function SalesMatchPage() {
         <div className="slm-head">
           <div className="slm-title-wrap">
             <div className="slm-title">销售匹配库</div>
-            <a className="slm-demo" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("客户签署流程演示敬请期待", "ok"); }}>客户签署流程演示</a>
+            <button className="slm-demo" type="button" onClick={() => showConfigToast("当前后端未提供客户签署流程演示接口", "error")}>客户签署流程演示</button>
           </div>
           <div className="slm-actions">
             <button className="finord-btn finord-btn-primary" onClick={openCreate}>创建销售匹配库</button>
@@ -230,6 +233,7 @@ export default function SalesMatchPage() {
           <table className="finord-table slm-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>ID</th>
                 <th>标题</th>
                 <th>关联账号</th>
@@ -248,7 +252,8 @@ export default function SalesMatchPage() {
               {rows.map((r) => {
                 const extra = r.extra ?? {};
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择销售匹配库 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td>{r.id}</td>
                     <td>{r.title}</td>
                     <td>{typeof extra.acct_name === "string" ? extra.acct_name : "-"}</td>
@@ -257,7 +262,7 @@ export default function SalesMatchPage() {
                     <td>{typeof extra.arrival === "string" ? extra.arrival : "未到店"}</td>
                     <td>{typeof extra.matchmaker === "string" ? extra.matchmaker : "-"}</td>
                     <td>{r.status === 1 ? "开启" : "关闭"}</td>
-                    <td><a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("链接复制敬请期待", "ok"); }}>查看</a></td>
+                    <td><button className="finord-link" type="button" onClick={() => showConfigToast("当前记录未返回销售库链接或二维码接口数据", "error")}>查看</button></td>
                     <td>{typeof extra.pick_count === "number" ? extra.pick_count : 0}</td>
                     <td>{typeof extra.fav_count === "number" ? extra.fav_count : 0}</td>
                     <td>
@@ -270,7 +275,7 @@ export default function SalesMatchPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="ecl-empty">
+                  <td colSpan={13} className="ecl-empty">
                     <div className="ecl-empty-inner">
                       <div className="ecl-empty-icon">▤</div>
                       <div className="ecl-empty-text">暂无数据</div>
@@ -282,14 +287,7 @@ export default function SalesMatchPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {createOpen && (

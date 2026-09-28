@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUp, ArrowDown, Trash2, ImagePlus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
@@ -64,6 +64,10 @@ export default function MerchantAllianceConfigPage() {
   useEffect(loadCategories, []);
 
   const shareCover = shareCoverUrl ? "自定义 (300*300)" : "系统默认";
+  const qrUrl = useMemo(() => {
+    const viewUrl = snapshot?.config.view_url || DEFAULTS.view_url;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(viewUrl)}`;
+  }, [snapshot]);
 
   const moveBanner = (idx: number, dir: -1 | 1) => {
     const j = idx + dir;
@@ -137,7 +141,7 @@ export default function MerchantAllianceConfigPage() {
             <span className="mac-text-muted">网址路径：</span>
             <span className="mac-url">{snapshot?.config.view_url || DEFAULTS.view_url}</span>
             <span className="mac-text-muted" style={{ marginLeft: 24 }}>二维码：</span>
-            <a className="finord-link">查看</a>
+            <button type="button" className="finord-link" onClick={() => window.open(qrUrl, "_blank", "noopener,noreferrer")}>查看</button>
             <span className="mac-text-muted" style={{ marginLeft: 16 }}>在线预览：</span>
             <a className="finord-link" href={snapshot?.config.view_url || DEFAULTS.view_url} target="_blank" rel="noreferrer">点击这里</a>
           </div>

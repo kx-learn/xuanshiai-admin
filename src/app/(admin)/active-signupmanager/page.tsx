@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X, Download, Camera } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type ActivityOption, type ActivitySignupItem, type ActivitySignupStatistics } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -31,6 +32,12 @@ export default function ActiveSignupmanagerPage() {
   const [rows, setRows] = useState<ActivitySignupItem[]>([]);
   const [stats, setStats] = useState<ActivitySignupStatistics>(EMPTY_STATS);
   const [editRow, setEditRow] = useState<ActivitySignupItem | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
   useEffect(() => {
     adminEndpoints.activitySignupOptions().then(setActivities).catch(() => undefined);
@@ -44,45 +51,38 @@ export default function ActiveSignupmanagerPage() {
     }
   }, []);
 
-  const loadRows = useCallback(async (id: number) => {
+  const loadRows = useCallback(async (id?: number, nextPage = page, nextPageSize = pageSize) => {
     try {
-      const res = await adminEndpoints.activitySignups(id, { page: 1, page_size: 100 });
+      const res = await adminEndpoints.activitySignups(id, {
+        page: nextPage,
+        page_size: nextPageSize,
+        first_signup: signupTab === "首次报名",
+        status: audit === "待审" ? 0 : audit === "通过" ? 1 : audit === "未通过" ? 3 : undefined,
+        gender: gender === "全部" ? undefined : gender,
+        pay_status: pay === "全部" ? undefined : pay === "免费" ? "free" : pay === "已支付" ? "paid" : "unpaid",
+        checked_in: checkin === "全部" ? undefined : checkin === "已签到",
+        keyword: search.trim() || undefined,
+        search_by: searchBy === "按手机搜" ? "phone" : "nickname",
+        signup_from: dateFrom || undefined,
+        signup_to: dateTo || undefined,
+      });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       setRows([]);
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
-  }, []);
+  }, [audit, checkin, dateFrom, dateTo, gender, page, pageSize, pay, search, searchBy, signupTab]);
 
   useEffect(() => {
-    if (!activityId) {
-      setRows([]);
-      loadStats();
-      return;
-    }
-    loadStats(Number(activityId));
-    loadRows(Number(activityId));
-  }, [activityId, loadStats, loadRows]);
+    const id = activityId ? Number(activityId) : undefined;
+    loadStats(id);
+    void loadRows(id, page, pageSize);
+  }, [activityId, loadStats, loadRows, page, pageSize]);
 
-  const filtered = useMemo(() => rows.filter((r) => {
-    if (signupTab === "首次报名" && (r.signup_times ?? 1) > 1) return false;
-    if (gender === "男" && r.gender !== "男") return false;
-    if (gender === "女" && r.gender !== "女") return false;
-    if (audit === "待审" && r.status !== 0) return false;
-    if (audit === "通过" && r.status !== 1) return false;
-    if (audit === "未通过" && r.status !== 3) return false;
-    if (pay === "免费" && r.pay_status !== "free") return false;
-    if (pay === "已支付" && r.pay_status !== "paid") return false;
-    if (pay === "未支付" && r.pay_status !== "unpaid") return false;
-    if (checkin === "已签到" && !r.checked_in) return false;
-    if (checkin === "未签到" && r.checked_in) return false;
-    if (search.trim()) {
-      const kw = search.trim();
-      const hit = searchBy === "按手机搜" ? (r.phone ?? "").includes(kw) : (r.nickname ?? "").includes(kw) || (r.real_name ?? "").includes(kw);
-      if (!hit) return false;
-    }
-    return true;
-  }), [rows, signupTab, gender, audit, pay, checkin, search, searchBy]);
+  const filtered = rows;
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const statItems = [
     { label: "报名总数", value: String(stats.total), unit: "人", color: "#c4cad6" },
@@ -162,12 +162,12 @@ export default function ActiveSignupmanagerPage() {
               <span>首次报名</span>
             </label>
             <span className="sm-text-muted">开始日期</span>
-            <input className="sm-date" type="date" />
+            <input className="sm-date" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             <span className="sm-text-muted">结束日期</span>
-            <input className="sm-date" type="date" />
+            <input className="sm-date" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             <select className="sm-select" value={searchBy} onChange={(e) => setSearchBy(e.target.value)}><option>按昵称搜</option><option>按手机搜</option></select>
             <input className="sm-input" placeholder="请输入" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <button className="finord-btn finord-btn-primary sm-search-btn">搜索</button>
+            <button className="finord-btn finord-btn-primary sm-search-btn" onClick={() => loadRows(activityId ? Number(activityId) : undefined)}>搜索</button>
           </div>
         </div>
 
@@ -176,6 +176,7 @@ export default function ActiveSignupmanagerPage() {
           <table className="finord-table sm-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
@@ -190,6 +191,7 @@ export default function ActiveSignupmanagerPage() {
                 ].filter(Boolean).join(" / ");
                 return (
                   <tr key={r.id}>
+                    <td><input type="checkbox" aria-label={`选择报名 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td>
                       <div className="sm-row-content">
                         <input type="checkbox" className="sm-check" />
@@ -248,13 +250,14 @@ export default function ActiveSignupmanagerPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={columns.length} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>
-                  {activityId ? "暂无数据" : "请先选择活动"}
+                <tr><td colSpan={columns.length + 1} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>
+                  暂无数据
                 </td></tr>
               )}
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
 
       {editRow && (

@@ -89,7 +89,7 @@ export default function Page() {
           </div>
           <div className="flex h-10 min-w-[280px] flex-1">
             <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l border border-r-0 px-3 text-sm" />
-            <button type="button" onClick={() => undefined} className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>
+            <button type="button" onClick={() => setPage(1)} className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>
           </div>
           <button type="button" onClick={() => { setKeyword(""); setAbandonedBy(""); setFromDate(""); setToDate(""); setPage(1); }} className="h-10 rounded border border-[#d9d9d9] bg-white px-4 text-sm text-[#666]">重置</button>
           <span className="whitespace-nowrap text-sm">共有弃海记录：<b className="text-[#3658f7]">{filteredRows.length}条</b></span>

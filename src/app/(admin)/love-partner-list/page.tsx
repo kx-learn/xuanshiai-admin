@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -32,8 +33,9 @@ export default function LovePartnerListPage() {
   const [message, setMessage] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<PartnerStaffItem | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +43,7 @@ export default function LovePartnerListPage() {
       const result = await adminEndpoints.partnerList({ page, page_size: pageSize });
       setRows(result.items);
       setTotal(result.total);
+      setSelected([]);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载失败");
@@ -93,12 +96,14 @@ export default function LovePartnerListPage() {
           <table className="finord-table lpl-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} className={selected.includes(p.id) ? "selected" : undefined}>
+                  <td><input type="checkbox" aria-label={`选择合伙人 ${p.id}`} checked={selected.includes(p.id)} onChange={() => setSelected((current) => current.includes(p.id) ? current.filter((id) => id !== p.id) : [...current, p.id])} /></td>
                   <td>{p.id}</td>
                   <td>
                     <div className="lpl-partner">
@@ -138,7 +143,7 @@ export default function LovePartnerListPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} style={{ textAlign: "center", color: "#999" }}>
+                  <td colSpan={columns.length + 1} style={{ textAlign: "center", color: "#999" }}>
                     {loading ? "加载中…" : "暂无数据"}
                   </td>
                 </tr>
@@ -147,23 +152,7 @@ export default function LovePartnerListPage() {
           </table>
         </div>
 
-        <div className="lpl-pager">
-          <span
-            className="lpl-pager-arrow"
-            style={{ cursor: page > 1 ? "pointer" : "default" }}
-            onClick={() => { if (page > 1) setPage(page - 1); }}
-          >
-            ‹
-          </span>
-          <span className="lpl-pager-cur">{page}</span>
-          <span
-            className="lpl-pager-arrow"
-            style={{ cursor: page < totalPages ? "pointer" : "default" }}
-            onClick={() => { if (page < totalPages) setPage(page + 1); }}
-          >
-            ›
-          </span>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         {message && <p style={{ color: "#faad14", marginTop: 12 }}>{message}</p>}
       </div>
 

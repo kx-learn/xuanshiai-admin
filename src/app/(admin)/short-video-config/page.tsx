@@ -151,6 +151,16 @@ export default function ShortVideoConfigPage() {
       showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
     }
   };
+  const editCategory = async (category: VideoCategoryItem) => {
+    const name = window.prompt("请输入视频分类名称", category.name);
+    if (!name || name.trim() === category.name) return;
+    try {
+      const updated = await adminEndpoints.updateVideoCategory(category.id, { name: name.trim() });
+      setCategories((current) => current.map((item) => item.id === category.id ? updated : item));
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "修改失败", "error");
+    }
+  };
 
   const reviewOptions = (key: "normal_post_review" | "normal_comment_review" | "verified_post_review" | "verified_comment_review") => (
     <div className="svc-options svc-options-row">
@@ -363,7 +373,7 @@ export default function ShortVideoConfigPage() {
             <span className="svc-tag" key={c.id}>
               {c.name}
               <span className="svc-tag-icons">
-                <span className="svc-tag-icon" aria-label="编辑">✎</span>
+                <button type="button" className="svc-tag-icon" aria-label="编辑" onClick={() => void editCategory(c)}>✎</button>
                 <span className="svc-tag-icon" aria-label="删除" onClick={() => removeCategory(c.id)}>×</span>
                 <span className="svc-tag-icon" aria-label="拖动">⋮⋮</span>
               </span>

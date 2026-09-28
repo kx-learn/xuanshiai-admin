@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, ChevronDown, Download, Settings } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -94,22 +95,28 @@ export default function Page() {
   const [rows, setRows] = useState<LineRow[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
   /* ---------- 加载 ---------- */
   const loadData = async () => {
     setLoading(true);
     try {
-      const page = await adminEndpoints.matchRecords({ page: 1, page_size: 100 });
-      const items = (page as { items: LineRow[] }).items;
+      const result = await adminEndpoints.matchRecords({ page, page_size: pageSize, search: keyword.trim() || undefined });
+      const items = (result as { items: LineRow[]; total: number }).items;
       setRows(items);
-      const total = items.length;
+      setTotal((result as { total: number }).total);
+      setSelected([]);
+      const totalCount = (result as { total: number }).total;
       const success = items.filter((r) => r.status === 1).length;
       const fail = items.filter((r) => r.status === 2).length;
       const pending = items.filter((r) => r.status === 0).length;
       const closed = items.filter((r) => r.status === 3).length;
       const matchmaking = items.filter((r) => r.matchmaker_id != null).length;
       const next: Stat[] = [
-        { value: total, label: "全部牵线", bar: "#3658f7" },
+        { value: totalCount, label: "全部牵线", bar: "#3658f7" },
         { value: pending, label: "待牵线", bar: "#fa8c16" },
         { value: matchmaking, label: "牵线中", bar: "#13c2c2" },
         { value: success, label: "牵线成功", bar: "#52c41a" },
@@ -132,6 +139,10 @@ export default function Page() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    void loadData();
+  }, [keyword, page, pageSize]);
 
   /* ---------- 抽屉提交 ---------- */
   const handleSubmit = async () => {
@@ -252,7 +263,7 @@ export default function Page() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <button type="button" className="vlr-btn primary" onClick={() => undefined}>
+          <button type="button" className="vlr-btn primary" onClick={() => void loadData()}>
             搜索
           </button>
         </div>
@@ -272,6 +283,14 @@ export default function Page() {
             </colgroup>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="全选"
+                    checked={rows.length > 0 && selected.length === rows.length}
+                    onChange={() => setSelected(selected.length === rows.length ? [] : rows.map((row) => row.id))}
+                  />
+                </th>
                 <th>ID</th>
                 <th>申请牵线人</th>
                 <th>牵线对象</th>
@@ -286,13 +305,13 @@ export default function Page() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="h-40 text-center text-sm text-[#999]">
+                  <td colSpan={10} className="h-40 text-center text-sm text-[#999]">
                     加载中...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="h-40 text-center text-sm text-[#999]">
+                  <td colSpan={10} className="h-40 text-center text-sm text-[#999]">
                     暂无数据
                   </td>
                 </tr>
@@ -305,6 +324,14 @@ export default function Page() {
                   const isFail = row.status === 2;
                   return (
                     <tr key={row.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`选择牵线记录 ${row.id}`}
+                          checked={selected.includes(row.id)}
+                          onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])}
+                        />
+                      </td>
                       <td className="vlr-td-id">{row.id}</td>
                       <td>
                         <LineMember
@@ -367,6 +394,13 @@ export default function Page() {
             </tbody>
           </table>
         </div>
+        <AdminPagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       </section>
 
       {/* Drawer：添加牵线记录（保留原 DOM 与类名） */}

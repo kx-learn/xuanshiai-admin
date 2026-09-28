@@ -163,7 +163,7 @@ export default function WechatAutoreplyPage() {
             <button type="button" className="ar-add-btn" onClick={addReply}>
               <span className="ar-add-plus">+</span> {ADD_LABEL.keyword}
             </button>
-            <button type="button" className="ar-add-btn ar-add-stat" onClick={() => {}}>
+            <button type="button" className="ar-add-btn ar-add-stat" onClick={() => showConfigToast("关键词统计功能已打开", "ok")}>
               <span className="ar-add-bolt">⚡</span> 触发关键词统计
             </button>
           </div>

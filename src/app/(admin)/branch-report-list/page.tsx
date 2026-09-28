@@ -40,9 +40,19 @@ export default function BranchReportListPage() {
   useEffect(() => {
     (async () => {
       try {
-        const result = await adminEndpoints.storeList({ page: 1, page_size: 100 });
-        setStores(result.items);
-        setCurrent(result.items[0] ?? null);
+        const first = await adminEndpoints.storeList({ page: 1, page_size: 100 });
+        const pages = Math.max(1, Math.ceil(first.total / first.page_size));
+        const rest = await Promise.all(
+          Array.from({ length: pages - 1 }, (_, index) =>
+            adminEndpoints.storeList({ page: index + 2, page_size: first.page_size }),
+          ),
+        );
+        const allStores = [
+          ...first.items,
+          ...rest.flatMap((result) => result.items),
+        ];
+        setStores(allStores);
+        setCurrent(allStores[0] ?? null);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "门店列表加载失败");
         setLoading(false);

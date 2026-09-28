@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type VideoCommentItem } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -27,21 +28,25 @@ export default function ShortVideoCommentPage() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<string | undefined>(undefined);
   const [checked, setChecked] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
-  const load = useCallback(async (audit?: string) => {
+  const load = useCallback(async (audit?: string, nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const res = await adminEndpoints.videoCommentList({ page: 1, page_size: 50, audit_status: audit });
+      const res = await adminEndpoints.videoCommentList({ page: nextPage, page_size: nextPageSize, audit_status: audit });
       setRows(res.items);
+      setTotal(res.total);
       setChecked([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, pageSize]);
 
-  useEffect(() => { load(tab); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab]);
+  useEffect(() => { void load(tab, page, pageSize); }, [load, page, pageSize, tab]);
 
   const allChecked = rows.length > 0 && checked.length === rows.length;
   const toggleHead = () => setChecked(allChecked ? [] : rows.map((r) => r.id));
@@ -137,7 +142,7 @@ export default function ShortVideoCommentPage() {
                   <td>
                     <div className="cmt-ops">
                       <a className="finord-link" onClick={() => editContent(r)}>编辑</a>
-                      <a className="finord-link">回复</a>
+                      <a className="finord-link" onClick={() => showConfigToast("当前后端未提供评论回复接口", "error")}>回复</a>
                       <a className="finord-link cmt-op-del" onClick={() => deleteRow(r)}>删除</a>
                     </div>
                   </td>
@@ -150,11 +155,13 @@ export default function ShortVideoCommentPage() {
           </table>
         </div>
 
-        <div className="cmt-pager">
-          <span className="cmt-pager-arrow">‹</span>
-          <span className="cmt-pager-cur">1</span>
-          <span className="cmt-pager-arrow">›</span>
-        </div>
+        <AdminPagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       </div>
     </div>
   );

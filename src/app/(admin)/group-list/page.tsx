@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Camera, Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link2, Image as ImageIcon, Smile, Quote, Code, Heading1, Heading2, RotateCcw, RotateCw, Trash2, Maximize2, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -103,6 +104,7 @@ export default function GroupListPage() {
   const [gxOpen, setGxOpen] = useState(false);
   const [draft, setDraft] = useState<GroupDraft>(EMPTY_DRAFT);
   const [signupMode, setSignupMode] = useState<SignupKey>("注册登录");
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -113,6 +115,7 @@ export default function GroupListPage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -240,7 +243,7 @@ export default function GroupListPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -276,6 +279,7 @@ export default function GroupListPage() {
           <table className="finord-table gml-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>ID</th>
                 <th>社群标题</th>
                 <th>发起人</th>
@@ -293,7 +297,8 @@ export default function GroupListPage() {
               {rows.map((g) => {
                 const extra = g.extra ?? {};
                 return (
-                  <tr key={g.id}>
+                  <tr key={g.id} className={selected.includes(g.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择社群 ${g.id}`} checked={selected.includes(g.id)} onChange={() => setSelected((current) => current.includes(g.id) ? current.filter((id) => id !== g.id) : [...current, g.id])} /></td>
                     <td className="finord-id">{g.id}</td>
                     <td>{g.title}</td>
                     <td>{typeof extra.initiator === "string" ? extra.initiator : (g.subtitle ?? "-")}</td>
@@ -314,7 +319,7 @@ export default function GroupListPage() {
                       <span className="gml-status">{typeof extra.status === "string" ? extra.status : "-"}</span>
                     </td>
                     <td>
-                      <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("海报功能敬请期待", "ok"); }}>查看</a>
+                      <button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供社群海报/二维码查看接口", "error")}>查看</button>
                     </td>
                     <td className="gml-time">{(g.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
                     <td>
@@ -331,7 +336,7 @@ export default function GroupListPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={11} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                  <td colSpan={12} style={{ padding: 24, textAlign: "center", color: "#888" }}>
                     暂无社群，点击「＋ 添加社群信息」开始创建
                   </td>
                 </tr>
@@ -340,15 +345,7 @@ export default function GroupListPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-          <span className="finord-page-size">20 条/页</span>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {gxOpen && (

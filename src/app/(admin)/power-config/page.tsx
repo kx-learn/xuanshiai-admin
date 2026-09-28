@@ -44,16 +44,18 @@ function Radio({
   label,
   note,
   onClick,
+  disabled = false,
 }: {
   checked: boolean;
   label?: string;
   note?: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <>
-      <span className="pcfg-radio" onClick={onClick}>
-        <input type="radio" readOnly checked={checked} />
+      <span className={`pcfg-radio ${disabled ? "opacity-60" : ""}`} onClick={disabled ? undefined : onClick}>
+        <input type="radio" readOnly checked={checked} disabled={disabled} />
         <i className="pcfg-radio-dot"></i>
         {label && <span className="pcfg-radio-label">{label}</span>}
       </span>
@@ -245,7 +247,8 @@ export default function PowerConfigPage() {
           <Radio
             checked
             note="每页显示10人，超过这个页数后，将提示必须是相亲会员才可以浏览更多"
-            onClick={() => {}}
+            onClick={() => showConfigToast("该说明项为固定规则，不需要单独设置")}
+            disabled
           />
         </Row>
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type ShortVideoItem, type VideoCategoryItem } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast, uploadAdminImage } from "@/lib/platform-config";
@@ -50,6 +51,11 @@ export default function ShortVideoListPage() {
   const [keyword, setKeyword] = useState("");
   const [orderBy, setOrderBy] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<ShortVideoItem | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     adminEndpoints.videoCategoryList().then(setCategories).catch(() => undefined);
@@ -59,7 +65,7 @@ export default function ShortVideoListPage() {
     setLoading(true);
     try {
       const res = await adminEndpoints.shortVideoList({
-        page: 1, page_size: 50,
+        page, page_size: pageSize,
         audit_status: statusTab,
         flag,
         category_id: categoryId ? Number(categoryId) : undefined,
@@ -67,14 +73,19 @@ export default function ShortVideoListPage() {
         order_by: orderBy || undefined,
       });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [statusTab, flag, categoryId, keyword, orderBy]);
+  }, [statusTab, flag, categoryId, keyword, orderBy, page, pageSize]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const allSelected = rows.length > 0 && selected.length === rows.length;
+  const toggleAll = () => setSelected(allSelected ? [] : rows.map((row) => row.id));
 
   const patch = async (id: number, body: Record<string, unknown>) => {
     try {
@@ -116,7 +127,7 @@ export default function ShortVideoListPage() {
         <div className="svl-head">
           <h2 className="svl-title">视频管理</h2>
           <div className="svl-head-actions">
-            <button className="finord-btn finord-btn-primary svl-add-btn" onClick={() => setAddOpen(true)}>＋ 添加视频</button>
+            <button className="finord-btn finord-btn-primary svl-add-btn" onClick={() => { setEditing(null); setAddOpen(true); }}>＋ 添加视频</button>
             <button className="finord-btn finord-btn-primary svl-refresh-btn" onClick={refreshPublishTime}>⟳ 一键刷新发布时间</button>
           </div>
         </div>
@@ -154,7 +165,7 @@ export default function ShortVideoListPage() {
           <table className="finord-table svl-table">
             <thead>
               <tr>
-                <th className="svl-col-check"><input type="checkbox" className="svl-check" /></th>
+                <th className="svl-col-check"><input type="checkbox" className="svl-check" checked={allSelected} onChange={toggleAll} /></th>
                 <th>ID</th>
                 <th>封面</th>
                 <th>描述</th>
@@ -172,7 +183,7 @@ export default function ShortVideoListPage() {
             <tbody>
               {rows.map((v) => (
                 <tr key={v.id}>
-                  <td className="svl-col-check"><input type="checkbox" className="svl-check" /></td>
+                  <td className="svl-col-check"><input type="checkbox" className="svl-check" checked={selected.includes(v.id)} onChange={() => setSelected((current) => current.includes(v.id) ? current.filter((id) => id !== v.id) : [...current, v.id])} /></td>
                   <td className="svl-id">{v.id}</td>
                   <td>
                     <div className="svl-cover">{v.cover || v.category_name || v.description?.slice(0, 6) || "-"}</div>
@@ -235,7 +246,7 @@ export default function ShortVideoListPage() {
                   </td>
                   <td>
                     <div className="svl-ops">
-                      <a className="finord-link" onClick={() => setAddOpen(true)}>编辑</a>
+                      <a className="finord-link" onClick={() => { setEditing(v); setAddOpen(true); }}>编辑</a>
                       <a className="finord-link" onClick={() => v.video_url && window.open(v.video_url, "_blank")}>预览视频</a>
                       <a className="finord-link svl-op-del" onClick={() => deleteRow(v)}>删除</a>
                     </div>
@@ -248,26 +259,27 @@ export default function ShortVideoListPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
 
-      {addOpen && <AddVideoDrawer categories={categories} onClose={() => setAddOpen(false)} onSaved={load} />}
+      {addOpen && <AddVideoDrawer video={editing} categories={categories} onClose={() => setAddOpen(false)} onSaved={load} />}
     </div>
   );
 }
 
-function AddVideoDrawer({ categories, onClose, onSaved }: { categories: VideoCategoryItem[]; onClose: () => void; onSaved: () => void }) {
+function AddVideoDrawer({ video, categories, onClose, onSaved }: { video: ShortVideoItem | null; categories: VideoCategoryItem[]; onClose: () => void; onSaved: () => void }) {
   const [coverMode, setCoverMode] = useState<"auto" | "custom">("auto");
   const [linkType, setLinkType] = useState("none");
-  const [publisher, setPublisher] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [cover, setCover] = useState<string | null>(null);
-  const [sort, setSort] = useState(0);
-  const [virtualViews, setVirtualViews] = useState(0);
-  const [commentEnabled, setCommentEnabled] = useState(true);
-  const [tipEnabled, setTipEnabled] = useState(true);
-  const [permission, setPermission] = useState("login");
+  const [publisher, setPublisher] = useState(String(video?.publisher_user_id ?? ""));
+  const [description, setDescription] = useState(video?.description ?? "");
+  const [categoryId, setCategoryId] = useState(String(video?.category_id ?? ""));
+  const [videoUrl, setVideoUrl] = useState<string | null>(video?.video_url ?? null);
+  const [cover, setCover] = useState<string | null>(video?.cover ?? null);
+  const [sort, setSort] = useState(video?.sort ?? 0);
+  const [virtualViews, setVirtualViews] = useState(video?.virtual_views ?? 0);
+  const [commentEnabled, setCommentEnabled] = useState(video?.comment_enabled ?? true);
+  const [tipEnabled, setTipEnabled] = useState(video?.tip_enabled ?? true);
+  const [permission, setPermission] = useState(video?.view_permission ?? "login");
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
@@ -275,7 +287,7 @@ function AddVideoDrawer({ categories, onClose, onSaved }: { categories: VideoCat
     if (!description.trim()) { showConfigToast("请填写视频描述", "error"); return; }
     setSaving(true);
     try {
-      await adminEndpoints.createShortVideo({
+      const payload = {
         publisher_user_id: Number(publisher),
         cover,
         cover_mode: coverMode,
@@ -288,7 +300,9 @@ function AddVideoDrawer({ categories, onClose, onSaved }: { categories: VideoCat
         virtual_views: virtualViews,
         comment_enabled: commentEnabled,
         tip_enabled: tipEnabled,
-      });
+      };
+      if (video) await adminEndpoints.updateShortVideo(video.id, payload);
+      else await adminEndpoints.createShortVideo(payload);
       showConfigToast("提交成功", "ok");
       onSaved();
       onClose();

@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { WithdrawalAdminItem } from "@/lib/admin-endpoints";
@@ -31,27 +32,32 @@ export default function SystemCashoutHistoryPage() {
   const [keyword, setKeyword] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
-  const load = async () => {
+  const load = useCallback(async (nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const query: Record<string, string | number | undefined> = { page: 1, page_size: 100 };
+      const query: Record<string, string | number | undefined> = { page: nextPage, page_size: nextPageSize };
       if (statusTab) query.status = statusTab;
       if (startDate) query.start_time = startDate;
       if (endDate) query.end_time = endDate;
       const result = await adminEndpoints.financeWithdrawals(query);
       setItems(result?.items ?? []);
+      setTotal(result?.total ?? 0);
+      setSelected([]);
     } catch (e) {
       setItems([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [endDate, page, pageSize, startDate, statusTab]);
 
   useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusTab]);
+    void load(page, pageSize);
+  }, [load, page, pageSize]);
 
   const filtered = useMemo(() => {
     if (!keyword) return items;
@@ -63,6 +69,7 @@ export default function SystemCashoutHistoryPage() {
         (r.failure_reason ?? "").includes(k),
     );
   }, [items, keyword]);
+  const allSelected = filtered.length > 0 && selected.length === filtered.length;
 
   const stats = useMemo(() => {
     const sum = (arr: WithdrawalAdminItem[]) =>
@@ -161,7 +168,7 @@ export default function SystemCashoutHistoryPage() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <button className="finord-btn finord-btn-primary" onClick={load}>
+            <button className="finord-btn finord-btn-primary" onClick={() => void load()}>
             搜索
           </button>
           <button
@@ -180,6 +187,7 @@ export default function SystemCashoutHistoryPage() {
           <table className="finord-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : filtered.map((r) => r.id))} /></th>
                 <th>提现账号</th>
                 <th>联系方式</th>
                 <th>申请提现金额</th>
@@ -196,15 +204,16 @@ export default function SystemCashoutHistoryPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="finord-td-empty">加载中…</td>
+                  <td colSpan={12} className="finord-td-empty">加载中…</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="finord-td-empty">暂无数据</td>
+                  <td colSpan={12} className="finord-td-empty">暂无数据</td>
                 </tr>
               ) : (
                 filtered.map((rec) => (
                   <tr key={rec.id}>
+                    <td><input type="checkbox" aria-label={`选择提现记录 ${rec.id}`} checked={selected.includes(rec.id)} onChange={() => setSelected((current) => current.includes(rec.id) ? current.filter((id) => id !== rec.id) : [...current, rec.id])} /></td>
                     <td>
                       <div className="cs-nick">用户#{rec.account_id}</div>
                       <div className="cs-uid">ID: {rec.account_id}</div>
@@ -266,21 +275,7 @@ export default function SystemCashoutHistoryPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <div className="finord-pages">
-            <button className="finord-page nav" disabled>
-              ‹
-            </button>
-            <button className="finord-page active">1</button>
-            <button className="finord-page nav" disabled>
-              ›
-            </button>
-          </div>
-          <div className="finord-page-size">
-            <span>20条/页</span>
-            <span className="finord-page-size-arrow">▾</span>
-          </div>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

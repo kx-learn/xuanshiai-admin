@@ -30,12 +30,22 @@ export default function Page() {
   useEffect(() => {
     void (async () => {
       try {
-        const [summary, page] = await Promise.all([
+        const [summary, firstPage] = await Promise.all([
           adminEndpoints.customerLeadStatistics(),
           adminEndpoints.customerLeads({ page: 1, page_size: 100 }),
         ]);
         setStats(summary as typeof stats);
-        setLeads((page as { items: typeof leads }).items);
+        const first = firstPage as { items: typeof leads; total: number; page_size: number };
+        const pages = Math.max(1, Math.ceil(first.total / first.page_size));
+        const rest = await Promise.all(
+          Array.from({ length: pages - 1 }, (_, index) =>
+            adminEndpoints.customerLeads({ page: index + 2, page_size: first.page_size }),
+          ),
+        );
+        setLeads([
+          ...first.items,
+          ...rest.flatMap((result) => (result as { items: typeof leads }).items),
+        ]);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "加载失败");
       }

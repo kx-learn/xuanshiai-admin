@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, Plus, Eye, Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Quote, List, ListOrdered, Link2, Image as ImageIcon, Smile, Code, Heading1, Heading2, RotateCcw, RotateCw, Maximize2, Minus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type ActivityItem, type ActivityCreatePayload, type ActivityLinkInfo } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast, useConfigDomain } from "@/lib/platform-config";
@@ -184,22 +185,28 @@ export default function ActiveListPage() {
   const [activeSection, setActiveSection] = useState("基本信息");
   const [saving, setSaving] = useState(false);
   const [linkInfo, setLinkInfo] = useState<ActivityLinkInfo | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const categories = snapshot?.config.categories ?? [];
 
-  const loadList = useCallback(async (search = keyword) => {
+  const loadList = useCallback(async (search = keyword, nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const res = await adminEndpoints.activityList({ page: 1, page_size: 50, search: search || undefined });
+      const res = await adminEndpoints.activityList({ page: nextPage, page_size: nextPageSize, search: search || undefined });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, [keyword, page, pageSize]);
 
-  useEffect(() => { loadList(""); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void loadList("", page, pageSize); }, [loadList, page, pageSize]);
 
   const openAdd = () => { setForm(EMPTY_FORM); setActiveSection("基本信息"); setAddOpen(true); };
   const openEdit = (row: ActivityItem) => { setForm(toForm(row)); setActiveSection("基本信息"); setAddOpen(true); };
@@ -267,6 +274,7 @@ export default function ActiveListPage() {
   };
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -302,12 +310,14 @@ export default function ActiveListPage() {
           <table className="finord-table al-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {["ID", "活动", "链接/二维码", "分享海报", "签到码", "活动状态", "报名人数", "创建时间", "审核状态", "上线", "操作"].map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
+                  <td><input type="checkbox" aria-label={`选择活动 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                   <td>
                     <div className="al-row-content">
                       <input type="checkbox" className="al-check" />
@@ -329,8 +339,8 @@ export default function ActiveListPage() {
                     </div>
                   </td>
                   <td><a className="finord-link" onClick={() => openLink(r)}>查看</a></td>
-                  <td><a className="finord-link">查看</a></td>
-                  <td><a className="finord-link">查看</a></td>
+                  <td><a className="finord-link" onClick={() => openLink(r)}>查看</a></td>
+                  <td><a className="finord-link" onClick={() => openLink(r)}>查看</a></td>
                   <td>
                     <span className={`al-activity-status al-activity-status-${ACTIVITY_STATUS_TEXT[r.status] || "报名中"}`}>{ACTIVITY_STATUS_TEXT[r.status] || "报名中"}</span>
                   </td>
@@ -351,18 +361,19 @@ export default function ActiveListPage() {
                     <div className="al-ops">
                       <a className="finord-link" onClick={() => copyRow(r)}>复制</a>
                       <a className="finord-link" onClick={() => openEdit(r)}>编辑</a>
-                      <a className="finord-link">名单展示</a>
+                      <a className="finord-link" onClick={() => window.location.assign(`/active-signupmanager?activity_id=${r.id}`)}>名单展示</a>
                       <a className="finord-link" onClick={() => deleteRow(r)}>删除</a>
                     </div>
                   </td>
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={11} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>暂无数据</td></tr>
+                <tr><td colSpan={12} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>暂无数据</td></tr>
               )}
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
 
       {addOpen && (

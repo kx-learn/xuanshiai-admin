@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Quote, List, ListOrdered, Link2, Image as ImageIcon, Smile, Code, Heading1, Heading2, RotateCcw, RotateCw, Maximize2, Minus, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type MutualActivityItem, type MutualParticipant } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -95,20 +96,26 @@ export default function MutualSelectionListPage() {
   const [form, setForm] = useState<Form>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [participantOf, setParticipantOf] = useState<MutualActivityItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
-  const load = useCallback(async (kw = keyword) => {
+  const load = useCallback(async (kw = keyword, nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const res = await adminEndpoints.mutualActivityList({ page: 1, page_size: 50, keyword: kw || undefined });
+      const res = await adminEndpoints.mutualActivityList({ page: nextPage, page_size: nextPageSize, keyword: kw || undefined });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, [keyword, page, pageSize]);
 
-  useEffect(() => { load(""); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(keyword, page, pageSize); }, [load, keyword, page, pageSize]);
 
   const openAdd = () => { setForm(EMPTY_FORM); setPanelOpen(true); };
   const openEdit = (r: MutualActivityItem) => { setForm(toForm(r)); setPanelOpen(true); };
@@ -274,7 +281,7 @@ export default function MutualSelectionListPage() {
                   <td><a className="finord-link" onClick={() => r.link_url && window.open(r.link_url, "_blank")}>查看</a></td>
                   <td>
                     <div className="ms-ops">
-                      <a className="finord-link">群发短信</a>
+                      <a className="finord-link" onClick={() => window.location.assign(`/sms-group?activity_id=${r.id}`)}>群发短信</a>
                       <a className="finord-link" onClick={() => openEdit(r)}>编辑</a>
                       <a className="finord-link" onClick={() => copyRow(r)}>复制</a>
                       <a className="finord-link" onClick={() => deleteRow(r)}>删除</a>
@@ -289,11 +296,7 @@ export default function MutualSelectionListPage() {
           </table>
         </div>
 
-        <div className="ms-pager">
-          <span className="ms-pager-arrow">‹</span>
-          <span className="ms-pager-cur">1</span>
-          <span className="ms-pager-arrow">›</span>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
 
       {panelOpen && (

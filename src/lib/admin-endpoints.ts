@@ -8,6 +8,20 @@ export type AdminListQuery = PageQuery & Record<string, string | number | undefi
 export type AdminListQueryMulti = PageQuery & Record<string, string | number | string[] | undefined>;
 export type JsonBody = Record<string, unknown>;
 export type DashboardQuery = { from?: string; to?: string };
+export type AdminTicketItem = {
+  id: number;
+  ticket_no: string;
+  submitter_name?: string | null;
+  feedback_type: "BUG" | "咨询" | "建议";
+  title: string;
+  content: string;
+  status: "待处理" | "处理中" | "已处理";
+  reply_content?: string | null;
+  replier_name?: string | null;
+  replied_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 // ─── M4 客源线索 / 会员服务类型 ────────────────────────────────────
 export interface CustomerLeadOption {
@@ -2520,6 +2534,7 @@ export interface RedPacketClaimItem {
 }
 export interface VideoHomepageItem {
   id: number;
+  user_id: number;
   nickname: string | null;
   wechat: string | null;
   bio: string | null;
@@ -2548,6 +2563,15 @@ export const adminEndpoints = {
   dashboard: (query: DashboardQuery = {}) => adminApi<AdminDashboardReport>("admin/dashboard", { method: "GET", query }),
   announcements: (query: { page?: number; page_size?: number; category?: string; keyword?: string } = {}) => adminApi<AnnouncementPage>("admin/announcements", { method: "GET", query }),
   academyCategories: () => adminApi<AcademyCategory[]>("admin/academy/categories"),
+  tickets: (query: { page?: number; page_size?: number; status?: string; feedback_type?: string; keyword?: string } = {}) =>
+    adminApi<{ items: AdminTicketItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/tickets", { method: "GET", query }),
+  ticketStatistics: () => adminApi<{ pending: number; processing: number; done: number }>("admin/tickets/statistics"),
+  createTicket: (body: { feedback_type: "BUG" | "咨询" | "建议"; title: string; content: string }) =>
+    adminApi<AdminTicketItem>("admin/tickets", { method: "POST", body }),
+  replyTicket: (id: number | string, reply_content: string) =>
+    adminApi<AdminTicketItem>(`admin/tickets/${id}/reply`, { method: "POST", body: { reply_content } }),
+  updateTicketStatus: (id: number | string, status: "待处理" | "处理中" | "已处理") =>
+    adminApi<AdminTicketItem>(`admin/tickets/${id}/status`, { method: "PATCH", body: { status } }),
   memberStatistics: (query: DashboardQuery = {}) => adminApi<MemberStatisticsReport>("admin/member-statistics", { method: "GET", query }),
   dashboardStats: () => adminApi<Record<string, unknown>>("admin/dashboard/stats"),
   adminAccounts: (query: AdminListQuery = {}) => adminApi<{ items: AdminAccountItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/matchmaker/accounts", { method: "GET", query }),
@@ -3141,8 +3165,28 @@ export const adminEndpoints = {
     adminApi<void>(`admin/activities/${id}`, { method: "DELETE" }),
   activityLink: (id: number | string) =>
     adminApi<ActivityLinkInfo>(`admin/activities/${id}/link`, { method: "GET" }),
-  activitySignups: (id: number | string, query: { page?: number; page_size?: number; status?: number } = {}) =>
-    adminApi<ActivitySignupPage>(`admin/activities/${id}/signups`, { method: "GET", query }),
+  activitySignups: (
+    id: number | string | null | undefined,
+    query: {
+      page?: number;
+      page_size?: number;
+      status?: number;
+      first_signup?: boolean;
+      gender?: string;
+      pay_status?: "free" | "paid" | "unpaid";
+      checked_in?: boolean;
+      keyword?: string;
+      search_by?: "nickname" | "phone";
+      signup_from?: string;
+      signup_to?: string;
+    } = {},
+  ) =>
+    adminApi<ActivitySignupPage>(
+      id === undefined || id === null
+        ? "admin/activity-signups"
+        : `admin/activities/${id}/signups`,
+      { method: "GET", query },
+    ),
   activitySignupStatistics: (activityId?: number) =>
     adminApi<ActivitySignupStatistics>("admin/activity-signups/statistics", {
       method: "GET",

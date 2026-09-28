@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Upload } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -65,6 +66,7 @@ export default function XixunListPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draft, setDraft] = useState<XixunDraft>(EMPTY_DRAFT);
   const [matchmakerOptions, setMatchmakerOptions] = useState<{ id: number; nickname: string }[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -83,6 +85,7 @@ export default function XixunListPage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -191,7 +194,7 @@ export default function XixunListPage() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / 20));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -230,6 +233,7 @@ export default function XixunListPage() {
           <table className="finord-table xl-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>ID</th>
                 <th>添加时间</th>
                 <th>反馈方</th>
@@ -247,7 +251,8 @@ export default function XixunListPage() {
               {rows.map((r) => {
                 const extra = r.extra ?? {};
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择喜讯 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td className="finord-id">{r.id}</td>
                     <td className="xl-time">{r.created_at ?? "-"}</td>
                     <td>{typeof extra.feedback_name === "string" ? (extra.feedback_name as string) : "-"}</td>
@@ -280,7 +285,7 @@ export default function XixunListPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={11} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                  <td colSpan={12} style={{ padding: 24, textAlign: "center", color: "#888" }}>
                     暂无喜讯，点击「添加喜讯」开始创建
                   </td>
                 </tr>
@@ -289,14 +294,7 @@ export default function XixunListPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button type="button" className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button type="button" className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {drawerOpen && (

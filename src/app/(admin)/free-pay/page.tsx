@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { pickAndUploadImage, showConfigToast, useConfigDomain } from "@/lib/platform-config";
@@ -83,6 +84,12 @@ export default function FreePayPage() {
 
   const [items, setItems] = useState<ItemContent[]>([]);
   const [orders, setOrders] = useState<ItemContent[]>([]);
+  const [itemPage, setItemPage] = useState(1);
+  const [orderPage, setOrderPage] = useState(1);
+  const [itemTotal, setItemTotal] = useState(0);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [itemSelected, setItemSelected] = useState<number[]>([]);
+  const [orderSelected, setOrderSelected] = useState<number[]>([]);
   const [itemDrawer, setItemDrawer] = useState(false);
   const [itemDraft, setItemDraft] = useState<ItemDraft>(EMPTY_ITEM);
   const [catDrawer, setCatDrawer] = useState(false);
@@ -105,33 +112,37 @@ export default function FreePayPage() {
     setRemark(typeof data.remark === "string" ? (data.remark as string) : "");
   }, [snapshot]);
 
-  const loadItems = async () => {
+  const loadItems = async (nextPage = itemPage) => {
     try {
       const resp = await adminApi<{ items: ItemContent[]; total: number }>("admin/content/free_pay_item", {
         method: "GET",
-        query: { page: 1, page_size: 50 },
+        query: { page: nextPage, page_size: 20 },
       });
       setItems(resp.items);
+      setItemTotal(resp.total);
+      setItemSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载项目失败", "error");
     }
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (nextPage = orderPage) => {
     try {
       const resp = await adminApi<{ items: ItemContent[]; total: number }>("admin/content/free_pay_order", {
         method: "GET",
-        query: { page: 1, page_size: 50 },
+        query: { page: nextPage, page_size: 20 },
       });
       setOrders(resp.items);
+      setOrderTotal(resp.total);
+      setOrderSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载订单失败", "error");
     }
   };
 
   useEffect(() => {
-    void loadItems();
-    void loadOrders();
+    void loadItems(1);
+    void loadOrders(1);
   }, []);
 
   const openCreateItem = () => {
@@ -314,19 +325,20 @@ export default function FreePayPage() {
               <table className="finord-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>项目名称</th><th>类目</th><th>金额</th>
+                    <th><input type="checkbox" aria-label="全选" checked={filteredItems.length > 0 && itemSelected.length === filteredItems.length} onChange={() => setItemSelected(itemSelected.length === filteredItems.length ? [] : filteredItems.map((it) => it.id))} /></th><th>ID</th><th>项目名称</th><th>类目</th><th>金额</th>
                     <th>推广红娘奖励</th><th>服务红娘奖励</th><th>合伙红娘分成</th><th>分店分成</th><th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredItems.length === 0 ? (
-                    <tr><td colSpan={9} className="ecl-empty"><div className="ecl-empty-inner"><div className="ecl-empty-icon">▤</div><div className="ecl-empty-text">暂无项目，点击「添加收款项目」创建</div></div></td></tr>
+                    <tr><td colSpan={10} className="ecl-empty"><div className="ecl-empty-inner"><div className="ecl-empty-icon">▤</div><div className="ecl-empty-text">暂无项目，点击「添加收款项目」创建</div></div></td></tr>
                   ) : (
                     filteredItems.map((it) => {
                       const extra = it.extra ?? {};
                       const catName = categories.find((c) => c.id === extra.category_id)?.name ?? "-";
                       return (
                         <tr key={it.id}>
+                          <td><input type="checkbox" aria-label={`选择收款项目 ${it.id}`} checked={itemSelected.includes(it.id)} onChange={() => setItemSelected((current) => current.includes(it.id) ? current.filter((id) => id !== it.id) : [...current, it.id])} /></td>
                           <td>{it.id}</td>
                           <td>{it.title}</td>
                           <td>{catName}</td>
@@ -347,6 +359,7 @@ export default function FreePayPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={itemPage} pageSize={20} total={itemTotal} onPageChange={(next) => { setItemPage(next); void loadItems(next); }} />
 
             <div className="xm-actions" style={{ marginTop: 16 }}>
               <button type="button" className="xm-submit" onClick={saveConfig}>保存类目配置</button>
@@ -365,27 +378,29 @@ export default function FreePayPage() {
               <table className="finord-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>下单时间</th><th>项目</th><th>金额</th><th>支付状态</th><th>操作</th>
+                    <th><input type="checkbox" aria-label="全选" checked={orders.length > 0 && orderSelected.length === orders.length} onChange={() => setOrderSelected(orderSelected.length === orders.length ? [] : orders.map((o) => o.id))} /></th><th>ID</th><th>下单时间</th><th>项目</th><th>金额</th><th>支付状态</th><th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.length === 0 ? (
-                    <tr><td colSpan={6} className="ecl-empty"><div className="ecl-empty-inner"><div className="ecl-empty-icon">▤</div><div className="ecl-empty-text">暂无订单</div></div></td></tr>
+                    <tr><td colSpan={7} className="ecl-empty"><div className="ecl-empty-inner"><div className="ecl-empty-icon">▤</div><div className="ecl-empty-text">暂无订单</div></div></td></tr>
                   ) : (
                     orders.map((o) => (
                       <tr key={o.id}>
+                        <td><input type="checkbox" aria-label={`选择订单 ${o.id}`} checked={orderSelected.includes(o.id)} onChange={() => setOrderSelected((current) => current.includes(o.id) ? current.filter((id) => id !== o.id) : [...current, o.id])} /></td>
                         <td>{o.id}</td>
                         <td>{o.created_at ?? "-"}</td>
                         <td>{o.title}</td>
                         <td>¥{o.amount ?? 0}</td>
                         <td>{o.status === 1 ? "已支付" : "未支付"}</td>
-                        <td><a className="finord-link" href="#">查看</a></td>
+                        <td><button type="button" className="finord-link" onClick={() => showConfigToast("订单详情接口暂未提供", "error")}>查看</button></td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={orderPage} pageSize={20} total={orderTotal} onPageChange={(next) => { setOrderPage(next); void loadOrders(next); }} />
           </>
         )}
       </div>

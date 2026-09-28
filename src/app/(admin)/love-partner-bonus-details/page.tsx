@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -29,8 +30,9 @@ export default function LovePartnerBonusDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const partnerId = useMemo(() => {
     const keyword = applied.partnerName.trim();
@@ -51,6 +53,7 @@ export default function LovePartnerBonusDetailsPage() {
       });
       setRows(result.items);
       setTotal(result.total);
+      setSelected([]);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载失败");
@@ -114,12 +117,14 @@ export default function LovePartnerBonusDetailsPage() {
           <table className="finord-table lpbd-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((d) => (
-                <tr key={d.id}>
+                <tr key={d.id} className={selected.includes(d.id) ? "selected" : undefined}>
+                  <td><input type="checkbox" aria-label={`选择分成记录 ${d.id}`} checked={selected.includes(d.id)} onChange={() => setSelected((current) => current.includes(d.id) ? current.filter((id) => id !== d.id) : [...current, d.id])} /></td>
                   <td>{d.id}</td>
                   <td className="lpbd-time">{fmt(d.created_at)}</td>
                   <td>{d.partner_name ?? `合伙人${d.partner_id}`}</td>
@@ -131,7 +136,7 @@ export default function LovePartnerBonusDetailsPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} style={{ textAlign: "center", color: "#999" }}>
+                  <td colSpan={columns.length + 1} style={{ textAlign: "center", color: "#999" }}>
                     {loading ? "加载中…" : "暂无数据"}
                   </td>
                 </tr>
@@ -140,23 +145,7 @@ export default function LovePartnerBonusDetailsPage() {
           </table>
         </div>
 
-        <div className="lpbd-pager">
-          <span
-            className="lpbd-pager-arrow"
-            style={{ cursor: page > 1 ? "pointer" : "default" }}
-            onClick={() => { if (page > 1) setPage(page - 1); }}
-          >
-            ‹
-          </span>
-          <span className="lpbd-pager-cur">{page}</span>
-          <span
-            className="lpbd-pager-arrow"
-            style={{ cursor: page < totalPages ? "pointer" : "default" }}
-            onClick={() => { if (page < totalPages) setPage(page + 1); }}
-          >
-            ›
-          </span>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         {message && <p style={{ color: "#ff4d4f", marginTop: 12 }}>{message}</p>}
       </div>
 
