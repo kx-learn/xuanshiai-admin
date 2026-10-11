@@ -42,7 +42,9 @@ export default function CustomerFollowUpPage() {
       const rows = (await adminEndpoints.memberFollowUpsOverview({
         page: nextPage,
         page_size: size,
-        search: keyword || undefined,
+        keyword: keyword || undefined,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
       })) as Page;
       setData(rows);
       setMessage("");
@@ -51,7 +53,7 @@ export default function CustomerFollowUpPage() {
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, [keyword, startDate, endDate]);
 
   useEffect(() => {
     void load(1);

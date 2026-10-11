@@ -2715,6 +2715,9 @@ export const adminEndpoints = {
   createCustomerLead: (body: JsonBody) => create("admin/customer-leads", body),
   updateCustomerLead: (id: number | string, body: JsonBody) => update(`admin/customer-leads/${id}`, body),
   customerLead: (id: number | string) => adminApi(`admin/customer-leads/${id}`),
+  convertCustomerLead: (id: number | string, body: { gender?: 1 | 2; remark?: string }) =>
+    adminApi<{ lead: Record<string, unknown>; user_id: number; review_status: "PENDING"; replayed: boolean }>(`admin/customer-leads/${id}/convert`, { method: "POST", body }),
+
   customerLeadFollowUps: (id: number | string, query: AdminListQuery = {}) => list(`admin/customer-leads/${id}/follow-ups`, query),
   createCustomerLeadFollowUp: (id: number | string, body: JsonBody) => create(`admin/customer-leads/${id}/follow-ups`, body),
   assignCustomerLead: (id: number | string, body: JsonBody) => update(`admin/customer-leads/${id}/assignment`, body),
@@ -3170,6 +3173,7 @@ export const adminEndpoints = {
     query: {
       page?: number;
       page_size?: number;
+      activity_id?: number;
       status?: number;
       first_signup?: boolean;
       gender?: string;
@@ -3180,13 +3184,15 @@ export const adminEndpoints = {
       signup_from?: string;
       signup_to?: string;
     } = {},
-  ) =>
-    adminApi<ActivitySignupPage>(
-      id === undefined || id === null
-        ? "admin/activity-signups"
-        : `admin/activities/${id}/signups`,
-      { method: "GET", query },
-    ),
+  ) => {
+    const normalizedQuery = id === undefined || id === null
+      ? query
+      : { ...query, activity_id: Number(id) };
+    return adminApi<ActivitySignupPage>("admin/activity-signups", {
+      method: "GET",
+      query: normalizedQuery,
+    });
+  },
   activitySignupStatistics: (activityId?: number) =>
     adminApi<ActivitySignupStatistics>("admin/activity-signups/statistics", {
       method: "GET",
