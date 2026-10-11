@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { FinanceOrderAdminItem, FinanceOrderAdminPage } from "@/lib/admin-endpoints";
@@ -13,23 +14,6 @@ const TAB_GROUPS: string[][] = [
   ["短视频红包", "社群缴费", "推广红娘入伙费", "合伙红娘入伙费", "商品销售", "互选活动报名", "婚况查询费", "实名认证费", "线上收款"],
 ];
 
-const PAGE_SIZE = 20;
-
-function paginationWindow(current: number, total: number): (number | "gap")[] {
-  const pages: (number | "gap")[] = [];
-  const start = Math.max(1, current - 2);
-  const end = Math.min(total, start + 4);
-  const s = Math.max(1, Math.min(start, total - 4));
-  for (let i = s; i <= end; i++) pages.push(i);
-  if (s > 1) pages.unshift(1);
-  if (s > 2) pages.splice(1, 0, "gap");
-  if (end < total) {
-    if (end < total - 1) pages.splice(pages.length, 0, "gap");
-    pages.push(total);
-  }
-  return pages;
-}
-
 function formatStat(amount: number): string {
   return `${amount.toFixed(2)}元`;
 }
@@ -37,44 +21,41 @@ function formatStat(amount: number): string {
 export default function SystemFinanceOrderPage() {
   const [activeTab, setActiveTab] = useState("全部");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [status, setStatus] = useState<string>("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [keyword, setKeyword] = useState("");
-  const [allItems, setAllItems] = useState<OrderRecord[]>([]);
+  const [items, setItems] = useState<OrderRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      // 后端不支持 product_type/name 过滤；前端本地按 tab 过滤。先拉前 200 条。
-      const query: { [k: string]: string | number | undefined } = { page: 1, page_size: 200 };
+      const query: { [k: string]: string | number | undefined } = { page, page_size: pageSize };
       if (status) query.status = status;
       if (startDate) query.start_time = startDate;
       if (endDate) query.end_time = endDate;
       if (keyword) query.order_no = keyword;
+      if (activeTab !== "全部") query.product_name = activeTab;
       const result = await adminEndpoints.financeOrders(query);
-      setAllItems(result?.items ?? []);
-      setPage(1);
+      setItems(result?.items ?? []);
+      setTotal(result?.total ?? 0);
+      setSelected([]);
     } catch (e) {
-      setAllItems([]);
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const filtered = useMemo(() => {
-    if (activeTab === "全部") return allItems;
-    return allItems.filter((r) => (r.product_name ?? "").includes(activeTab));
-  }, [allItems, activeTab]);
-
-  const totalPage = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageRecords = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => { void load(); }, [activeTab, endDate, keyword, page, pageSize, startDate, status]);
+  const filtered = items;
+  const pageRecords = items;
+  const allSelected = pageRecords.length > 0 && selected.length === pageRecords.length;
 
   // 统计卡（按当前过滤集聚合）
   const stats = useMemo(() => {
@@ -82,16 +63,16 @@ export default function SystemFinanceOrderPage() {
     const income = filtered.filter((r) => r.status === 1);
     const today = new Date().toISOString().slice(0, 10);
     const sameDay = (ts: string | null) => ts && ts.slice(0, 10) === today;
-    const total = sum(filtered);
+    const totalAmount = sum(filtered);
     return [
-      { value: formatStat(total), label: "总收入" },
+      { value: formatStat(totalAmount), label: "总收入" },
       { value: formatStat(sum(filtered.filter((r) => sameDay(r.pay_time)))), label: `今天(${today})` },
       { value: "0元", label: "昨天" },
       { value: formatStat(sum(income)), label: "本周" },
       { value: "0元", label: "上周" },
       { value: "0元", label: "本月" },
       { value: "0元", label: "上月" },
-      { value: formatStat(total), label: "今年" },
+      { value: formatStat(totalAmount), label: "今年" },
       { value: "0元", label: "去年" },
     ];
   }, [filtered]);
@@ -197,6 +178,7 @@ export default function SystemFinanceOrderPage() {
           <table className="finord-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : pageRecords.map((r) => r.id))} /></th>
                 <th>平台订单号</th>
                 <th>支付时间</th>
                 <th>下单时间</th>
@@ -212,15 +194,16 @@ export default function SystemFinanceOrderPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="finord-td-empty">加载中…</td>
+                  <td colSpan={11} className="finord-td-empty">加载中…</td>
                 </tr>
               ) : pageRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="finord-td-empty">暂无数据</td>
+                  <td colSpan={11} className="finord-td-empty">暂无数据</td>
                 </tr>
               ) : (
                 pageRecords.map((rec, idx) => (
                   <tr key={rec.id} className={page === 1 && idx === 0 ? "finord-row-active" : ""}>
+                    <td><input type="checkbox" aria-label={`选择订单 ${rec.id}`} checked={selected.includes(rec.id)} onChange={() => setSelected((current) => current.includes(rec.id) ? current.filter((id) => id !== rec.id) : [...current, rec.id])} /></td>
                     <td className="finord-td-order">{rec.order_no}</td>
                     <td>{rec.pay_time ?? "-"}</td>
                     <td>{rec.created_at ?? "-"}</td>
@@ -251,41 +234,7 @@ export default function SystemFinanceOrderPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <div className="finord-pages">
-            <button
-              className="finord-page nav"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              ‹
-            </button>
-            {paginationWindow(page, totalPage).map((p, i) =>
-              p === "gap" ? (
-                <span className="finord-page-gap" key={`gap-${i}`}>…</span>
-              ) : (
-                <button
-                  key={p}
-                  className={`finord-page ${p === page ? "active" : ""}`}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              ),
-            )}
-            <button
-              className="finord-page nav"
-              onClick={() => setPage((p) => Math.min(totalPage, p + 1))}
-              disabled={page === totalPage}
-            >
-              ›
-            </button>
-          </div>
-          <div className="finord-page-size">
-            <span>20条/页</span>
-            <span className="finord-page-size-arrow">▾</span>
-          </div>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

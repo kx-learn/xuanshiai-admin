@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -69,6 +70,7 @@ export default function ToolLovecardPage() {
   const [chipState, setChipState] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(chipGroups.map((g) => [g.id, g.defaultSelected]))
   );
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -79,6 +81,7 @@ export default function ToolLovecardPage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -134,7 +137,7 @@ export default function ToolLovecardPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -165,6 +168,7 @@ export default function ToolLovecardPage() {
           <table className="finord-table tlc-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>创建时间</th>
                 <th>项目标题</th>
                 <th>二维码类型</th>
@@ -177,14 +181,15 @@ export default function ToolLovecardPage() {
               {rows.map((r) => {
                 const extra = r.extra ?? {};
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择批量任务 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td>{(r.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
                     <td>{r.title}</td>
                     <td>{typeof extra.qrcode === "string" ? extra.qrcode : "-"}</td>
                     <td>{typeof extra.template === "string" ? extra.template : "默认"}</td>
                     <td>{typeof extra.batch === "string" ? extra.batch : "50"}</td>
                     <td>
-                      <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("下载功能敬请期待", "ok"); }}>下载</a>
+                      <button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供批量资料卡下载接口", "error")}>下载</button>
                       <span className="cs-op-sep">|</span>
                       <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void remove(r.id); }}>删除</a>
                     </td>
@@ -193,7 +198,7 @@ export default function ToolLovecardPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="ecl-empty">
+                  <td colSpan={7} className="ecl-empty">
                     <div className="ecl-empty-inner">
                       <div className="ecl-empty-icon">▤</div>
                       <div className="ecl-empty-text">暂无数据</div>
@@ -205,14 +210,7 @@ export default function ToolLovecardPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {drawer && (

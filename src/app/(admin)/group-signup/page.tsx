@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -37,6 +38,7 @@ export default function GroupSignupPage() {
   const [pay, setPay] = useState<PayKey>("不限");
   const [keyword, setKeyword] = useState("");
   const [groups, setGroups] = useState<{ id: number; title: string }[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -80,7 +82,7 @@ export default function GroupSignupPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -133,7 +135,7 @@ export default function GroupSignupPage() {
           <table className="finord-table gsm-table">
             <thead>
               <tr>
-                <th>报名时间</th>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th><th>报名时间</th>
                 <th>昵称/手机</th>
                 <th>资料完善</th>
                 <th>实名认证</th>
@@ -150,6 +152,7 @@ export default function GroupSignupPage() {
                 const extra = s.extra ?? {};
                 return (
                   <tr key={s.id}>
+                    <td><input type="checkbox" aria-label={`选择报名记录 ${s.id}`} checked={selected.includes(s.id)} onChange={() => setSelected((current) => current.includes(s.id) ? current.filter((id) => id !== s.id) : [...current, s.id])} /></td>
                     <td className="gsm-time">{(s.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
                     <td>
                       <div className="gsm-nick">{typeof extra.nick === "string" ? extra.nick : (s.title || "-")}</div>
@@ -160,7 +163,7 @@ export default function GroupSignupPage() {
                     <td>{typeof extra.group_title === "string" ? extra.group_title : (s.subtitle ?? "-")}</td>
                     <td>
                       <div className="gsm-count">{typeof extra.signup_seq === "number" ? extra.signup_seq : 1}</div>
-                      <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("历史记录敬请期待", "ok"); }}>报名历史</a>
+                      <button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供报名历史接口", "error")}>报名历史</button>
                     </td>
                     <td>{s.amount && s.amount > 0 ? `¥${(s.amount).toFixed(2)}` : "免费"}</td>
                     <td>
@@ -179,7 +182,7 @@ export default function GroupSignupPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={10} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                  <td colSpan={11} style={{ padding: 24, textAlign: "center", color: "#888" }}>
                     暂无报名记录
                   </td>
                 </tr>
@@ -188,14 +191,7 @@ export default function GroupSignupPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
     </div>
   );

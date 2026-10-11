@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -84,6 +85,7 @@ export default function SinglePagePage() {
   const [keyword, setKeyword] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draft, setDraft] = useState<PageDraft>(EMPTY_DRAFT);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx, kw = keyword) => {
     try {
@@ -94,6 +96,7 @@ export default function SinglePagePage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -206,7 +209,7 @@ export default function SinglePagePage() {
 
   const search = () => void load(1, keyword);
 
-  const totalPages = Math.max(1, Math.ceil(total / 20));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -245,6 +248,7 @@ export default function SinglePagePage() {
           <table className="finord-table sp-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>ID</th>
                 <th>页面标题</th>
                 <th>仅相亲会员可浏览</th>
@@ -258,7 +262,8 @@ export default function SinglePagePage() {
               {rows.map((row) => {
                 const extra = row.extra ?? {};
                 return (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={selected.includes(row.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择单页 ${row.id}`} checked={selected.includes(row.id)} onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])} /></td>
                     <td>{row.id}</td>
                     <td>
                       <span className="sp-title-cell">{row.title || "（未命名）"}</span>
@@ -285,7 +290,7 @@ export default function SinglePagePage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#888" }}>
                     暂无内容单页，点击「添加单页」开始创建
                   </td>
                 </tr>
@@ -294,14 +299,7 @@ export default function SinglePagePage() {
           </table>
         </div>
 
-        <div className="finord-pagination sp-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button type="button" className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1), keyword)} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button type="button" className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1), keyword)} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next, keyword)} />
       </div>
 
       {drawerOpen && (

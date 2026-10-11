@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -55,6 +56,7 @@ export default function XixunBannerPage() {
   const [pageIdx, setPageIdx] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draft, setDraft] = useState<BannerDraft>(EMPTY_DRAFT);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -65,6 +67,7 @@ export default function XixunBannerPage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -154,7 +157,7 @@ export default function XixunBannerPage() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -168,7 +171,7 @@ export default function XixunBannerPage() {
             <p>本系统中研发了锦旗在线制作功能，只需输入赠语即可快速生成一面电子锦旗</p>
             <p>红娘在与会员的日常跟进中可引导会员在平台上制作赠送"电子锦旗"，锦旗会在平台上进行展示</p>
             <p>您可以将电子锦旗自行在文印店中制作为实物锦旗悬挂于您的门店中</p>
-            <p><a className="xj-entry" href="#">在线制作锦旗入口</a></p>
+            <p><button className="xj-entry" type="button" onClick={() => showConfigToast("当前后端未提供在线制作锦旗入口接口", "error")}>在线制作锦旗入口</button></p>
           </div>
         </div>
       </div>
@@ -182,6 +185,7 @@ export default function XixunBannerPage() {
           <table className="finord-table xj-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>赠送时间</th>
                 <th>制作人</th>
                 <th>赠送人</th>
@@ -195,7 +199,8 @@ export default function XixunBannerPage() {
               {rows.map((r) => {
                 const extra = r.extra ?? {};
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择锦旗 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td className="xj-time">{(r.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
                     <td className="xj-maker">{typeof extra.maker === "string" ? extra.maker : (r.subtitle ?? "-")}</td>
                     <td>{typeof extra.giver === "string" ? extra.giver : "-"}</td>
@@ -224,7 +229,7 @@ export default function XixunBannerPage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#888" }}>
                     暂无锦旗，点击「添加锦旗」开始创建
                   </td>
                 </tr>
@@ -233,14 +238,7 @@ export default function XixunBannerPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button type="button" className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button type="button" className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {drawerOpen && (

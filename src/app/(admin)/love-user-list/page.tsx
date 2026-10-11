@@ -16,6 +16,7 @@ import {
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { Button } from "@/components/ui/button";
 import MemberDetailWorkspace from "@/components/MemberDetailWorkspace";
 import Link from "next/link";
@@ -206,9 +207,27 @@ export default function LoveUserListPage() {
     }
   }, []);
   useEffect(() => {
-    void adminApi<{ items: Matchmaker[] }>("admin/matchmaker/matchmakers", {
-      query: { page: 1, page_size: 50 },
-    }).then((result) => setMatchmakers(result.items)).catch(() => setMatchmakers([]));
+    void (async () => {
+      try {
+        const first = await adminApi<{ items: Matchmaker[]; total: number; page_size: number }>("admin/matchmaker/matchmakers", {
+          query: { page: 1, page_size: 100 },
+        });
+        const pages = Math.max(1, Math.ceil(first.total / first.page_size));
+        const rest = await Promise.all(
+          Array.from({ length: pages - 1 }, (_, index) =>
+            adminApi<{ items: Matchmaker[] }>("admin/matchmaker/matchmakers", {
+              query: { page: index + 2, page_size: first.page_size },
+            }),
+          ),
+        );
+        setMatchmakers([
+          ...first.items,
+          ...rest.flatMap((result) => result.items),
+        ]);
+      } catch {
+        setMatchmakers([]);
+      }
+    })();
   }, []);
   useEffect(() => {
     setSelectedIds([]);
@@ -1021,25 +1040,7 @@ export default function LoveUserListPage() {
             <button type="button" onClick={() => setSelectedIds([])} className="ml-auto text-[#3658f7]">取消选择</button>
           </div>
         )}
-        <div className="flex items-center justify-between py-3 text-xs text-[#8c8c8c]">
-          <span>共 {total} 条，每页 {pageSize} 条</span>
-          <div className="flex items-center gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              aria-label="上一页"
-              className="grid size-7 place-items-center border border-[#d9d9d9] text-[#595959] disabled:text-[#d9d9d9]"
-            ><span className="size-1.5 rotate-45 border-b border-l border-current" /></button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => index + 1).map((item) => <button key={item} type="button" onClick={() => setPage(item)} className={`grid size-7 place-items-center border ${page === item ? "border-[#3658f7] text-[#3658f7]" : "border-transparent text-[#595959]"}`}>{item}</button>)}
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage(page + 1)}
-              aria-label="下一页"
-              className="grid size-7 place-items-center border border-[#d9d9d9] text-[#595959] disabled:text-[#d9d9d9]"
-            ><span className="size-1.5 -rotate-45 border-r border-t border-current" /></button>
-            <label className="relative ml-2"><select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="h-7 appearance-none border border-[#d9d9d9] bg-white py-0 pl-2 pr-7 text-xs text-[#595959]"><option value={20}>20 条/页</option><option value={50}>50 条/页</option><option value={100}>100 条/页</option></select><span className="pointer-events-none absolute right-2 top-2 size-1.5 rotate-45 border-b border-r border-[#8c8c8c]" /></label>
-          </div>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </section>
       {detailMember && (
         <MemberDetailWorkspace

@@ -8,6 +8,20 @@ export type AdminListQuery = PageQuery & Record<string, string | number | undefi
 export type AdminListQueryMulti = PageQuery & Record<string, string | number | string[] | undefined>;
 export type JsonBody = Record<string, unknown>;
 export type DashboardQuery = { from?: string; to?: string };
+export type AdminTicketItem = {
+  id: number;
+  ticket_no: string;
+  submitter_name?: string | null;
+  feedback_type: "BUG" | "咨询" | "建议";
+  title: string;
+  content: string;
+  status: "待处理" | "处理中" | "已处理";
+  reply_content?: string | null;
+  replier_name?: string | null;
+  replied_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 // ─── M4 客源线索 / 会员服务类型 ────────────────────────────────────
 export interface CustomerLeadOption {
@@ -1588,6 +1602,60 @@ export interface MemberMatchQuota {
   updated_at: string | null;
 }
 
+/**
+ * 直接设置剩余牵线次数：PATCH /admin/members/{member_id}/match-quota
+ * ⚠️ 语义是**直接设置**，不是「增加/减少 N 次」，前端要自己做加减后再传目标值。
+ */
+export interface MemberMatchQuotaUpdatePayload extends Record<string, unknown> {
+  available_count: number;
+  reason: string;
+}
+
+/**
+ * 会员统一信息修改：PATCH /admin/members/{member_id}/profile（matchmaker.member.manage）
+ *
+ * 业务字段全部可选，不传的保持原值；`reason` 必填，且至少要提交一个业务字段，否则 422。
+ * 落库位置：`nickname/avatar/status/is_married/is_single_pledge` → users；
+ * `real_name/auth_status/house_verified/education_verified` → user_auth；
+ * `match_status/only_vip_can_see_detail/show_profile` → user_privacy。
+ * 同时写审计 `member.profile.update`。
+ */
+export interface MemberProfileUpdatePayload extends Record<string, unknown> {
+  /** 昵称，≤64 */
+  nickname?: string;
+  /** 头像地址，≤255 */
+  avatar?: string;
+  /** 账号状态：1 正常 / 2 冻结 / 3 注销 */
+  status?: 1 | 2 | 3;
+  /** 婚姻状态：0 未知 / 1 未婚 / 2 离异 / 3 丧偶 */
+  is_married?: 0 | 1 | 2 | 3;
+  /** 是否签署单身承诺 */
+  is_single_pledge?: boolean;
+  /** 实名姓名，≤64 */
+  real_name?: string;
+  /** 实名认证：0 未提交 / 1 审核中 / 2 已通过 / 3 未通过 */
+  auth_status?: 0 | 1 | 2 | 3;
+  /** 房产认证：0 未提交 / 1 审核中 / 2 已通过 / 3 未通过 */
+  house_verified?: 0 | 1 | 2 | 3;
+  /** 学历认证：0 未提交 / 1 审核中 / 2 已通过 / 3 未通过 */
+  education_verified?: 0 | 1 | 2 | 3;
+  /** 交友状态：1 公开展示 / 2 委托红娘 / 3 完全私密 / 4 暂停服务 / 5 已脱单 */
+  match_status?: 1 | 2 | 3 | 4 | 5;
+  /** 是否仅 VIP 可查看详细资料 */
+  only_vip_can_see_detail?: boolean;
+  /** 是否展示个人资料 */
+  show_profile?: boolean;
+  /** 修改理由，1-255，必填 */
+  reason: string;
+}
+
+export interface MemberProfileUpdateResponse {
+  user_id: number;
+  /** 本次实际修改的字段名列表 */
+  updated_fields: string[];
+  reason: string;
+}
+
 export interface MemberFollowUpSummary {
   all: number;
   today: number;
@@ -2466,6 +2534,7 @@ export interface RedPacketClaimItem {
 }
 export interface VideoHomepageItem {
   id: number;
+  user_id: number;
   nickname: string | null;
   wechat: string | null;
   bio: string | null;
@@ -2494,6 +2563,15 @@ export const adminEndpoints = {
   dashboard: (query: DashboardQuery = {}) => adminApi<AdminDashboardReport>("admin/dashboard", { method: "GET", query }),
   announcements: (query: { page?: number; page_size?: number; category?: string; keyword?: string } = {}) => adminApi<AnnouncementPage>("admin/announcements", { method: "GET", query }),
   academyCategories: () => adminApi<AcademyCategory[]>("admin/academy/categories"),
+  tickets: (query: { page?: number; page_size?: number; status?: string; feedback_type?: string; keyword?: string } = {}) =>
+    adminApi<{ items: AdminTicketItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/tickets", { method: "GET", query }),
+  ticketStatistics: () => adminApi<{ pending: number; processing: number; done: number }>("admin/tickets/statistics"),
+  createTicket: (body: { feedback_type: "BUG" | "咨询" | "建议"; title: string; content: string }) =>
+    adminApi<AdminTicketItem>("admin/tickets", { method: "POST", body }),
+  replyTicket: (id: number | string, reply_content: string) =>
+    adminApi<AdminTicketItem>(`admin/tickets/${id}/reply`, { method: "POST", body: { reply_content } }),
+  updateTicketStatus: (id: number | string, status: "待处理" | "处理中" | "已处理") =>
+    adminApi<AdminTicketItem>(`admin/tickets/${id}/status`, { method: "PATCH", body: { status } }),
   memberStatistics: (query: DashboardQuery = {}) => adminApi<MemberStatisticsReport>("admin/member-statistics", { method: "GET", query }),
   dashboardStats: () => adminApi<Record<string, unknown>>("admin/dashboard/stats"),
   adminAccounts: (query: AdminListQuery = {}) => adminApi<{ items: AdminAccountItem[]; page: number; page_size: number; total: number; has_more: boolean }>("admin/matchmaker/accounts", { method: "GET", query }),
@@ -2561,6 +2639,20 @@ export const adminEndpoints = {
    * 可与牵线记录接口并行调用。
    */
   memberMatchQuota: (id: number | string) => adminApi<MemberMatchQuota>(`admin/members/${id}/match-quota`),
+  /**
+   * 修改会员剩余牵线次数：PATCH /admin/members/{member_id}/match-quota（matchmaker.member.manage）
+   * ⚠️ **直接设置**次数，不是增减；`reason` 必填。后端行锁 + 审计 member.match_quota.update。
+   * 返回更新后的完整账户对象，可直接回填表单。
+   */
+  updateMemberMatchQuota: (id: number | string, body: MemberMatchQuotaUpdatePayload) =>
+    adminApi<MemberMatchQuota>(`admin/members/${id}/match-quota`, { method: "PATCH", body }),
+  /**
+   * 统一修改会员信息：PATCH /admin/members/{member_id}/profile（matchmaker.member.manage）
+   * 只提交要改的字段（未提交的保持原值），`reason` 必填。
+   * 返回 `updated_fields`（本次实际改动的字段名），可用于提示。
+   */
+  updateMemberProfile: (id: number | string, body: MemberProfileUpdatePayload) =>
+    adminApi<MemberProfileUpdateResponse>(`admin/members/${id}/profile`, { method: "PATCH", body }),
   /** 会员维度约会记录：status_group=all|waiting|not_met|met，另支持 status 精确过滤 */
   memberDatingRecords: (id: number | string, query: AdminListQuery = {}) =>
     list(`admin/members/${id}/dating-records`, query) as Promise<MemberDatingRecordPage>,
@@ -2623,6 +2715,9 @@ export const adminEndpoints = {
   createCustomerLead: (body: JsonBody) => create("admin/customer-leads", body),
   updateCustomerLead: (id: number | string, body: JsonBody) => update(`admin/customer-leads/${id}`, body),
   customerLead: (id: number | string) => adminApi(`admin/customer-leads/${id}`),
+  convertCustomerLead: (id: number | string, body: { gender?: 1 | 2; remark?: string }) =>
+    adminApi<{ lead: Record<string, unknown>; user_id: number; review_status: "PENDING"; replayed: boolean }>(`admin/customer-leads/${id}/convert`, { method: "POST", body }),
+
   customerLeadFollowUps: (id: number | string, query: AdminListQuery = {}) => list(`admin/customer-leads/${id}/follow-ups`, query),
   createCustomerLeadFollowUp: (id: number | string, body: JsonBody) => create(`admin/customer-leads/${id}/follow-ups`, body),
   assignCustomerLead: (id: number | string, body: JsonBody) => update(`admin/customer-leads/${id}/assignment`, body),
@@ -2993,6 +3088,30 @@ export const adminEndpoints = {
       method: "DELETE",
     }),
 
+  /*
+   * 方向化行为接口（8 个 = 4 类 × 发出/收到）。
+   * 「收到」类接口返回的 user_id 是**行为发起人**，target_user_id 才是被查询的会员本人；
+   * 「发出」类接口反过来（user_id 是本人，target_user_id 是对象）。
+   * 传 member_id 查单个会员，不传查全平台。search 全类别生效，
+   * min_times 仅浏览类生效，pay_status 仅爆灯/礼物生效。
+   */
+  behaviorBrowseHistory: (query: AdminListQuery = {}) =>
+    list(`admin/members/browse-history`, query) as Promise<MemberBehaviorPage>,
+  behaviorVisitors: (query: AdminListQuery = {}) =>
+    list(`admin/members/visitors`, query) as Promise<MemberBehaviorPage>,
+  behaviorFavorites: (query: AdminListQuery = {}) =>
+    list(`admin/members/favorites`, query) as Promise<MemberBehaviorPage>,
+  behaviorFavoritesReceived: (query: AdminListQuery = {}) =>
+    list(`admin/members/favorites/received`, query) as Promise<MemberBehaviorPage>,
+  behaviorSuperlikes: (query: AdminListQuery = {}) =>
+    list(`admin/members/superlikes`, query) as Promise<MemberBehaviorPage>,
+  behaviorSuperlikesReceived: (query: AdminListQuery = {}) =>
+    list(`admin/members/superlikes/received`, query) as Promise<MemberBehaviorPage>,
+  behaviorGifts: (query: AdminListQuery = {}) =>
+    list(`admin/members/gifts`, query) as Promise<MemberBehaviorPage>,
+  behaviorGiftsReceived: (query: AdminListQuery = {}) =>
+    list(`admin/members/gifts/received`, query) as Promise<MemberBehaviorPage>,
+
   // ─── 会员跟进全览与导入（M3-5） ──────────────────────────────
   memberFollowUpList: (
     query: { page?: number; page_size?: number; keyword?: string; intention_level?: number; start_date?: string; end_date?: string } = {},
@@ -3049,8 +3168,31 @@ export const adminEndpoints = {
     adminApi<void>(`admin/activities/${id}`, { method: "DELETE" }),
   activityLink: (id: number | string) =>
     adminApi<ActivityLinkInfo>(`admin/activities/${id}/link`, { method: "GET" }),
-  activitySignups: (id: number | string, query: { page?: number; page_size?: number; status?: number } = {}) =>
-    adminApi<ActivitySignupPage>(`admin/activities/${id}/signups`, { method: "GET", query }),
+  activitySignups: (
+    id: number | string | null | undefined,
+    query: {
+      page?: number;
+      page_size?: number;
+      activity_id?: number;
+      status?: number;
+      first_signup?: boolean;
+      gender?: string;
+      pay_status?: "free" | "paid" | "unpaid";
+      checked_in?: boolean;
+      keyword?: string;
+      search_by?: "nickname" | "phone";
+      signup_from?: string;
+      signup_to?: string;
+    } = {},
+  ) => {
+    const normalizedQuery = id === undefined || id === null
+      ? query
+      : { ...query, activity_id: Number(id) };
+    return adminApi<ActivitySignupPage>("admin/activity-signups", {
+      method: "GET",
+      query: normalizedQuery,
+    });
+  },
   activitySignupStatistics: (activityId?: number) =>
     adminApi<ActivitySignupStatistics>("admin/activity-signups/statistics", {
       method: "GET",

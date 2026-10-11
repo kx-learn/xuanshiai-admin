@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
-import { adminEndpoints, type AdminAccountItem, type JsonBody, type MemberDatingRecordItem, type RealnameReviewItem } from "@/lib/admin-endpoints";
+import { adminEndpoints, type AdminAccountItem, type AdminListQuery, type JsonBody, type MemberBehaviorItem, type MemberBehaviorPage, type MemberDatingRecordItem, type MemberMatchQuota, type MemberProfileUpdatePayload, type RealnameReviewItem } from "@/lib/admin-endpoints";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
 
 type Member = {
@@ -533,9 +533,8 @@ export default function MemberDetailWorkspace({
       calls: () => adminEndpoints.memberCallRecords(member.id!, { page: 1, page_size: 50 }),
       line: () => adminEndpoints.memberMatchRecords(member.id!, { page: 1, page_size: 50 }),
       activities: () => adminEndpoints.memberActivitySignups(member.id!, { page: 1, page_size: 50 }),
-      behavior: () => adminEndpoints.memberBehavior(member.id!, { page: 1, page_size: 50 }),
+      // behavior 由 BehaviorTab 自持拉取（8 个方向化接口），此处不再预取
       private: () => adminEndpoints.memberPrivateInfo(member.id!),
-      super: () => adminEndpoints.memberSuperInfo(member.id!),
       source: () => adminEndpoints.memberSourceRecords(member.id!, { page: 1, page_size: 50 }),
       match: () => adminEndpoints.memberRecommendations(member.id!, { page: 1, page_size: 50 }),
     };
@@ -725,16 +724,16 @@ export default function MemberDetailWorkspace({
           {tab === "line" && <LineTab memberId={member.id ?? 0} sub={lineTab} onSub={setLineTab} />}
           {tab === "dating" && <DatingTab memberId={member.id ?? 0} />}
           {tab === "activities" && <ActivitiesTab data={sectionData} loading={sectionLoading} error={sectionError} />}
-          {tab === "behavior" && <BehaviorTab sub={behaviorTab} onSub={setBehaviorTab} data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "behavior" && <BehaviorTab memberId={member.id ?? 0} sub={behaviorTab} onSub={setBehaviorTab} />}
           {tab === "super" && (
             <SuperTab
+              memberId={member.id ?? 0}
+              profile={profile}
+              realnameReview={realnameReview}
               topRecommend={topRecommend}
               newRecommend={newRecommend}
               onTopRecommend={setTopRecommend}
               onNewRecommend={setNewRecommend}
-              data={sectionData}
-              loading={sectionLoading}
-              error={sectionError}
             />
           )}
           {tab === "source" && <SourceTab data={sectionData} loading={sectionLoading} error={sectionError} />}
@@ -3185,41 +3184,220 @@ function ActivitiesTab({ data, loading, error }: { data: DetailData | DetailData
   );
 }
 
-function BehaviorTab({ sub, onSub, data, loading, error }: { sub: string; onSub: (key: string) => void; data: DetailData | DetailData[]; loading: boolean; error: string }) {
-  const records = dataItems(data);
-  const subTabs = [
-    ["viewed", "浏览过谁"],
-    ["viewedBy", "被谁浏览"],
-    ["favorite", "收藏了谁"],
-    ["liked", "给谁爆灯"],
-    ["likedBy", "谁给Ta爆灯"],
-    ["gift", "赠送礼物"],
-    ["giftGot", "收到礼物"],
-  ];
+/** 线上行为 8 个子 Tab：4 类 × 发出 / 收到 */
+const BEHAVIOR_SUBS: { key: string; label: string; peer: "target" | "user"; peerLabel: string }[] = [
+  { key: "viewed", label: "浏览过谁", peer: "target", peerLabel: "浏览了谁" },
+  { key: "viewedBy", label: "被谁浏览", peer: "user", peerLabel: "浏览人" },
+  { key: "favorite", label: "收藏了谁", peer: "target", peerLabel: "收藏了谁" },
+  { key: "favoriteGot", label: "谁收藏我", peer: "user", peerLabel: "收藏人" },
+  { key: "liked", label: "给谁爆灯", peer: "target", peerLabel: "爆灯对象" },
+  { key: "likedBy", label: "谁给Ta爆灯", peer: "user", peerLabel: "爆灯人" },
+  { key: "gift", label: "赠送礼物", peer: "target", peerLabel: "赠送对象" },
+  { key: "giftGot", label: "收到礼物", peer: "user", peerLabel: "赠送人" },
+];
+
+/** 每个子 Tab 对应的方向化接口，member_id 由组件内部注入 */
+const BEHAVIOR_LOADERS: Record<
+  string,
+  (memberId: number | string, query: AdminListQuery) => Promise<MemberBehaviorPage>
+> = {
+  viewed: (id, query) => adminEndpoints.behaviorBrowseHistory({ ...query, member_id: id }),
+  viewedBy: (id, query) => adminEndpoints.behaviorVisitors({ ...query, member_id: id }),
+  favorite: (id, query) => adminEndpoints.behaviorFavorites({ ...query, member_id: id }),
+  favoriteGot: (id, query) => adminEndpoints.behaviorFavoritesReceived({ ...query, member_id: id }),
+  liked: (id, query) => adminEndpoints.behaviorSuperlikes({ ...query, member_id: id }),
+  likedBy: (id, query) => adminEndpoints.behaviorSuperlikesReceived({ ...query, member_id: id }),
+  gift: (id, query) => adminEndpoints.behaviorGifts({ ...query, member_id: id }),
+  giftGot: (id, query) => adminEndpoints.behaviorGiftsReceived({ ...query, member_id: id }),
+};
+
+const BEHAVIOR_TIME_LABEL: Record<string, string> = {
+  viewed: "浏览时间",
+  viewedBy: "浏览时间",
+  favorite: "收藏时间",
+  favoriteGot: "收藏时间",
+  liked: "爆灯时间",
+  likedBy: "爆灯时间",
+  gift: "赠送时间",
+  giftGot: "收到时间",
+};
+
+/**
+ * 会员详情「线上行为」。
+ *
+ * 「发出」类接口（浏览过谁/收藏了谁/给谁爆灯/赠送礼物）返回的 user_id 是本人；
+ * 「收到」类接口（被谁浏览/谁收藏我/谁给Ta爆灯/收到礼物）返回的 user_id 是**行为发起人**，
+ * target_user_id 才是本人。所以「对方是谁」要按方向取不同字段，见 peerText()。
+ */
+function BehaviorTab({ memberId, sub, onSub }: { memberId: number | string; sub: string; onSub: (key: string) => void }) {
+  const pageSize = 20;
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<MemberBehaviorItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async (targetSub: string, targetPage: number) => {
+    const loader = BEHAVIOR_LOADERS[targetSub];
+    if (!memberId || !loader) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await loader(memberId, { page: targetPage, page_size: pageSize });
+      setRows(Array.isArray(res?.items) ? res.items : []);
+      setTotal(Number(res?.total ?? 0));
+      setPage(targetPage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "线上行为加载失败");
+      setRows([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 切换会员或子 Tab 时回到第 1 页
+  useEffect(() => {
+    void load(sub, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberId, sub]);
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, pageCount);
+
+  const meta = BEHAVIOR_SUBS.find((item) => item.key === sub) ?? BEHAVIOR_SUBS[0];
+  const timeLabel = BEHAVIOR_TIME_LABEL[meta.key] ?? "时间";
+  const isBrowse = meta.key === "viewed" || meta.key === "viewedBy";
+  const isFavorite = meta.key === "favorite" || meta.key === "favoriteGot";
+  const isSuperlike = meta.key === "liked" || meta.key === "likedBy";
+
+  /** 对方是谁：发出类取 target_*，收到类取发起人 user_* */
+  const peerText = (record: MemberBehaviorItem) => {
+    const nick = meta.peer === "user" ? record.nickname : record.target_nickname;
+    const code = meta.peer === "user" ? record.member_code : record.target_member_code;
+    const id = meta.peer === "user" ? record.user_id : record.target_user_id;
+    return `${nick || "—"}（编号：${code || id || "—"}）`;
+  };
+
+  const headers = isBrowse
+    ? [meta.peerLabel, "第几次浏览", timeLabel]
+    : isFavorite
+      ? [meta.peerLabel, timeLabel]
+      : isSuperlike
+        ? [meta.peerLabel, "支付金额", "支付状态", "支付方式", "订单号", "状态", timeLabel]
+        : ["礼物", "数量", meta.peerLabel, "消耗积分", "实付金额", "奖励积分", "支付状态", timeLabel];
+
+  const renderRow = (record: MemberBehaviorItem, index: number) => (
+    <tr key={String(record.event_id ?? index)}>
+      {isBrowse && (
+        <>
+          <td>{peerText(record)}</td>
+          <td>第{record.browse_times ?? 1}次</td>
+          <td>{dataValue(record.occurred_at)}</td>
+        </>
+      )}
+      {isFavorite && (
+        <>
+          <td>{peerText(record)}</td>
+          <td>{dataValue(record.occurred_at)}</td>
+        </>
+      )}
+      {isSuperlike && (
+        <>
+          <td>{peerText(record)}</td>
+          <td>{dataValue(record.amount)}</td>
+          <td>{dataValue(record.pay_status_label)}</td>
+          <td>{dataValue(record.pay_method)}</td>
+          <td>{dataValue(record.order_no)}</td>
+          <td>{dataValue(record.event_status_label)}</td>
+          <td>{dataValue(record.occurred_at)}</td>
+        </>
+      )}
+      {!isBrowse && !isFavorite && !isSuperlike && (
+        <>
+          <td>{dataValue(record.gift_name)}</td>
+          <td>{`${dataValue(record.gift_qty)}${record.qty_unit ?? ""}`}</td>
+          <td>{peerText(record)}</td>
+          <td>{dataValue(record.point_cost)}</td>
+          <td>{dataValue(record.paid_amount)}</td>
+          <td>{dataValue(record.reward_points)}</td>
+          <td>{dataValue(record.pay_status_label)}</td>
+          <td>{dataValue(record.occurred_at)}</td>
+        </>
+      )}
+    </tr>
+  );
+
   return (
     <>
-      <div className="mdt-subtabs">
-        {subTabs.map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            className={"mdt-subtab" + (sub === key ? " active" : "")}
-            onClick={() => onSub(key)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="mdt-line-head">
+        <div className="mdt-subtabs" style={{ border: 0, margin: 0, flexWrap: "wrap" }}>
+          {BEHAVIOR_SUBS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={"mdt-subtab" + (sub === item.key ? " active" : "")}
+              onClick={() => onSub(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        {total > 0 && <span className="mdt-line-left">共 {total} 条</span>}
       </div>
-      <table className="mdt-table">
-        <thead>
-          <tr>
-            {["浏览过谁", "第几次浏览", "浏览时间", "操作"].map((h) => (
-              <th key={h}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-      </table>
-      <ApiState loading={loading} error={error}>{records.length === 0 ? <Empty /> : <table className="mdt-table"><tbody>{records.map((record, index) => <tr key={String(record.event_id ?? record.id ?? index)}><td>{dataValue(record.target_nickname ?? record.nickname)}</td><td>{dataValue(record.browse_times ?? record.detail)}</td><td>{dataValue(record.occurred_at ?? record.created_at)}</td><td>{dataValue(record.event_type ?? record.category)}</td></tr>)}</tbody></table>}</ApiState>
+      <ApiState loading={loading} error={error}>
+        {rows.length === 0 ? (
+          <Empty text="暂无线上行为记录" />
+        ) : (
+          <>
+            <table className="mdt-table">
+              <thead>
+                <tr>
+                  {headers.map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>{rows.map(renderRow)}</tbody>
+            </table>
+            {pageCount > 1 && (
+              <div className="mdt-pager">
+                <span className="mdt-pager-total">共 {total} 条</span>
+                <button
+                  type="button"
+                  className="au-page-btn"
+                  disabled={safePage <= 1}
+                  onClick={() => void load(sub, Math.max(1, safePage - 1))}
+                >
+                  <i className="au-chevron left" />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .filter((n) => n === 1 || n === pageCount || Math.abs(n - safePage) <= 1)
+                  .map((n, i, arr) => (
+                    <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      {i > 0 && arr[i - 1] !== n - 1 && <span className="mdt-pager-total">…</span>}
+                      <button
+                        type="button"
+                        className={"au-page-num" + (n === safePage ? " active" : "")}
+                        onClick={() => void load(sub, n)}
+                      >
+                        {n}
+                      </button>
+                    </span>
+                  ))}
+                <button
+                  type="button"
+                  className="au-page-btn"
+                  disabled={safePage >= pageCount}
+                  onClick={() => void load(sub, Math.min(pageCount, safePage + 1))}
+                >
+                  <i className="au-chevron right" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </ApiState>
     </>
   );
 }
@@ -3228,29 +3406,170 @@ function BehaviorTab({ sub, onSub, data, loading, error }: { sub: string; onSub:
 /* 超级管理                                                            */
 /* ------------------------------------------------------------------ */
 
+/** 认证状态 4 档；**数组下标即接口枚举值**（0 未提交 / 1 审核中 / 2 已通过 / 3 未通过） */
+const CERT_STATUS_OPTIONS = ["未认证", "待审核", "已认证", "认证失败"];
+/** 认证枚举值 → 界面文案；非法值返回空串（空串表示「未选择 / 不修改」） */
+const certStatusLabel = (value: unknown) => {
+  const index = Number(value);
+  return Number.isInteger(index) && index >= 0 && index < CERT_STATUS_OPTIONS.length ? CERT_STATUS_OPTIONS[index] : "";
+};
+/** 界面文案 → 认证枚举值 */
+const certStatusValue = (label: string) => CERT_STATUS_OPTIONS.indexOf(label);
+
 function SuperTab({
+  memberId,
+  profile,
+  realnameReview,
   topRecommend,
   newRecommend,
   onTopRecommend,
   onNewRecommend,
-  data,
-  loading,
-  error,
 }: {
+  memberId: number;
+  profile: DetailData;
+  realnameReview: RealnameReviewItem | null;
   topRecommend: boolean;
   newRecommend: boolean;
   onTopRecommend: (value: boolean) => void;
   onNewRecommend: (value: boolean) => void;
-  data: DetailData | DetailData[];
-  loading: boolean;
-  error: string;
 }) {
-  const info = Array.isArray(data) ? {} : data;
+  /* ── 认证类字段 → PATCH /admin/members/{id}/profile ──────────────── */
+  const [authStatus, setAuthStatus] = useState("");
+  const [houseStatus, setHouseStatus] = useState("");
+  const [eduStatus, setEduStatus] = useState("");
+  const [singlePledge, setSinglePledge] = useState("");
+  const [realName, setRealName] = useState("");
+  const [profileReason, setProfileReason] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+  /** 各字段的已加载原值，用于 diff：**只提交真正改动过的字段**，未改的不发、后端也就不会动 */
+  const [initial, setInitial] = useState({ authStatus: "", houseStatus: "", eduStatus: "", realName: "" });
+
+  /* ── 牵线次数 → PATCH /admin/members/{id}/match-quota ───────────── */
+  const [quota, setQuota] = useState<MemberMatchQuota | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(true);
+  const [quotaCount, setQuotaCount] = useState("");
+  const [quotaReason, setQuotaReason] = useState("");
+  const [savingQuota, setSavingQuota] = useState(false);
+  const [quotaMessage, setQuotaMessage] = useState("");
+  const [quotaError, setQuotaError] = useState("");
+
+  /** 认证详情（房产/学历）与牵线次数互不依赖，并行拉取 */
+  useEffect(() => {
+    if (!memberId) return;
+    let cancelled = false;
+    void adminEndpoints
+      .memberCertifications(memberId)
+      .then((result) => {
+        if (cancelled) return;
+        const house = certStatusLabel(result?.house?.status);
+        const education = certStatusLabel(result?.education?.status);
+        setHouseStatus(house);
+        setEduStatus(education);
+        setInitial((prev) => ({ ...prev, houseStatus: house, eduStatus: education }));
+      })
+      .catch(() => {
+        /* 认证详情取不到时置空即可：空值在提交阶段被当作「不修改」 */
+      });
+    void adminEndpoints
+      .memberMatchQuota(memberId)
+      .then((result) => {
+        if (cancelled) return;
+        setQuota(result);
+        setQuotaCount(String(result.available_count));
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setQuotaError(error instanceof Error ? error.message : "剩余次数加载失败");
+      })
+      .finally(() => {
+        if (!cancelled) setQuotaLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [memberId]);
+
+  /* 实名认证状态来自会员详情，姓名来自实名审核记录 */
+  useEffect(() => {
+    const label = certStatusLabel(profile.auth_status);
+    setAuthStatus(label);
+    setInitial((prev) => ({ ...prev, authStatus: label }));
+  }, [profile.auth_status]);
+
+  useEffect(() => {
+    const name = realnameReview?.real_name ?? "";
+    setRealName(name);
+    setInitial((prev) => ({ ...prev, realName: name }));
+  }, [realnameReview]);
+
+  const submitProfile = async () => {
+    if (!memberId) return;
+    const reason = profileReason.trim();
+    if (!reason) {
+      setProfileError("请填写修改理由");
+      setProfileMessage("");
+      return;
+    }
+    const body: MemberProfileUpdatePayload = { reason };
+    // 界面值为空 = 用户没动这个字段；与原值相同也不提交
+    if (authStatus && authStatus !== initial.authStatus) body.auth_status = certStatusValue(authStatus) as 0 | 1 | 2 | 3;
+    if (houseStatus && houseStatus !== initial.houseStatus) body.house_verified = certStatusValue(houseStatus) as 0 | 1 | 2 | 3;
+    if (eduStatus && eduStatus !== initial.eduStatus) body.education_verified = certStatusValue(eduStatus) as 0 | 1 | 2 | 3;
+    if (singlePledge) body.is_single_pledge = singlePledge === "是";
+    if (realName.trim() && realName.trim() !== initial.realName) body.real_name = realName.trim();
+    if (Object.keys(body).length <= 1) {
+      setProfileError("没有需要提交的修改");
+      setProfileMessage("");
+      return;
+    }
+    setSavingProfile(true);
+    setProfileError("");
+    setProfileMessage("");
+    try {
+      const result = await adminEndpoints.updateMemberProfile(memberId, body);
+      setProfileMessage(`已保存，本次修改 ${result.updated_fields.length} 项：${result.updated_fields.join("、")}`);
+      setInitial({ authStatus, houseStatus, eduStatus, realName: realName.trim() });
+      setProfileReason("");
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "保存失败，请稍后重试");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const submitQuota = async () => {
+    if (!memberId) return;
+    const count = Number(quotaCount);
+    if (quotaCount.trim() === "" || !Number.isInteger(count) || count < 0 || count > 1000000) {
+      setQuotaError("剩余次数需为 0-1000000 的整数");
+      setQuotaMessage("");
+      return;
+    }
+    const reason = quotaReason.trim();
+    if (!reason) {
+      setQuotaError("请填写修改理由");
+      setQuotaMessage("");
+      return;
+    }
+    setSavingQuota(true);
+    setQuotaError("");
+    setQuotaMessage("");
+    try {
+      const result = await adminEndpoints.updateMemberMatchQuota(memberId, { available_count: count, reason });
+      setQuota(result);
+      setQuotaCount(String(result.available_count));
+      setQuotaReason("");
+      setQuotaMessage(`已保存：剩余 ${result.available_count} 次（已用 ${result.used_count} 次、已退 ${result.refunded_count} 次）`);
+    } catch (error) {
+      setQuotaError(error instanceof Error ? error.message : "保存失败，请稍后重试");
+    } finally {
+      setSavingQuota(false);
+    }
+  };
+
   return (
     <div className="mdt-stack">
-      <ApiState loading={loading} error={error}>
-        {Object.keys(info).length > 0 && <div className="mdt-notice">已加载超级管理数据：{Object.entries(info).filter(([key]) => !["id", "user_id"].includes(key)).slice(0, 6).map(([key, value]) => `${key}：${dataValue(value)}`).join("；")}</div>}
-      </ApiState>
       <Field label="账号绑定" required>
         <span className="mdt-bind">
           <span className="mdt-bind-tag">
@@ -3290,27 +3609,33 @@ function SuperTab({
       <div className="mdt-super-row">
         <span className="mdt-label">实名认证</span>
         <span className="mdt-control" style={{ flexWrap: "wrap" }}>
-          <Radios name="mdt-super-real" options={["未认证", "已认证"]} value="已认证" />
+          <Radios name="mdt-super-real" options={CERT_STATUS_OPTIONS} value={authStatus} onChange={setAuthStatus} />
+          {/* 地区与身份证号这两个接口未覆盖，保持占位展示 */}
           <Sel value="中国大陆" options={["中国大陆", "中国香港", "中国澳门", "中国台湾"]} />
           <span className="mdt-inline-label">
             <b>*</b>实名信息
           </span>
-          <Inp value="330225200512291779" />
+          <Inp value={realnameReview?.id_card_masked ?? ""} readOnly />
           <span className="mdt-inline-label">姓名</span>
-          <Inp value="薛家乐" />
+          <Inp value={realName} onChange={setRealName} placeholder="实名姓名" />
         </span>
       </div>
 
-      {[
-        ["房产认证", "mdt-super-house"],
-        ["学历认证", "mdt-super-edu"],
-        ["单身承诺", "mdt-super-promise"],
-      ].map(([label, name]) => (
-        <div key={label} className="mdt-super-row">
-          <span className="mdt-label">{label}</span>
-          <Radios name={name} options={["未认证", "已认证", "待审核", "认证失败"]} value="未认证" />
-        </div>
-      ))}
+      <div className="mdt-super-row">
+        <span className="mdt-label">房产认证</span>
+        <Radios name="mdt-super-house" options={CERT_STATUS_OPTIONS} value={houseStatus} onChange={setHouseStatus} />
+      </div>
+
+      <div className="mdt-super-row">
+        <span className="mdt-label">学历认证</span>
+        <Radios name="mdt-super-edu" options={CERT_STATUS_OPTIONS} value={eduStatus} onChange={setEduStatus} />
+      </div>
+
+      <div className="mdt-super-row">
+        <span className="mdt-label">单身承诺</span>
+        {/* 接口字段 is_single_pledge 是布尔，因此这里用「否 / 是」两档 */}
+        <Radios name="mdt-super-promise" options={["否", "是"]} value={singlePledge} onChange={setSinglePledge} />
+      </div>
 
       <div className="mdt-super-row">
         <span className="mdt-label">线上VIP</span>
@@ -3330,18 +3655,31 @@ function SuperTab({
       <div className="mdt-super-row">
         <span className="mdt-label">牵线剩余</span>
         <span className="mdt-control" style={{ flexWrap: "wrap", gap: 12 }}>
-          <span className="mdt-none">0次</span>
+          <span className="mdt-none">{quotaLoading ? "加载中…" : quota ? `当前 ${quota.available_count} 次` : "—"}</span>
+          {/* 有效期这两个接口未覆盖，保持占位展示 */}
           <span className="mdt-inline-label">有效期至:</span>
           <Inp value="2026-09-02" type="date" />
-          <span className="mdt-inline-label">增加</span>
-          <Inp value="0" />
+          {/* 接口语义是「直接设置剩余次数」，因此用「设为」而不是「增加」 */}
+          <span className="mdt-inline-label">设为</span>
+          <Inp value={quotaCount} onChange={setQuotaCount} placeholder="0" />
           <span className="mdt-none">次</span>
-          <Inp placeholder="填写理由，20字内" />
+          <Inp value={quotaReason} onChange={setQuotaReason} placeholder="填写理由，必填" />
+          <button
+            type="button"
+            className="mdt-submit"
+            style={{ marginTop: 0, height: 32, padding: "0 14px" }}
+            disabled={savingQuota || quotaLoading}
+            onClick={() => void submitQuota()}
+          >
+            {savingQuota ? "保存中…" : "保存次数"}
+          </button>
           <button type="button" className="mdt-link">
             历史明细
           </button>
         </span>
       </div>
+      {quotaError ? <Notice>次数保存失败：{quotaError}</Notice> : null}
+      {quotaMessage ? <Notice>{quotaMessage}</Notice> : null}
 
       <div className="mdt-super-row">
         <span className="mdt-label">隐私设置</span>
@@ -3362,6 +3700,16 @@ function SuperTab({
       <Notice>
         设置推广红娘后，该会员将计入到该推广红娘名下，如果该会员是审核通过状态，则自动在此刻给予注册奖励，若是未通过状态，则在下面的收费期都会给予该红娘相应的分成
       </Notice>
+
+      {/* 认证类字段统一提交：PATCH /admin/members/{id}/profile */}
+      <Field label="修改理由" required>
+        <Inp value={profileReason} onChange={setProfileReason} placeholder="填写本次修改理由，必填" />
+      </Field>
+      {profileError ? <Notice>提交失败：{profileError}</Notice> : null}
+      {profileMessage ? <Notice>{profileMessage}</Notice> : null}
+      <button type="button" className="mdt-submit" style={{ marginTop: 18 }} disabled={savingProfile} onClick={() => void submitProfile()}>
+        {savingProfile ? "提交中…" : "确定提交"}
+      </button>
     </div>
   );
 }

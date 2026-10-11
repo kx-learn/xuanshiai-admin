@@ -48,11 +48,11 @@ function EditModal({ row, onClose, onSaved }: { row: AccountRow; onClose: () => 
   const save = async () => {
     setBusy(true);
     try {
-      await adminApi(`/admin/matchmaker/accounts/${row.id}`, { method: "PATCH", body: JSON.stringify({ display_name: name }) });
+      await adminApi(`/admin/matchmaker/accounts/${row.id}`, { method: "PATCH", body: { display_name: name } });
       if (pwd.length >= 8) {
         await adminApi(`/admin/matchmaker/accounts/${row.id}/reset-password`, {
           method: "POST",
-          body: JSON.stringify({ new_password: pwd, reason: "账号管理页重置密码" }),
+          body: { new_password: pwd, reason: "账号管理页重置密码" },
         });
       }
       showConfigToast("保存成功");
@@ -121,7 +121,7 @@ export default function Page() {
     try {
       await adminApi(`/admin/matchmaker/accounts/${row.id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: 2, reason: "账号管理页停用" }),
+        body: { status: 2, reason: "账号管理页停用" },
       });
       showConfigToast("已停用");
       load();

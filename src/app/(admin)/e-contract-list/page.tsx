@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 
 const breadcrumb = [
@@ -33,29 +34,34 @@ export default function EContractListPage() {
   const [loading, setLoading] = useState(false);
   const [searchField, setSearchField] = useState("member");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await adminEndpoints.listContent("econtract_record", {
-        page: 1,
-        page_size: 50,
-        keyword,
+        page,
+        page_size: pageSize,
+        keyword: keyword || undefined,
       });
       const items = (data.items ?? []) as ContractRow[];
       setRows(items);
       setTotal(data.total ?? items.length);
+      setSelected([]);
     } catch {
       setRows([]);
       setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, [keyword, page, pageSize, searchField]);
 
   useEffect(() => {
     void load();
   }, [load]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -125,6 +131,7 @@ export default function EContractListPage() {
           <table className="finord-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>ID</th>
                 <th>会员</th>
                 <th>合同名称</th>
@@ -137,7 +144,7 @@ export default function EContractListPage() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="ecl-empty">
+                  <td colSpan={8} className="ecl-empty">
                     <div className="ecl-empty-inner">
                       <div className="ecl-empty-icon">▤</div>
                       <div className="ecl-empty-text">{loading ? "加载中..." : "暂无数据"}</div>
@@ -147,6 +154,7 @@ export default function EContractListPage() {
               ) : (
                 rows.map((r) => (
                   <tr key={r.id}>
+                    <td><input type="checkbox" aria-label={`选择合同 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                     <td>{r.id}</td>
                     <td>{r.member_name}</td>
                     <td>{r.contract_name}</td>
@@ -167,6 +175,7 @@ export default function EContractListPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

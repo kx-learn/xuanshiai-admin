@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -51,6 +52,7 @@ export default function GenerateToolPage() {
   const [tasks, setTasks] = useState<TaskContent[]>([]);
   const [total, setTotal] = useState(0);
   const [pageIdx, setPageIdx] = useState(1);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -61,6 +63,7 @@ export default function GenerateToolPage() {
       setTasks(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -108,8 +111,6 @@ export default function GenerateToolPage() {
       showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
     }
   };
-
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
 
   return (
     <div>
@@ -208,9 +209,7 @@ export default function GenerateToolPage() {
 
             <div className="twt-pager">
               <span className="twt-pager-total">共 {total} 条历史任务</span>
-              <button className="twt-pager-arrow" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-              <span className="twt-pager-cur">{pageIdx} / {totalPages}</span>
-              <button className="twt-pager-arrow" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
+              <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
             </div>
 
             <button type="button" className="twt-submit" onClick={generate}>生成模版</button>
@@ -222,7 +221,7 @@ export default function GenerateToolPage() {
                   <div key={t.id} className="twt-history-row">
                     <span className="twt-history-name">{t.title}</span>
                     <span className="twt-history-time">{(t.created_at ?? "").replace("T", " ").slice(0, 19)}</span>
-                    <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("已复制到剪贴板", "ok"); }}>复制</a>
+                    <button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未返回可复制的推文正文", "error")}>复制</button>
                     <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void remove(t.id); }}>删除</a>
                   </div>
                 ))}

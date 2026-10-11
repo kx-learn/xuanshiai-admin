@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type VideoHomepageItem } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -14,20 +15,30 @@ export default function ShortVideoHomepagePage() {
   const [rows, setRows] = useState<VideoHomepageItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [checked, setChecked] = useState<number[]>([]);
 
-  const load = useCallback(async (kw = keyword) => {
+  const load = useCallback(async (kw = keyword, nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const res = await adminEndpoints.videoHomepageList({ page: 1, page_size: 50, keyword: kw || undefined });
+      const res = await adminEndpoints.videoHomepageList({ page: nextPage, page_size: nextPageSize, keyword: kw || undefined });
       setRows(res.items);
+      setTotal(res.total);
+      setChecked([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, [keyword, page, pageSize]);
 
-  useEffect(() => { load(""); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(keyword, page, pageSize); }, [load, keyword, page, pageSize]);
+
+  const allChecked = rows.length > 0 && checked.length === rows.length;
+  const toggleHead = () => setChecked(allChecked ? [] : rows.map((r) => r.id));
+  const toggleRow = (id: number) => setChecked((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
 
   const toggleCertified = async (r: VideoHomepageItem) => {
     const next = !r.certified;
@@ -59,7 +70,7 @@ export default function ShortVideoHomepagePage() {
     try {
       await adminEndpoints.deleteVideoHomepage(r.id);
       showConfigToast("删除成功", "ok");
-      load();
+      void load(keyword, page, pageSize);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "删除失败", "error");
     }
@@ -81,6 +92,7 @@ export default function ShortVideoHomepagePage() {
           <table className="finord-table svh-table">
             <thead>
               <tr>
+                <th className="svh-col-check"><input type="checkbox" checked={allChecked} onChange={toggleHead} aria-label="全选" /></th>
                 <th>ID</th>
                 <th>会员昵称</th>
                 <th>微信号</th>
@@ -98,6 +110,7 @@ export default function ShortVideoHomepagePage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
+                  <td className="svh-col-check"><input type="checkbox" checked={checked.includes(r.id)} onChange={() => toggleRow(r.id)} aria-label={`选择会员主页 ${r.id}`} /></td>
                   <td className="svh-id">{r.id}</td>
                   <td className="svh-nick">{r.nickname || "-"}</td>
                   <td className={r.wechat ? "" : "svh-empty"}>{r.wechat || "-"}</td>
@@ -115,7 +128,7 @@ export default function ShortVideoHomepagePage() {
                   <td className="svh-time">{fmt(r.created_at)}</td>
                   <td>
                     <div className="svh-ops">
-                      <a className="finord-link">预览主页</a>
+                      <a className="finord-link" href={`/member/${r.user_id}`} target="_blank" rel="noreferrer">预览主页</a>
                       <a className="finord-link" onClick={() => editProfile(r)}>编辑资料</a>
                       <a className="finord-link svh-op-del" onClick={() => deleteRow(r)}>删除</a>
                     </div>
@@ -123,17 +136,19 @@ export default function ShortVideoHomepagePage() {
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={12} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>暂无数据</td></tr>
+                <tr><td colSpan={13} style={{ textAlign: "center", padding: "32px 0", color: "#98a2b3" }}>暂无数据</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div className="svh-pager">
-          <span className="svh-pager-arrow">‹</span>
-          <span className="svh-pager-cur">1</span>
-          <span className="svh-pager-arrow">›</span>
-        </div>
+        <AdminPagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(next) => setPage(next)}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       </div>
     </div>
   );

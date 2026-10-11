@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Download, Upload } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -89,6 +90,7 @@ export default function LoveUserFollowUpPage() {
   const [summary, setSummary] = useState<MemberFollowUpSummary>(emptySummary);
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<MemberFollowUpRow | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const dateRange = useMemo(() => rangeToDates(range), [range]);
   const effectiveStart = from || dateRange.start;
@@ -127,7 +129,7 @@ export default function LoveUserFollowUpPage() {
   useEffect(() => { void loadRows(); }, [loadRows]);
   useEffect(() => { void loadSummary(); }, [loadSummary]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div className="member-followup-page">
@@ -211,6 +213,7 @@ export default function LoveUserFollowUpPage() {
           <table className="member-followup-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>跟进会员</th>
                 <th>跟进红娘</th>
                 <th>跟进时间</th>
@@ -220,11 +223,12 @@ export default function LoveUserFollowUpPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="member-followup-empty">加载中…</td></tr>
+                <tr><td colSpan={6} className="member-followup-empty">加载中…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={5} className="member-followup-empty">暂无数据</td></tr>
+                <tr><td colSpan={6} className="member-followup-empty">暂无数据</td></tr>
               ) : rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className={selected.includes(row.id) ? "selected" : undefined}>
+                  <td><input type="checkbox" aria-label={`选择跟进记录 ${row.id}`} checked={selected.includes(row.id)} onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])} /></td>
                   <td className="member-followup-member">
                     <div className="member-followup-member-cell">
                       {row.avatar ? (
@@ -255,38 +259,7 @@ export default function LoveUserFollowUpPage() {
           </table>
         </div>
 
-        <footer className="member-followup-pagination">
-          <span>共 {total} 条</span>
-          <div>
-            <button
-              type="button"
-              aria-label="上一页"
-              className="pagination-arrow previous"
-              disabled={page <= 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-            ><i /></button>
-            <button type="button" className="pagination-number active">{page}</button>
-            <button
-              type="button"
-              aria-label="下一页"
-              className="pagination-arrow next"
-              disabled={page >= totalPages}
-              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-            ><i /></button>
-            <label className="member-followup-page-size">
-              <select
-                aria-label="每页条数"
-                value={pageSize}
-                onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}
-              >
-                <option value="20">20 条/页</option>
-                <option value="50">50 条/页</option>
-                <option value="100">100 条/页</option>
-              </select>
-              <i />
-            </label>
-          </div>
-        </footer>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </section>
 
       {profile && (

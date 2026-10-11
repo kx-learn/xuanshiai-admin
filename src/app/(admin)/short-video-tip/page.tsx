@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type VideoTipItem } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -33,21 +34,29 @@ export default function ShortVideoTipPage() {
   const [loading, setLoading] = useState(false);
   const [searchBy, setSearchBy] = useState("video");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const res = await adminEndpoints.videoTipList({ page: 1, page_size: 50, search_by: searchBy, keyword: keyword || undefined });
+      const res = await adminEndpoints.videoTipList({ page: nextPage, page_size: nextPageSize, search_by: searchBy, keyword: keyword || undefined });
       setRows(res.items);
       setTotalAmount(res.total_amount ?? "0");
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [searchBy, keyword]);
+  }, [page, pageSize, searchBy, keyword]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(page, pageSize); }, [load, page, pageSize]);
+
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -74,14 +83,14 @@ export default function ShortVideoTipPage() {
           <table className="finord-table svt-table">
             <thead>
               <tr>
-                <th className="svt-col-check"><input type="checkbox" className="svt-check" /></th>
+                <th className="svt-col-check"><input type="checkbox" className="svt-check" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c.key}>{c.label}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="svt-col-check"><input type="checkbox" className="svt-check" /></td>
+                  <td className="svt-col-check"><input type="checkbox" className="svt-check" checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                   <td>{r.id}</td>
                   <td>{r.video_description || r.video_id}</td>
                   <td>{r.tipper_nickname || r.tipper_user_id}</td>
@@ -109,6 +118,7 @@ export default function ShortVideoTipPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

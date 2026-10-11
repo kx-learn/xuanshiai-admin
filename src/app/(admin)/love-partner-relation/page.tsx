@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { PartnerRelationItem, PartnerTeamOption } from "@/lib/admin-endpoints";
@@ -27,8 +28,9 @@ export default function LovePartnerRelationPage() {
   const [message, setMessage] = useState("");
   const [bindOpen, setBindOpen] = useState(false);
   const [bindTarget, setBindTarget] = useState<PartnerRelationItem | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +43,7 @@ export default function LovePartnerRelationPage() {
       });
       setRows(result.items);
       setTotal(result.total);
+      setSelected([]);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载失败");
@@ -121,12 +124,14 @@ export default function LovePartnerRelationPage() {
           <table className="finord-table lpr-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} className={selected.includes(r.id) ? "selected" : undefined}>
+                  <td><input type="checkbox" aria-label={`选择团队关系 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} /></td>
                   <td>{r.id}</td>
                   <td>{r.promoter_name ?? `红娘${r.promoter_id}`}</td>
                   <td>{r.team_name ?? "-"}</td>
@@ -144,7 +149,7 @@ export default function LovePartnerRelationPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} style={{ textAlign: "center", color: "#999" }}>
+                  <td colSpan={columns.length + 1} style={{ textAlign: "center", color: "#999" }}>
                     {loading ? "加载中…" : "暂无数据"}
                   </td>
                 </tr>
@@ -153,23 +158,7 @@ export default function LovePartnerRelationPage() {
           </table>
         </div>
 
-        <div className="lpr-pager">
-          <span
-            className="lpr-pager-arrow"
-            style={{ cursor: page > 1 ? "pointer" : "default" }}
-            onClick={() => { if (page > 1) setPage(page - 1); }}
-          >
-            ‹
-          </span>
-          <span className="lpr-pager-cur">{page}</span>
-          <span
-            className="lpr-pager-arrow"
-            style={{ cursor: page < totalPages ? "pointer" : "default" }}
-            onClick={() => { if (page < totalPages) setPage(page + 1); }}
-          >
-            ›
-          </span>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         {message && <p style={{ color: "#ff4d4f", marginTop: 12 }}>{message}</p>}
       </div>
 

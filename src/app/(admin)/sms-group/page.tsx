@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Inbox, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
@@ -84,6 +85,7 @@ export default function Page() {
   const [tasks, setTasks] = useState<SmsTask[]>([]);
   const [total, setTotal] = useState(0);
   const [pageIdx, setPageIdx] = useState(1);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx) => {
     try {
@@ -94,6 +96,7 @@ export default function Page() {
       setTasks(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -115,7 +118,7 @@ export default function Page() {
     }
   };
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / 20)), [total]);
+  const allSelected = tasks.length > 0 && selected.length === tasks.length;
 
   return (
     <div>
@@ -155,6 +158,7 @@ export default function Page() {
           <table className="grp-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : tasks.map((t) => t.id))} /></th>
                 {columns.map((c) => (
                   <th key={c}>{c}</th>
                 ))}
@@ -164,13 +168,14 @@ export default function Page() {
               {tasks.map((t) => {
                 const extra = t.extra ?? {};
                 return (
-                  <tr key={t.id}>
+                  <tr key={t.id} className={selected.includes(t.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择群发任务 ${t.id}`} checked={selected.includes(t.id)} onChange={() => setSelected((current) => current.includes(t.id) ? current.filter((id) => id !== t.id) : [...current, t.id])} /></td>
                     <td>{t.title}</td>
                     <td>{(t.created_at ?? "-").replace("T", " ").slice(0, 19)}</td>
                     <td>{typeof extra.target === "string" ? extra.target : "-"}</td>
                     <td>
                       <span className="grp-phone">{typeof extra.phone_count === "number" ? extra.phone_count : 0}</span>
-                      <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("下载手机号列表", "ok"); }}>下载</a>
+                      <button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供手机号清单下载接口", "error")}>下载</button>
                     </td>
                     <td>
                       <span className="grp-status">
@@ -181,7 +186,7 @@ export default function Page() {
                       发送成功：{typeof extra.sent_count === "number" ? extra.sent_count : 0} /{" "}
                       失败：{typeof extra.fail_count === "number" ? extra.fail_count : 0}
                     </td>
-                    <td><a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("查看发送明细", "ok"); }}>查看</a></td>
+                    <td><button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供短信发送明细接口", "error")}>查看</button></td>
                     <td>
                       <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void remove(t.id); }}>删除</a>
                     </td>
@@ -190,7 +195,7 @@ export default function Page() {
               })}
               {tasks.length === 0 && (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="grp-empty">
                       <Inbox className="grp-empty-icon" />
                       <span className="grp-empty-text">暂无数据</span>
@@ -202,14 +207,7 @@ export default function Page() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <span className="finord-info">共 {total} 条</span>
-          <div className="finord-pages">
-            <button className="finord-page nav" onClick={() => load(Math.max(1, pageIdx - 1))} disabled={pageIdx <= 1}>‹</button>
-            <span className="finord-page active">{pageIdx} / {totalPages}</span>
-            <button className="finord-page nav" onClick={() => load(Math.min(totalPages, pageIdx + 1))} disabled={pageIdx >= totalPages}>›</button>
-          </div>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
       {createOpen && <CreateTaskDrawer onClose={() => setCreateOpen(false)} onSuccess={() => void load(1)} />}

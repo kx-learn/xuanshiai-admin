@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type MerchantOrderItem, type MerchantOption } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -29,6 +30,10 @@ export default function MerchantOrderPage() {
   const [buyerKeyword, setBuyerKeyword] = useState("");
   const [verifyStart, setVerifyStart] = useState("");
   const [verifyEnd, setVerifyEnd] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
 
   useEffect(() => {
     adminEndpoints.merchantOptions().then(setMerchants).catch(() => undefined);
@@ -38,7 +43,7 @@ export default function MerchantOrderPage() {
     setLoading(true);
     try {
       const res = await adminEndpoints.merchantOrderList({
-        page: 1, page_size: 50,
+        page, page_size: pageSize,
         merchant_id: merchantId ? Number(merchantId) : undefined,
         status: status || undefined,
         verify_status: verifyStatus || undefined,
@@ -49,14 +54,18 @@ export default function MerchantOrderPage() {
         verify_end: verifyEnd || undefined,
       });
       setRows(res.items);
+      setTotal(res.total);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [merchantId, status, verifyStatus, productKeyword, orderNo, buyerKeyword, verifyStart, verifyEnd]);
+  }, [merchantId, status, verifyStatus, productKeyword, orderNo, buyerKeyword, verifyStart, verifyEnd, page, pageSize]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const cancelOrder = async (r: MerchantOrderItem) => {
     if (!window.confirm(`确定取消订单 ${r.order_no}？`)) return;
@@ -143,12 +152,18 @@ export default function MerchantOrderPage() {
           <table className="finord-table mo-table">
             <thead>
               <tr>
+                <th className="mo-col-check">
+                  <input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} />
+                </th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
+                  <td className="mo-col-check">
+                    <input type="checkbox" aria-label={`选择订单 ${r.id}`} checked={selected.includes(r.id)} onChange={() => setSelected((current) => current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id])} />
+                  </td>
                   <td>{r.id}</td>
                   <td>{r.product_name || "-"}</td>
                   <td>{r.merchant_name || "-"}</td>
@@ -167,7 +182,7 @@ export default function MerchantOrderPage() {
               ))}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} className="mo-empty">
+                  <td colSpan={columns.length + 1} className="mo-empty">
                     <div className="mo-empty-inner">
                       <div className="mo-empty-icon">📦</div>
                       <div className="mo-empty-text">暂无数据</div>
@@ -178,6 +193,7 @@ export default function MerchantOrderPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

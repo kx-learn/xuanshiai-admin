@@ -34,12 +34,9 @@ interface ListPageProps {
 }
 
 function resolveEndpoint(endpoint: string) {
-  if (!endpoint.startsWith("/api/backend/")) return endpoint;
-  const path = endpoint.slice("/api/backend/".length);
-  return new URL(
-    `/api/v1/${path}`,
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || window.location.origin,
-  ).toString();
+  // Keep requests same-origin so the Next.js proxy consistently forwards
+  // Authorization and avoids browser CORS differences between environments.
+  return endpoint;
 }
 
 export default function ListPage({

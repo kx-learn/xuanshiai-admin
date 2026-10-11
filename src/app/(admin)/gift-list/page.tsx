@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -151,8 +152,6 @@ export default function GiftListPage() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / 20));
-
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -223,12 +222,7 @@ export default function GiftListPage() {
           </table>
         </div>
 
-        <div className="gl-pager">
-          <span className="finord-info">共 {total} 条</span>
-          <span className="gl-pager-arrow" onClick={() => load(Math.max(1, pageIdx - 1), keyword)} style={{ cursor: pageIdx > 1 ? "pointer" : "not-allowed", opacity: pageIdx > 1 ? 1 : 0.4 }}>‹</span>
-          <span className="gl-pager-cur">{pageIdx} / {totalPages}</span>
-          <span className="gl-pager-arrow" onClick={() => load(Math.min(totalPages, pageIdx + 1), keyword)} style={{ cursor: pageIdx < totalPages ? "pointer" : "not-allowed", opacity: pageIdx < totalPages ? 1 : 0.4 }}>›</span>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next, keyword)} />
       </div>
 
       {drawerOpen && (

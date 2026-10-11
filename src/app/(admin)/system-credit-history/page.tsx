@@ -2,11 +2,10 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { LedgerEntryItem } from "@/lib/admin-endpoints";
-
-const PAGE_SIZE = 20;
 
 type Row = LedgerEntryItem;
 
@@ -34,6 +33,7 @@ function formatItem(item: Row): { item: string; category: string } {
 
 export default function SystemCreditHistoryPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -46,13 +46,14 @@ export default function SystemCreditHistoryPage() {
   const [reason, setReason] = useState("");
   const [granting, setGranting] = useState(false);
   const [grantMessage, setGrantMessage] = useState<string | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async () => {
     setLoading(true);
     try {
       const query: Record<string, string | number | undefined> = {
         page,
-        page_size: PAGE_SIZE,
+        page_size: pageSize,
         account_type: "user",
       };
       if (startDate) query.start_time = startDate;
@@ -61,6 +62,7 @@ export default function SystemCreditHistoryPage() {
       const result = await adminEndpoints.financeLedger(query);
       setRows(result?.items ?? []);
       setTotal(result?.total ?? 0);
+      setSelected([]);
     } catch (e) {
       setRows([]);
       setTotal(0);
@@ -72,9 +74,8 @@ export default function SystemCreditHistoryPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
-
-  const totalPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  }, [page, pageSize]);
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   const submit = async () => {
     const amount = Number(value);
@@ -164,6 +165,7 @@ export default function SystemCreditHistoryPage() {
           <table className="finord-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th className="crh-col-id">ID</th>
                 <th>支付会员</th>
                 <th>支付事项</th>
@@ -176,11 +178,11 @@ export default function SystemCreditHistoryPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="finord-td-empty">加载中…</td>
+                  <td colSpan={8} className="finord-td-empty">加载中…</td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="finord-td-empty">暂无数据</td>
+                  <td colSpan={8} className="finord-td-empty">暂无数据</td>
                 </tr>
               ) : (
                 rows.map((rec) => {
@@ -189,6 +191,7 @@ export default function SystemCreditHistoryPage() {
                   const meta = formatItem(rec);
                   return (
                     <tr key={rec.id}>
+                      <td><input type="checkbox" aria-label={`选择流水 ${rec.id}`} checked={selected.includes(rec.id)} onChange={() => setSelected((current) => current.includes(rec.id) ? current.filter((id) => id !== rec.id) : [...current, rec.id])} /></td>
                       <td className="crh-col-id">{rec.id}</td>
                       <td>用户#{rec.account_id}</td>
                       <td>{meta.item}</td>
@@ -207,31 +210,7 @@ export default function SystemCreditHistoryPage() {
           </table>
         </div>
 
-        <div className="finord-pagination">
-          <div className="finord-pages">
-            <button
-              className="finord-page nav"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              ‹
-            </button>
-            <button className={`finord-page ${page === 1 ? "active" : ""}`} onClick={() => setPage(1)}>
-              1
-            </button>
-            <button
-              className="finord-page nav"
-              onClick={() => setPage((p) => Math.min(totalPage, p + 1))}
-              disabled={page === totalPage}
-            >
-              ›
-            </button>
-          </div>
-          <div className="finord-page-size">
-            <span>{PAGE_SIZE}条/页</span>
-            <span className="finord-page-size-arrow">▾</span>
-          </div>
-        </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
 
       {showPanel && (

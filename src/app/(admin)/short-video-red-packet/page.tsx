@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type RedPacketItem, type RedPacketClaimItem } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -25,20 +26,24 @@ export default function ShortVideoRedPacketPage() {
   const [tab, setTab] = useState<string | undefined>(undefined);
   const [keyword, setKeyword] = useState("");
   const [detailOf, setDetailOf] = useState<RedPacketItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
-      const res = await adminEndpoints.redPacketList({ page: 1, page_size: 50, claim_status: tab, keyword: keyword || undefined });
+      const res = await adminEndpoints.redPacketList({ page: nextPage, page_size: nextPageSize, claim_status: tab, keyword: keyword || undefined });
       setRows(res.items);
+      setTotal(res.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [tab, keyword]);
+  }, [page, pageSize, tab, keyword]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(page, pageSize); }, [load, page, pageSize]);
 
   return (
     <div>
@@ -104,9 +109,13 @@ export default function ShortVideoRedPacketPage() {
         </div>
 
         <div className="rpk-pager">
-          <span className="rpk-pager-arrow">‹</span>
-          <span className="rpk-pager-cur">1</span>
-          <span className="rpk-pager-arrow">›</span>
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+          />
         </div>
       </div>
 

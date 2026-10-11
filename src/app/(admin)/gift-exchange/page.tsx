@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
@@ -58,6 +59,7 @@ export default function GiftExchangePage() {
   const [rows, setRows] = useState<ExchangeItem[]>([]);
   const [total, setTotal] = useState(0);
   const [pageIdx, setPageIdx] = useState(1);
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = async (page = pageIdx, kw = keyword, mode = searchMode) => {
     try {
@@ -68,6 +70,7 @@ export default function GiftExchangePage() {
       setRows(resp.items);
       setTotal(resp.total);
       setPageIdx(resp.page);
+      setSelected([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     }
@@ -104,7 +107,7 @@ export default function GiftExchangePage() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / 20));
+  const allSelected = rows.length > 0 && selected.length === rows.length;
 
   return (
     <div>
@@ -147,6 +150,7 @@ export default function GiftExchangePage() {
           <table className="finord-table ex-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((r) => r.id))} /></th>
                 <th>ID</th>
                 <th>申请人</th>
                 <th>兑换礼物</th>
@@ -162,7 +166,8 @@ export default function GiftExchangePage() {
                 const s = statusOf(row);
                 const label = statusText(s);
                 return (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={selected.includes(row.id) ? "selected" : undefined}>
+                    <td><input type="checkbox" aria-label={`选择兑换记录 ${row.id}`} checked={selected.includes(row.id)} onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])} /></td>
                     <td className="ex-id">{row.id}</td>
                     <td>
                       <div className="ex-applicant">
@@ -196,7 +201,7 @@ export default function GiftExchangePage() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#888" }}>
+                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "#888" }}>
                     暂无兑换记录
                   </td>
                 </tr>
@@ -205,20 +210,7 @@ export default function GiftExchangePage() {
           </table>
         </div>
 
-        <div className="ex-pager">
-          <span className="finord-info">共 {total} 条</span>
-          <span
-            className="ex-pager-arrow"
-            onClick={() => load(Math.max(1, pageIdx - 1), keyword, searchMode)}
-            style={{ cursor: pageIdx > 1 ? "pointer" : "not-allowed", opacity: pageIdx > 1 ? 1 : 0.4 }}
-          >‹</span>
-          <span className="ex-pager-cur">{pageIdx} / {totalPages}</span>
-          <span
-            className="ex-pager-arrow"
-            onClick={() => load(Math.min(totalPages, pageIdx + 1), keyword, searchMode)}
-            style={{ cursor: pageIdx < totalPages ? "pointer" : "not-allowed", opacity: pageIdx < totalPages ? 1 : 0.4 }}
-          >›</span>
-        </div>
+        <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next, keyword, searchMode)} />
       </div>
     </div>
   );

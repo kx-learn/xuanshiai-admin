@@ -9,6 +9,7 @@ import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import AdminPagination from "@/components/AdminPagination";
 import DateRangePicker from "@/components/DateRangePicker";
+import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 
 type Lead = {
   id: number;
@@ -90,6 +91,7 @@ export default function Page() {
   const createPhoneRef = useRef<HTMLInputElement>(null);
   const createWechatRef = useRef<HTMLInputElement>(null);
   const createDescRef = useRef<HTMLTextAreaElement>(null);
+  const [detailMember, setDetailMember] = useState<{ id: number; nickname?: string | null; memberCode?: string | null } | null>(null);
   const router = useRouter();
   const [simpleSetOpen, setSimpleSetOpen] = useState(false);
   const [simpleFields, setSimpleFields] = useState([
@@ -312,6 +314,19 @@ export default function Page() {
       setSaving(false);
     }
   };
+  const convertLead = async (lead: Lead) => {
+    if (!window.confirm(`确定将「${lead.name}」入库到会员CRM吗？`)) return;
+    setSaving(true);
+    try {
+      const result = await adminEndpoints.convertCustomerLead(lead.id, { remark: lead.remark || undefined });
+      setDetailMember({ id: result.user_id, nickname: lead.name, memberCode: String(result.user_id) });
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "入库失败");
+    } finally {
+      setSaving(false);
+    }
+  };
   const submitCreate = async () => {
     if (saving) return;
     const name = createNameRef.current?.value.trim() || "";
@@ -342,6 +357,25 @@ export default function Page() {
       setSaving(false);
     }
   };
+  const updateField = async (lead: Lead, patch: Record<string, unknown>) => {
+    try {
+      await adminEndpoints.updateCustomerLead(lead.id, patch);
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "更新失败");
+    }
+  };
+
+  const abandon = async (lead: Lead) => {
+    if (!window.confirm(`确定将「${lead.name}」放入弃海吗？`)) return;
+    try {
+      await adminEndpoints.abandonCustomerLead(lead.id, "后台管理员放入弃海");
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "放入弃海失败");
+    }
+  };
+
   const exportCsv = () => {
     const csv = [
       "客源ID,称呼,手机,微信,来源,意向,状态",
@@ -377,7 +411,7 @@ export default function Page() {
         </span>
         <br />
         <span>
-          根据业务进展情况可将客源线索一键入库转入到会员资料库（会员CRM）中，系统会自动生成账号；新账号需完成安全的首次密码设置后登录。
+          根据业务进展情况可将客源线索一键入库转入到会员资料库（会员CRM）中，系统会自动生成账号；新账号通过手机号验证码登录。
         </span>
         <br />
         <span>
@@ -396,7 +430,7 @@ export default function Page() {
           <div className="flex gap-2 pb-3">
             <div className="lead-add-wrap" onMouseEnter={() => setAddMenuOpen(true)} onMouseLeave={() => setAddMenuOpen(false)}>
               <button
-                onClick={() => setCreateOpen(true)}
+                onClick={() => setModal("create")}
                 className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"
               >
                 <Plus size={15} />
@@ -410,7 +444,7 @@ export default function Page() {
                 </div>
               )}
             </div>
-            <button onClick={() => setSmartOpen(true)} className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white">▣ 智能录入</button>
+            <button onClick={() => setModal("create")} className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white">▣ 智能录入</button>
             <button onClick={() => setStatsOpen(true)} className="flex items-center gap-1 whitespace-nowrap rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"><BarChart3 size={15} />数据报表</button>
             <button onClick={exportCsv} className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"><FileDown size={15} />导出EXCEL</button>
           </div>
@@ -549,12 +583,12 @@ export default function Page() {
                   key={x.id}
                   className="border-b align-top hover:bg-[#fafcff]"
                 >
-                  {viewMode === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? "已分派" : "待分派"}><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={String(x.intention_level)}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button>入库</button><button>详情</button><button onClick={() => open("follow", x)}>跟进</button><button>溯源</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
+                  {viewMode === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? "已分派" : "待分派"}><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3"><button onClick={() => open("edit", x)}>编辑</button><button onClick={() => open("edit", x)}>详情</button><button onClick={() => open("follow", x)}>跟进</button><button onClick={() => void abandon(x)}>放入弃海</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
                   <td className="px-3 py-3">
                     <div className="lead-profile"><div className="lead-avatar">#{x.id}</div><div><b>{x.name || "-"}</b>{x.phone && <span className="lead-tag">有电话</span>}{x.wechat && <span className="lead-tag">有微信</span>}</div></div>
-                    <div className="lead-actions"><button>基本资料</button><button>择偶要求</button><button onClick={() => open("follow", x)}>跟进信息</button><button className="lead-more-button">更多</button></div>
+                    <div className="lead-actions"><button onClick={() => open("edit", x)}>基本资料</button><button onClick={() => open("edit", x)}>择偶要求</button><button onClick={() => open("follow", x)}>跟进信息</button><button onClick={() => open("edit", x)} className="lead-more-button">更多</button></div>
                   </td>
-                  <td className="px-3 py-3"><select className="lead-cell-select" defaultValue={String(x.intention_level)}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td>
+                  <td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td>
                   <td className="px-3 py-3">{x.source || "-"}</td>
                   <td className="px-3 py-3"><select className="lead-cell-select valid" defaultValue="有效"><option>有效</option><option>无效</option></select></td>
                   <td className="px-3 py-3 text-xs">
@@ -566,12 +600,12 @@ export default function Page() {
                       {new Date(x.created_at).toLocaleString("zh-CN")}
                     </span>
                   </td>
-                  <td className="px-3 py-3"><select className="lead-cell-select" defaultValue={statuses[x.status] || x.status}><option>未设置</option><option>待联系</option><option>已联系</option><option>有意向</option></select></td>
+                  <td className="px-3 py-3"><select className="lead-cell-select" value={x.status} onChange={(event) => void updateField(x, { status: event.target.value })}><option value="NEW">待联系</option><option value="CONTACTED">已联系</option><option value="INTENDED">有意向</option><option value="CONVERTED">已入库</option><option value="LOST">已弃海</option><option value="CLOSED">已关闭</option></select></td>
                   <td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? `红娘 #${x.matchmaker_id}` : "待分派"}><option>待分派</option><option>已分派</option></select></td>
                   <td className="px-3 py-3 text-xs text-[#777]">
                     <div>从未跟进</div>
                     <div className="text-[#ff7a21]">{daysSince(x.created_at)}天<span className="text-[#777]">未跟进</span></div>
-                    <button onClick={() => open("follow", x)} className="mt-1 text-[#3658f7]">放入弃海</button>
+                    <button onClick={() => void abandon(x)} className="mt-1 text-[#3658f7]">放入弃海</button>
                   </td>
                   <td className="px-3 py-3 text-[#999]">从未通话</td>
                   <td className="px-3 py-3">
@@ -584,7 +618,7 @@ export default function Page() {
                       <span>未入库</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button onClick={() => (x.converted_user_id ? undefined : open("edit", x))}>{x.converted_user_id ? "查看会员" : "一键入库"}</button></td></>}
+                  <td className="px-3 py-3 whitespace-nowrap text-[#3658f7]"><button onClick={() => x.converted_user_id ? setDetailMember({ id: x.converted_user_id, nickname: x.name, memberCode: String(x.converted_user_id) }) : void convertLead(x)}>{x.converted_user_id ? "查看会员" : "一键入库"}</button></td></>}
                 </tr>
               ))
             )}
@@ -735,7 +769,7 @@ export default function Page() {
         <div className="stats-drawer-mask" onClick={() => setStatsOpen(false)}>
           <div className="stats-drawer-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="stats-drawer-head">
-              <div className="flex items-center gap-2"><span className="stats-drawer-head-x">✕</span><h2>数据报表</h2></div>
+              <div className="flex items-center gap-2"><span className="stats-drawer-head-x" onClick={() => setStatsOpen(false)}>✕</span><h2>数据报表</h2></div>
               <button type="button" className="stats-drawer-close" onClick={() => setStatsOpen(false)}>关闭</button>
             </div>
             <div className="stats-drawer-body">
@@ -773,7 +807,7 @@ export default function Page() {
         <div className="smart-drawer-mask" onClick={() => setSmartOpen(false)}>
           <div className="smart-drawer-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="smart-drawer-head">
-              <div className="flex items-center gap-2"><span className="smart-drawer-head-x">✕</span><h2>智能录入</h2></div>
+              <div className="flex items-center gap-2"><span className="smart-drawer-head-x" onClick={() => setSmartOpen(false)}>✕</span><h2>智能录入</h2></div>
               <div className="smart-drawer-head-actions">
                 <button type="button" className="smart-drawer-cancel" onClick={() => setSmartOpen(false)}>取消</button>
                 <button type="button" className="smart-drawer-submit">确定提交</button>
@@ -956,6 +990,7 @@ export default function Page() {
           </form>
         </div>
       )}
+      {detailMember && <MemberQuickProfileDrawer memberId={detailMember.id} nickname={detailMember.nickname} memberCode={detailMember.memberCode} onClose={() => setDetailMember(null)} />}
     </div>
   );
 }

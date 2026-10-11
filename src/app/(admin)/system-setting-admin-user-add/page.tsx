@@ -60,7 +60,7 @@ export default function Page() {
       const perms = Array.isArray(hit?.permissions) ? (hit!.permissions as unknown[]).map(String) : [];
       await adminApi("/admin/matchmaker/accounts", {
         method: "POST",
-        body: JSON.stringify({ username: username.trim(), password, display_name: displayName.trim(), permissions: perms }),
+        body: { username: username.trim(), password, display_name: displayName.trim(), permissions: perms },
       });
       showConfigToast("账号创建成功");
       setUsername("");
