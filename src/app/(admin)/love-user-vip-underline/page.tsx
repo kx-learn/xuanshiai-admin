@@ -202,6 +202,34 @@ export default function LoveUserVipUnderlinePage() {
   useEffect(() => { void loadStats(); void loadOptions(); }, [loadStats, loadOptions]);
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
+  const exportRows = () => {
+    if (!rows.length) {
+      showConfigToast("当前没有可导出的线下VIP记录", "error");
+      return;
+    }
+    const esc = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const csv = [
+      ["会员", "签约日期", "服务套餐", "服务进度", "最近跟进", "合同金额", "红娘", "电子合同", "备注信息"].map(esc).join(","),
+      ...rows.map((row) => [
+        `${row.nickname ?? ""}（${row.member_code}）`,
+        dateOnly(row.sign_date),
+        row.package_name,
+        row.progress_label,
+        dateTime(row.last_follow_at),
+        row.contract_amount,
+        row.service_matchmaker_name ?? row.sales_matchmaker_name,
+        row.contract_status_label,
+        row.remark,
+      ].map(esc).join(",")),
+    ].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `线下VIP-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    showConfigToast("导出成功", "ok");
+  };
 
   const resetForm = () => setForm(emptyForm);
 
@@ -357,7 +385,7 @@ export default function LoveUserVipUnderlinePage() {
               <BarChart3 className="size-3.5" />
               业绩报表
             </button>
-            <button type="button" className="lvip-btn primary" onClick={() => window.print()}>
+            <button type="button" className="lvip-btn primary" onClick={exportRows}>
               <Download className="size-3.5" />
               导出EXCEL
             </button>

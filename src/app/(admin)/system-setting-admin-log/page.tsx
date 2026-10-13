@@ -4,6 +4,8 @@ import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Info, Inbox, Search, Calendar, ChevronDown } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
+import { showConfigToast } from "@/lib/platform-config";
+import AdminPagination from "@/components/AdminPagination";
 
 type Row = Record<string, string>;
 
@@ -142,6 +144,7 @@ function AdminSelect({ label, value, onChange }: { label?: string; value: string
       <span className="syslog-select-holder">
         <select className="syslog-select" value={value} onChange={(e) => onChange(e.target.value)}>
           <option value="all">不限</option>
+          <option value="current">当前管理员</option>
         </select>
         <ChevronDown className="syslog-select-chevron" />
       </span>
@@ -149,23 +152,23 @@ function AdminSelect({ label, value, onChange }: { label?: string; value: string
   );
 }
 
-function DateRange() {
+function DateRange({ from, to, setFrom, setTo }: { from: string; to: string; setFrom: (value: string) => void; setTo: (value: string) => void }) {
   return (
     <div className="syslog-daterange">
-      <span className="syslog-date">
+      <label className="syslog-date">
         <Calendar className="syslog-date-ico" />
-        <span className="syslog-date-text">开始日期</span>
-      </span>
+        <input aria-label="开始日期" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+      </label>
       <span className="syslog-date-arrow">→</span>
-      <span className="syslog-date">
+      <label className="syslog-date">
         <Calendar className="syslog-date-ico" />
-        <span className="syslog-date-text">结束日期</span>
-      </span>
+        <input aria-label="结束日期" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+      </label>
     </div>
   );
 }
 
-function FilterBar({ tab, admin, setAdmin, keyword, setKeyword, onSearch }: { tab: TabDef; admin: string; setAdmin: (v: string) => void; keyword: string; setKeyword: (v: string) => void; onSearch: () => void }) {
+function FilterBar({ tab, admin, setAdmin, keyword, setKeyword, from, to, setFrom, setTo, onSearch }: { tab: TabDef; admin: string; setAdmin: (v: string) => void; keyword: string; setKeyword: (v: string) => void; from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; onSearch: () => void }) {
   if (tab.filter === "input") {
     return (
       <div className="syslog-filter">
@@ -180,7 +183,7 @@ function FilterBar({ tab, admin, setAdmin, keyword, setKeyword, onSearch }: { ta
   return (
     <div className="syslog-filter">
       <AdminSelect label="管理员：" value={admin} onChange={setAdmin} />
-      <DateRange />
+      <DateRange from={from} to={to} setFrom={setFrom} setTo={setTo} />
       {tab.filter === "rangeInput" && (
         <>
           <input className="syslog-input" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="被删除的账号/手机" onKeyDown={(e) => e.key === "Enter" && onSearch()} />
@@ -194,7 +197,7 @@ function FilterBar({ tab, admin, setAdmin, keyword, setKeyword, onSearch }: { ta
   );
 }
 
-function Table({ tab, rows, loading }: { tab: TabDef; rows: Row[]; loading: boolean }) {
+function Table({ tab, rows, loading, selectedIds, onToggleAll, onToggle }: { tab: TabDef; rows: Row[]; loading: boolean; selectedIds: string[]; onToggleAll: (checked: boolean) => void; onToggle: (id: string, checked: boolean) => void }) {
   if (rows.length === 0) {
     return (
       <div className="syslog-empty">
@@ -208,6 +211,7 @@ function Table({ tab, rows, loading }: { tab: TabDef; rows: Row[]; loading: bool
       <table className="syslog-table">
         <thead>
           <tr>
+            <th><input type="checkbox" aria-label="全选日志" checked={rows.length > 0 && rows.every((row) => selectedIds.includes(row.id))} onChange={(event) => onToggleAll(event.target.checked)} /></th>
             {tab.columns.map((col) => (
               <th key={col.key} style={col.width ? { width: col.width } : undefined}>{col.title}</th>
             ))}
@@ -216,6 +220,7 @@ function Table({ tab, rows, loading }: { tab: TabDef; rows: Row[]; loading: bool
         <tbody>
           {rows.map((row, idx) => (
             <tr key={row.id || idx}>
+              <td><input type="checkbox" aria-label={`选择日志 ${row.id}`} checked={selectedIds.includes(row.id)} onChange={(event) => onToggle(row.id, event.target.checked)} /></td>
               {tab.columns.map((col) => (
                 <td key={col.key} className={col.key === "target" ? "syslog-td-target" : ""}>{row[col.key] ?? ""}</td>
               ))}
@@ -235,42 +240,63 @@ export default function Page() {
   const [admin, setAdmin] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [currentAdminId, setCurrentAdminId] = useState<number | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const tab = TABS.find((t) => t.key === active) ?? TABS[0];
 
-  const load = useCallback(async (kw: string) => {
+  useEffect(() => {
+    void adminApi<{ account: { id: number } }>("/admin/matchmaker/auth/me")
+      .then((data) => setCurrentAdminId(data.account?.id ?? null))
+      .catch(() => setCurrentAdminId(null));
+  }, []);
+
+  const load = useCallback(async (kw: string, nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
+    setSelectedIds([]);
     try {
       if (tab.source.kind === "login") {
-        const qs = new URLSearchParams({ page: "1", page_size: "50" });
+        const qs = new URLSearchParams({ page: String(nextPage), page_size: String(nextPageSize) });
         if (kw) qs.set("username", kw);
-        const data = await adminApi<{ items: Record<string, unknown>[] }>(`/admin/matchmaker/accounts/login-logs?${qs.toString()}`);
+        const data = await adminApi<{ items: Record<string, unknown>[]; total: number }>(`/admin/matchmaker/accounts/login-logs?${qs.toString()}`);
         setRows((data.items ?? []).map((it) => ({
           id: String(it.id ?? ""),
           account: String(it.username ?? ""),
           time: fmt(it.created_at),
           ip: String(it.ip ?? "-"),
         })));
+        setTotal(data.total ?? 0);
       } else {
-        const qs = new URLSearchParams({ page: "1", page_size: "50", action_prefix: tab.source.kind === "audit" ? tab.source.prefix : "" });
+        const qs = new URLSearchParams({ page: String(nextPage), page_size: String(nextPageSize), action_prefix: tab.source.kind === "audit" ? tab.source.prefix : "" });
         if (kw) qs.set("keyword", kw);
-        const data = await adminApi<{ items: Record<string, unknown>[] }>(`/admin/matchmaker/audit-logs?${qs.toString()}`);
+        if (from) qs.set("from", `${from}T00:00:00`);
+        if (admin === "current" && currentAdminId) qs.set("actor_account_id", String(currentAdminId));
+        if (to) qs.set("to", `${to}T23:59:59`);
+        const data = await adminApi<{ items: Record<string, unknown>[]; total: number }>(`/admin/matchmaker/audit-logs?${qs.toString()}`);
         setRows((data.items ?? []).map((it) => ({
           id: String(it.id ?? ""),
           operator: String(it.actor_name ?? it.actor_account_id ?? "-"),
+          account: String(it.actor_name ?? it.actor_account_id ?? "-"),
           target: `${it.action ?? ""}${it.resource_type ? ` (${it.resource_type}${it.resource_id ? `:${it.resource_id}` : ""})` : ""}${it.reason ? `\n${it.reason}` : ""}`,
           time: fmt(it.created_at),
           ip: "-",
         })));
+        setTotal(data.total ?? 0);
       }
-    } catch {
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "日志加载失败", "error");
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [admin, currentAdminId, from, page, pageSize, tab, to]);
 
-  useEffect(() => { load(keyword); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active, load]);
+  useEffect(() => { void load(keyword, page, pageSize); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active, page, pageSize, load]);
 
   return (
     <div>
@@ -279,7 +305,7 @@ export default function Page() {
       <div className="admin-card syslog-card">
         <div className="syslog-tabs">
           {TABS.map((t) => (
-            <button key={t.key} className={`syslog-tab ${active === t.key ? "active" : ""}`} onClick={() => { setActive(t.key); setKeyword(""); }}>
+            <button key={t.key} className={`syslog-tab ${active === t.key ? "active" : ""}`} onClick={() => { setActive(t.key); setKeyword(""); setPage(1); }}>
               {t.label}
             </button>
           ))}
@@ -287,9 +313,11 @@ export default function Page() {
 
         {tab.notice && <Notice text={tab.notice} />}
 
-        <FilterBar tab={tab} admin={admin} setAdmin={setAdmin} keyword={keyword} setKeyword={setKeyword} onSearch={() => load(keyword)} />
+        <FilterBar tab={tab} admin={admin} setAdmin={(value) => { setAdmin(value); setPage(1); }} keyword={keyword} setKeyword={setKeyword} from={from} to={to} setFrom={(value) => { setFrom(value); setPage(1); }} setTo={(value) => { setTo(value); setPage(1); }} onSearch={() => { setPage(1); void load(keyword, 1, pageSize); }} />
 
-        <Table tab={tab} rows={rows} loading={loading} />
+        <Table tab={tab} rows={rows} loading={loading} selectedIds={selectedIds} onToggleAll={(checked) => setSelectedIds(checked ? rows.map((row) => row.id) : [])} onToggle={(id, checked) => setSelectedIds((current) => checked ? [...current, id] : current.filter((value) => value !== id))} />
+        {selectedIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedIds.length}</b> 项</span><button type="button" onClick={() => setSelectedIds([])}>取消选择</button></div>}
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
     </div>
   );

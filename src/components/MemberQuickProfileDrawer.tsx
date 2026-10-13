@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   CalendarDays,
   Eye,
@@ -96,7 +97,7 @@ export default function MemberQuickProfileDrawer({ memberId, nickname, memberCod
       <header className="flex h-[76px] shrink-0 items-center border-b border-[#f0f0f0] px-7">
         <button type="button" aria-label="关闭会员快捷资料" onClick={onClose} className="mr-5 grid size-8 place-items-center text-[#999] hover:text-[#333]"><X size={22} /></button>
         <h2 className="text-lg font-semibold text-[#333]">会员快捷资料</h2>
-        <button type="button" className="ml-auto inline-flex h-9 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white"><Eye size={16} />预览主页</button>
+        <Link href={`/love-user-list?keyword=${encodeURIComponent(String(memberId))}`} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white"><Eye size={16} />查看会员</Link>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-7 py-7">
         <div className="flex min-w-0 gap-4 bg-[#f6f8fd] p-3 max-xl:flex-wrap">
@@ -109,9 +110,10 @@ export default function MemberQuickProfileDrawer({ memberId, nickname, memberCod
               <span className="inline-flex items-center gap-1"><UserRound size={21} />{gender(detail.gender)}</span><i className="text-[#cbd2ec]">/</i><span>{code}</span><i className="text-[#cbd2ec]">/</i><span>{name}</span><i className="text-[#cbd2ec]">/</i><span className="inline-flex items-center gap-1"><Heart size={21} />公开相亲</span>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-xl bg-white px-4 py-3"><Phone size={23} className="text-[#fb8a49]" /><strong className="text-xl text-[#333]">{phone}</strong><button type="button" className="ml-auto text-sm text-[#6381ff]">查看手机</button></div>
-              <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-xl bg-white px-4 py-3"><MessageCircle size={23} className="text-[#13bc62]" /><strong className="text-xl text-[#333]">{wechat}</strong><button type="button" className="ml-auto text-sm text-[#6381ff]">查看微信</button></div>
+              <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-xl bg-white px-4 py-3"><Phone size={23} className="text-[#fb8a49]" /><strong className="text-xl text-[#333]">{phone}</strong>{phone !== "未填写" && <button type="button" className="ml-auto text-sm text-[#6381ff]" onClick={() => void navigator.clipboard?.writeText(phone).then(() => setNotice("手机号已复制")).catch(() => setNotice("复制失败"))}>复制</button>}</div>
+              <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-xl bg-white px-4 py-3"><MessageCircle size={23} className="text-[#13bc62]" /><strong className="text-xl text-[#333]">{wechat}</strong>{wechat !== "未填写" && <button type="button" className="ml-auto text-sm text-[#6381ff]" onClick={() => void navigator.clipboard?.writeText(wechat).then(() => setNotice("微信号已复制")).catch(() => setNotice("复制失败"))}>复制</button>}</div>
             </div>
+            {notice && <p className="mt-2 text-xs text-[#6381ff]" role="status">{notice}</p>}
             <div className="mt-3 flex flex-wrap gap-x-7 gap-y-1 text-xs text-[#999]"><span>ID：{memberId}</span><span>加入时间：{dateTime(detail.created_at)}</span><span>最近登录：{dateTime(detail.last_login_at)}</span><span>红娘：{text(detail.matchmaker_name ?? detail.matchmaker_nickname)}</span><span>上次跟进：{dateTime(detail.last_follow_at)}</span></div>
           </div>
         </div>
@@ -124,7 +126,7 @@ export default function MemberQuickProfileDrawer({ memberId, nickname, memberCod
           <ProfileSection title="自我介绍"><div className="grid grid-cols-3 gap-x-10 gap-y-3 max-lg:grid-cols-1"><Field label="性格" value={detail.character} /><Field label="爱好" value={detail.hobby} /><Field label="自我介绍" value={detail.self_intro} /></div></ProfileSection>
           <ProfileSection title="择偶要求"><div className="grid grid-cols-4 gap-x-10 gap-y-3 max-2xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1"><Field label="年龄" value={detail.ideal_age ?? detail.partner_age} /><Field label="身高" value={detail.ideal_height ?? detail.partner_height} /><Field label="收入" value={detail.ideal_income ?? detail.partner_income} /><Field label="学历" value={detail.ideal_education ?? detail.partner_education} /><Field label="职业" value={detail.ideal_job ?? detail.partner_job} /><Field label="婚况" value={detail.ideal_marital ?? detail.partner_marital} /><Field label="住房" value={detail.ideal_house ?? detail.partner_house} /><Field label="吸烟" value={detail.ideal_smoking ?? detail.partner_smoking} /><Field label="喝酒" value={detail.ideal_drinking ?? detail.partner_drinking} /><Field label="结婚意向" value={detail.ideal_partner ?? detail.partner_requirement} /></div></ProfileSection>
         </div> : <div className="py-7">
-          <div className="flex gap-4 max-lg:flex-col"><label className="w-20 shrink-0 pt-3 text-sm text-[#777]">服务跟进</label><div className="flex-1"><textarea value={content} onChange={(event) => setContent(event.target.value)} maxLength={1000} placeholder="本跟进内容仅红娘可见，不对外公开，1000字以内" className="h-48 w-full resize-none rounded border border-[#e5e7eb] p-4 text-sm outline-none focus:border-[#3658f7]" /><button type="button" disabled={!content.trim() || saving} onClick={() => void submitFollowUp()} className="mt-4 inline-flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-5 text-sm text-white disabled:cursor-not-allowed disabled:bg-[#aab7f5]"><Send size={15} />{saving ? "提交中" : "确定提交"}</button>{notice && <span className="ml-3 text-sm text-[#6381ff]">{notice}</span>}</div></div>
+          <div className="flex gap-4 max-lg:flex-col"><label className="w-20 shrink-0 pt-3 text-sm text-[#777]">服务跟进</label><div className="flex-1"><textarea value={content} onChange={(event) => setContent(event.target.value)} maxLength={1000} placeholder="本跟进内容仅红娘可见，不对外公开，1000字以内" className="h-48 w-full resize-none rounded border border-[#e5e7eb] p-4 text-sm outline-none focus:border-[#3658f7]" /><button type="button" disabled={!content.trim() || saving} onClick={() => void submitFollowUp()} className="mt-4 inline-flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-5 text-sm text-white disabled:cursor-not-allowed disabled:bg-[#aab7f5]"><Send size={15} />{saving ? "提交中" : "确定提交"}</button></div></div>
           <div className="ml-[96px] mt-7 max-lg:ml-0">{followLoading ? <div className="py-8 text-center text-sm text-[#999]">加载中...</div> : followUps.length === 0 ? <div className="py-8 text-center text-sm text-[#999]">暂无跟进记录</div> : <ol className="border-l-2 border-[#dce4ff] pl-6">{followUps.map((item, index) => <li key={String(item.id ?? item.follow_up_id ?? index)} className="relative pb-7"><i className="absolute -left-[31px] top-1 size-3 rounded-full border-[3px] border-white bg-[#3658f7]" /><div className="flex flex-wrap gap-x-3 text-sm text-[#999]"><span>{dateTime(item.created_at ?? item.follow_at ?? item.follow_time)}</span><span>{text(item.matchmaker_name ?? item.creator_name ?? item.follow_by_name, "后台管理员")}</span></div><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#4b5563]">{text(item.content ?? item.follow_content ?? item.remark ?? item.note)}</p></li>)}</ol>}</div>
         </div>}
       </div>

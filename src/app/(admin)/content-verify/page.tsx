@@ -49,9 +49,9 @@ export default function ContentVerifyPage() {
 
   // ─── 个人介绍筛选/数据 ─────────────────────────────────────
   const [introLetterMode, setIntroLetterMode] = useState(""); // ""不限 / "1"含有 / "2"不含
-  const [introLetterLower, setIntroLetterLower] = useState("1"); // "1"含小写 / "0"不限
-  const [introDigit, setIntroDigit] = useState("1"); // "1"含数字 / "0"不限
-  const [introCnDigit, setIntroCnDigit] = useState("1"); // "1"含中文数字 / "0"不限
+  const [introLetterLower, setIntroLetterLower] = useState(""); // "1"含小写 / ""不限
+  const [introDigit, setIntroDigit] = useState(""); // "1"含数字 / ""不限
+  const [introCnDigit, setIntroCnDigit] = useState(""); // "1"含中文数字 / ""不限
   const [introKeyword, setIntroKeyword] = useState("");
   const [introRows, setIntroRows] = useState<MemberIntroItem[]>([]);
   const [introLoading, setIntroLoading] = useState(false);
@@ -59,7 +59,7 @@ export default function ContentVerifyPage() {
 
   // ─── 头像筛选/数据 ─────────────────────────────────────────
   const [avatarStatus1, setAvatarStatus1] = useState(""); // ""不限 / "1"待审核=0 / "2"已通过=1
-  const [avatarStatus2, setAvatarStatus2] = useState(""); // ""未通过=2 / "1"已通过=1
+  const [avatarStatus2, setAvatarStatus2] = useState(""); // ""不限 / "1"已通过=1
   const [avatarGender, setAvatarGender] = useState(""); // ""不限 / "1"男 / "2"女
   const [avatarKeyword, setAvatarKeyword] = useState("");
   const [avatarRows, setAvatarRows] = useState<MemberMediaItem[]>([]);
@@ -80,6 +80,7 @@ export default function ContentVerifyPage() {
     items: [],
     loading: false,
   });
+  const [mediaPreview, setMediaPreview] = useState<{ item: MemberMediaItem; type: "photo" | "video" } | null>(null);
 
   // 重新上传所需隐藏文件输入
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +111,7 @@ export default function ContentVerifyPage() {
     if (avatarStatus1 === "1") return 0;
     if (avatarStatus1 === "2") return 1;
     if (avatarStatus2 === "1") return 1;
-    if (avatarStatus2 === "") return 2; // 下拉②默认「未通过」=2
+    if (avatarStatus2 === "2") return 2;
     return undefined;
   };
 
@@ -274,22 +275,22 @@ export default function ContentVerifyPage() {
                 </label>
                 <label className="cvr-select">
                   <select value={introLetterLower} onChange={(e) => setIntroLetterLower(e.target.value)}>
+                    <option value="">不限</option>
                     <option value="1">含有英文字母(a-z)</option>
-                    <option value="0">不限</option>
                   </select>
                   <ChevronDown className="cvr-caret" />
                 </label>
                 <label className="cvr-select">
                   <select value={introDigit} onChange={(e) => setIntroDigit(e.target.value)}>
+                    <option value="">不限</option>
                     <option value="1">含有数字(0-9)</option>
-                    <option value="0">不限</option>
                   </select>
                   <ChevronDown className="cvr-caret" />
                 </label>
                 <label className="cvr-select">
                   <select value={introCnDigit} onChange={(e) => setIntroCnDigit(e.target.value)}>
+                    <option value="">不限</option>
                     <option value="1">含有中文数字(零到九)</option>
-                    <option value="0">不限</option>
                   </select>
                   <ChevronDown className="cvr-caret" />
                 </label>
@@ -415,7 +416,8 @@ export default function ContentVerifyPage() {
                 </label>
                 <label className="cvr-select">
                   <select value={avatarStatus2} onChange={(e) => setAvatarStatus2(e.target.value)}>
-                    <option value="">未通过</option>
+                    <option value="">不限</option>
+                    <option value="2">未通过</option>
                     <option value="1">已通过</option>
                   </select>
                   <ChevronDown className="cvr-caret" />
@@ -533,7 +535,7 @@ export default function ContentVerifyPage() {
                     <span className="cvr-media-tag">
                       <Camera className="size-3.5" />
                     </span>
-                    <button type="button" className="cvr-media-icon">
+                    <button type="button" className="cvr-media-icon" aria-label="预览照片" onClick={() => setMediaPreview({ item: row, type: "photo" })}>
                       <ImageIcon className="size-3.5" />
                     </button>
                     {row.file_url ? <img src={resolveMediaUrl(row.file_url) ?? ""} alt="" style={mediaCover} /> : null}
@@ -593,7 +595,7 @@ export default function ContentVerifyPage() {
                       <span className="cvr-media-tag">
                         <Video className="size-3.5" />
                       </span>
-                      <button type="button" className="cvr-media-icon">
+                      <button type="button" className="cvr-media-icon" aria-label="预览视频" onClick={() => setMediaPreview({ item: row, type: "video" })}>
                         <Video className="size-3.5" />
                       </button>
                       {cover ? <img src={resolveMediaUrl(cover) ?? ""} alt="" style={mediaCover} /> : null}
@@ -638,6 +640,28 @@ export default function ContentVerifyPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mediaPreview && (
+        <div className="cvr-history-mask" onClick={() => setMediaPreview(null)}>
+          <div className="cvr-history-panel" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cvr-history-head">
+              <h2>{mediaPreview.type === "video" ? "视频预览" : "照片预览"}</h2>
+              <button type="button" className="cvr-history-x" onClick={() => setMediaPreview(null)} aria-label="关闭预览">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="cvr-history-body flex min-h-[240px] items-center justify-center">
+              {mediaPreview.type === "video" && mediaPreview.item.file_url ? (
+                <video controls autoPlay className="max-h-[60vh] max-w-full" src={resolveMediaUrl(mediaPreview.item.file_url) ?? undefined} />
+              ) : mediaPreview.item.file_url ? (
+                <img className="max-h-[60vh] max-w-full object-contain" src={resolveMediaUrl(mediaPreview.item.file_url) ?? ""} alt="" />
+              ) : (
+                <span className="text-sm text-[#999]">暂无媒体资源</span>
               )}
             </div>
           </div>

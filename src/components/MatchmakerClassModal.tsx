@@ -138,6 +138,7 @@ function EmptyState() {
 export default function MatchmakerClassModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [activeKey, setActiveKey] = useState("huashu");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
   const [activeVideo, setActiveVideo] = useState<ClassVideo | null>(null);
 
   const tab = useMemo(() => tabs.find((t) => t.key === activeKey) ?? tabs[0], [activeKey]);
@@ -148,13 +149,17 @@ export default function MatchmakerClassModal({ open, onClose }: { open: boolean;
     return tab.videos.filter((v) => v.title.toLowerCase().includes(q));
   }, [tab, keyword]);
 
-  const total = tab.videos.length;
+  const pageSize = 10;
+  const total = shown.length;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = shown.slice((page - 1) * pageSize, page * pageSize);
 
   // 打开时重置
   useEffect(() => {
     if (open) {
       setActiveVideo(null);
       setKeyword("");
+      setPage(1);
     }
   }, [open]);
 
@@ -180,7 +185,7 @@ export default function MatchmakerClassModal({ open, onClose }: { open: boolean;
             className="mkc-search-input"
             placeholder="输入关键词搜索"
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
             onKeyDown={(e) => { if (e.key === "Enter") setKeyword(e.currentTarget.value); }}
           />
           <button type="button" className="mkc-search-btn" onClick={() => setKeyword(keyword)}>搜索</button>
@@ -196,6 +201,7 @@ export default function MatchmakerClassModal({ open, onClose }: { open: boolean;
                 setActiveKey(t.key);
                 setKeyword("");
                 setActiveVideo(null);
+                setPage(1);
               }}
             >
               {t.label}
@@ -208,7 +214,7 @@ export default function MatchmakerClassModal({ open, onClose }: { open: boolean;
             {shown.length === 0 ? (
               <EmptyState />
             ) : (
-              shown.map((v) => (
+              pageItems.map((v) => (
                 <button key={v.id} type="button" className={`mkc-item ${activeVideo?.id === v.id ? "active" : ""}`} onClick={() => setActiveVideo(v)}>
                   <div className="mkc-item-top">
                     {v.badge && <span className="mkc-badge">{v.badge}</span>}
@@ -228,9 +234,9 @@ export default function MatchmakerClassModal({ open, onClose }: { open: boolean;
             <div className="mkc-footer">
               <span className="mkc-count">共 {total} 条</span>
               <span className="mkc-pager">
-                <button type="button" className="mkc-page" disabled>‹</button>
-                <span className="mkc-page cur">1</span>
-                <button type="button" className="mkc-page" disabled>›</button>
+                <button type="button" className="mkc-page" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
+                <span className="mkc-page cur">{page} / {pageCount}</span>
+                <button type="button" className="mkc-page" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>›</button>
               </span>
             </div>
           </div>
@@ -238,22 +244,7 @@ export default function MatchmakerClassModal({ open, onClose }: { open: boolean;
           {activeVideo && (
             <div className="mkc-player">
               <div className="mkc-screen">
-                <span className="mkc-subtitle">从业 8 年的红娘</span>
-              </div>
-              <div className="mkc-controls">
-                <span className="mkc-ctrl-btn">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10-6.5z" /></svg>
-                </span>
-                <span className="mkc-progress">
-                  <span className="mkc-progress-filled"></span>
-                </span>
-                <span className="mkc-ctrl-time">0:03/7:01</span>
-                <span className="mkc-ctrl-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4z" /><path d="M15.5 8.5a5 5 0 010 7" /><path d="M18.5 5.5a9 9 0 010 13" /></svg>
-                </span>
-                <span className="mkc-ctrl-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /></svg>
-                </span>
+                <span className="mkc-subtitle">该课程暂无视频资源</span>
               </div>
             </div>
           )}

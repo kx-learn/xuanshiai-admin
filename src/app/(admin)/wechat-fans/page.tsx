@@ -22,6 +22,7 @@ export default function WechatFansPage() {
   const [group, setGroup] = useState("");
   const [searchType, setSearchType] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
   const [selected, setSelected] = useState<number[]>([]);
 
   const apply = useCallback((config: Dict | null) => {
@@ -44,11 +45,11 @@ export default function WechatFansPage() {
 
   const shown = useMemo(() => fans.filter((f) => {
     if (group && f.group !== group) return false;
-    if (!keyword) return true;
-    if (searchType === "openid") return f.openid.toLowerCase().includes(keyword.toLowerCase());
-    if (searchType === "follow") return f.followTime.includes(keyword);
-    return f.nickname.includes(keyword);
-  }), [fans, group, keyword, searchType]);
+    if (!appliedKeyword) return true;
+    if (searchType === "openid") return f.openid.toLowerCase().includes(appliedKeyword.toLowerCase());
+    if (searchType === "follow") return f.followTime.includes(appliedKeyword);
+    return f.nickname.includes(appliedKeyword);
+  }), [fans, group, appliedKeyword, searchType]);
 
   const allChecked = shown.length > 0 && selected.length === shown.length;
 
@@ -104,7 +105,7 @@ export default function WechatFansPage() {
                 className="h-10 w-[240px] rounded border border-[#d9d9d9] px-3 text-sm outline-none placeholder:text-[#b4bac5] focus:border-[#3658f7]"
               />
 
-              <button type="button" className="h-10 rounded bg-[#3658f7] px-5 text-sm text-white">
+              <button type="button" className="h-10 rounded bg-[#3658f7] px-5 text-sm text-white" onClick={() => setAppliedKeyword(keyword.trim())}>
                 搜索
               </button>
 

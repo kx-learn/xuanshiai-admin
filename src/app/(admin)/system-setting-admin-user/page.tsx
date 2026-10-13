@@ -1,10 +1,11 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { ChevronDown, X } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
+import AdminPagination from "@/components/AdminPagination";
 
 interface AccountRow {
   id: number;
@@ -16,12 +17,15 @@ interface AccountRow {
   locked_until: string | null;
   permissions: string[];
   created_at: string;
+  matchmaker_user_id?: number | null;
 }
 
 interface AccountPage {
   items: AccountRow[];
   total: number;
   has_more: boolean;
+  page: number;
+  page_size: number;
 }
 
 const statusTabs = ["全部", "正常", "已锁定", "已停用"];
@@ -93,28 +97,35 @@ function EditModal({ row, onClose, onSaved }: { row: AccountRow; onClose: () => 
 
 export default function Page() {
   const [status, setStatus] = useState("全部");
-  const [phone, setPhone] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [rows, setRows] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<AccountRow | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
     try {
       const statusMap: Record<string, number | undefined> = { "正常": 1, "已锁定": 3, "已停用": 2 };
       const s = statusMap[status];
-      const qs = new URLSearchParams({ page: "1", page_size: "50" });
+      const qs = new URLSearchParams({ page: String(nextPage), page_size: String(nextPageSize) });
       if (s !== undefined) qs.set("status", String(s));
+      if (keyword.trim()) qs.set("keyword", keyword.trim());
       const data = await adminApi<AccountPage>(`/admin/matchmaker/accounts?${qs.toString()}`);
       setRows(data.items ?? []);
+      setTotal(data.total ?? 0);
+      setSelectedIds([]);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "账号列表加载失败", "error");
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [page, pageSize, keyword, status]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(page, pageSize); }, [load, page, pageSize]);
 
   const disable = async (row: AccountRow) => {
     if (!window.confirm(`确认停用账号「${row.username}」？（后台账号不支持物理删除，将以停用代替）`)) return;
@@ -130,7 +141,8 @@ export default function Page() {
     }
   };
 
-  const shown = rows.filter((r) => !phone || (r.last_login_ip ?? "").includes(phone) || r.username.includes(phone) || r.display_name.includes(phone));
+  const shown = useMemo(() => rows, [rows]);
+  const allSelected = shown.length > 0 && shown.every((row) => selectedIds.includes(row.id));
 
   return (
     <div>
@@ -147,7 +159,7 @@ export default function Page() {
             {statusTabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setStatus(tab)}
+                onClick={() => { setStatus(tab); setPage(1); }}
                 className={`au-tab ${status === tab ? "au-tab-active" : ""}`}
               >
                 {tab}
@@ -155,10 +167,7 @@ export default function Page() {
             ))}
           </div>
 
-          <div className="au-fd">
-            <span className="au-fd-label">全部</span>
-            <ChevronDown className="au-fd-chevron" />
-          </div>
+          <div className="au-fd"><span className="au-fd-label">全部</span><ChevronDown className="au-fd-chevron" /></div>
 
           <div className="au-group">
             <span className="au-group-label">分组：</span>
@@ -168,9 +177,9 @@ export default function Page() {
             </div>
           </div>
 
-          <input className="au-phone" placeholder="请输入手机号" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input className="au-phone" placeholder="账号/姓名关键词" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { setPage(1); void load(1, pageSize); } }} />
 
-          <button className="au-search" onClick={load}>搜索</button>
+          <button className="au-search" onClick={() => { setPage(1); void load(1, pageSize); }}>搜索</button>
         </div>
 
         {/* 表格 */}
@@ -178,7 +187,7 @@ export default function Page() {
           <table className="au-table">
             <thead>
               <tr>
-                <th className="au-th-check"><input type="checkbox" /></th>
+                <th className="au-th-check"><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? shown.map((row) => row.id) : [])} /></th>
                 <th>用户名</th>
                 <th>姓名</th>
                 <th>用户组</th>
@@ -195,7 +204,7 @@ export default function Page() {
                 <tr><td colSpan={10} style={{ textAlign: "center", padding: "32px 0", color: "#999" }}>{loading ? "加载中…" : "暂无数据"}</td></tr>
               ) : shown.map((r) => (
                 <tr key={r.id}>
-                  <td className="au-td-check"><input type="checkbox" /></td>
+                  <td className="au-td-check"><input type="checkbox" checked={selectedIds.includes(r.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, r.id] : current.filter((id) => id !== r.id))} /></td>
                   <td>{r.username}</td>
                   <td>{r.display_name}</td>
                   <td>{r.permissions.length > 0 ? `${r.permissions.length} 项权限` : "-"}</td>
@@ -223,12 +232,8 @@ export default function Page() {
           </table>
         </div>
 
-        {/* 分页 */}
-        <div className="au-pagination">
-          <button className="au-page-btn">‹</button>
-          <span className="au-page-num">1</span>
-          <button className="au-page-btn">›</button>
-        </div>
+        {selectedIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedIds.length}</b> 项</span><button type="button" onClick={() => setSelectedIds([])}>取消选择</button></div>}
+        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={(next) => { setPage(next); void load(next, pageSize); }} onPageSizeChange={(next) => { setPageSize(next); setPage(1); void load(1, next); }} />
       </div>
 
       {editing && <EditModal row={editing} onClose={() => setEditing(null)} onSaved={load} />}

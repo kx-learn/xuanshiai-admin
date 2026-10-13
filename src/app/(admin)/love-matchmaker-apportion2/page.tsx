@@ -167,7 +167,7 @@ export default function Page() {
     setSavingAbandon(true);
     try {
       const body = {
-        auto_abandon_days: Number(abandonMode),
+        auto_abandon_days: abandonMode === "off" ? 0 : Number(abandonMode),
         daily_pickup_limit: Number(pickupLimit) || 0,
         show_admin_abandoned_in_pool: showAdminAbandoned === "show",
         show_store_abandoned_in_pool: showStoreAbandoned === "show",

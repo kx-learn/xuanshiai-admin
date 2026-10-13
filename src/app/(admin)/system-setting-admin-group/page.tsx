@@ -4,6 +4,7 @@ import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Plus, X } from "lucide-react";
 import { asObject, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
+import AdminPagination from "@/components/AdminPagination";
 
 const GROUPS_DEFAULTS = { groups: [] as unknown[] } as const;
 
@@ -19,6 +20,7 @@ export default function Page() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [editing, setEditing] = useState<Group | null>(null);
   const [permEditing, setPermEditing] = useState<Group | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const apply = useCallback((config: Dict | null) => {
     const list = Array.isArray(config?.groups) ? config!.groups : [];
@@ -36,8 +38,9 @@ export default function Page() {
   useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
 
   const persist = async (next: Group[]) => {
-    setGroups(next);
-    await domain.save({ groups: next.map((g) => ({ id: g.id, name: g.name, users: g.users, permissions: g.permissions })) } as Partial<Dict>, "权限分组更新");
+    const ok = await domain.save({ groups: next.map((g) => ({ id: g.id, name: g.name, users: g.users, permissions: g.permissions })) } as Partial<Dict>, "权限分组更新");
+    if (ok) setGroups(next);
+    else showConfigToast(domain.error ?? "保存失败，未修改本地数据", "error");
   };
 
   const addGroup = async () => {
@@ -87,6 +90,7 @@ export default function Page() {
           <table className="au-table au-group-table">
             <thead>
               <tr>
+                <th><input type="checkbox" aria-label="全选用户组" checked={groups.length > 0 && selectedIds.length === groups.length} onChange={(event) => setSelectedIds(event.target.checked ? groups.map((group) => group.id) : [])} /></th>
                 <th>用户组名</th>
                 <th>当前用户</th>
                 <th>操作</th>
@@ -94,9 +98,10 @@ export default function Page() {
             </thead>
             <tbody>
               {groups.length === 0 ? (
-                <tr><td colSpan={3} style={{ textAlign: "center", padding: "32px 0", color: "#999" }}>{domain.loading ? "加载中…" : "暂无数据"}</td></tr>
+                <tr><td colSpan={4} style={{ textAlign: "center", padding: "32px 0", color: "#999" }}>{domain.loading ? "加载中…" : "暂无数据"}</td></tr>
               ) : groups.map((r) => (
                 <tr key={r.id}>
+                  <td><input type="checkbox" aria-label={`选择用户组 ${r.name}`} checked={selectedIds.includes(r.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, r.id] : current.filter((id) => id !== r.id))} /></td>
                   <td className="au-group-name">{r.name}</td>
                   <td className="au-group-users">{r.users ? r.users : <span className="au-wechat-none">无当前用户</span>}</td>
                   <td>
@@ -112,11 +117,8 @@ export default function Page() {
           </table>
         </div>
 
-        <div className="au-pagination">
-          <button className="au-page-btn">‹</button>
-          <span className="au-page-num">1</span>
-          <button className="au-page-btn">›</button>
-        </div>
+        {selectedIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedIds.length}</b> 项</span><button type="button" onClick={() => setSelectedIds([])}>取消选择</button></div>}
+        <AdminPagination page={1} pageSize={20} total={groups.length} onPageChange={() => undefined} />
       </div>
 
       {permEditing && <PermModal group={permEditing} onClose={() => setPermEditing(null)} onSave={(perms) => savePerms(permEditing, perms)} />}

@@ -90,6 +90,7 @@ const rows: Row[] = [
 
 export default function Page() {
   const [state, setState] = useState<Row[]>(rows);
+  const [keyword, setKeyword] = useState("");
   const domain = useConfigDomain<Dict>("sys_sms", { signature: null, send_enabled: true, notices: [] });
   const loaded = useRef(false);
 
@@ -216,8 +217,8 @@ export default function Page() {
 
         <div className="notif-bar">
           <div className="notif-search">
-            <input className="notif-search-input" placeholder="请输入关键字搜索" />
-            <button type="button" className="notif-search-btn">搜索</button>
+            <input className="notif-search-input" placeholder="请输入关键字搜索" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
+            <button type="button" className="notif-search-btn" onClick={() => setKeyword((value) => value.trim())}>搜索</button>
           </div>
         </div>
 
@@ -233,7 +234,7 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {state.map((r) => (
+              {state.filter((r) => !keyword.trim() || `${r.id} ${r.scene} ${r.content}`.includes(keyword.trim())).map((r) => (
                 <tr key={r.id}>
                   <td className="notif-td-id">{r.id}</td>
                   <td className="notif-td-scene">{r.scene}</td>

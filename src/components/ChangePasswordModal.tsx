@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
+import { adminApi } from "@/lib/admin-api";
+import { showConfigToast } from "@/lib/platform-config";
 
 function PwdField({
   label,
@@ -51,6 +53,24 @@ export default function ChangePasswordModal({
   const [oldPwd, setOldPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!oldPwd || !newPwd || !confirmPwd) return showConfigToast("请完整填写密码", "error");
+    if (newPwd.length < 8) return showConfigToast("新密码至少 8 位", "error");
+    if (newPwd !== confirmPwd) return showConfigToast("两次输入的新密码不一致", "error");
+    setSaving(true);
+    try {
+      await adminApi("admin/matchmaker/auth/change-password", { method: "POST", body: { old_password: oldPwd, new_password: newPwd } });
+      showConfigToast("密码已修改", "ok");
+      setOldPwd(""); setNewPwd(""); setConfirmPwd("");
+      onClose();
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "修改密码失败", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!open) return null;
 
@@ -89,8 +109,8 @@ export default function ChangePasswordModal({
           <button type="button" className="chgp-cancel" onClick={onClose}>
             取消
           </button>
-          <button type="button" className="chgp-ok">
-            确定
+          <button type="button" className="chgp-ok" disabled={saving} onClick={() => void submit()}>
+            {saving ? "提交中..." : "确定"}
           </button>
         </div>
       </div>

@@ -353,6 +353,9 @@
 .customer-lead-page .lead-bulk-toolbar select, .customer-lead-page .lead-bulk-toolbar button { height: 36px; border: 1px solid #dfe3ea; border-radius: 6px; background: #fff; padding: 0 16px; color: #3658f7; font-size: 13px; white-space: nowrap; }
 .customer-lead-page .lead-bulk-toolbar select { color: #b5bbc5; }
 .customer-lead-page .lead-bulk-toolbar button { border-color: #3658f7; background: #3658f7; color: #fff; }
+.au-card > .lead-bulk-toolbar { position: fixed; right: 0; bottom: 0; left: 224px; z-index: 45; display: flex; align-items: center; gap: 10px; min-height: 54px; margin: 0; padding: 8px 18px; border-top: 1px solid #e3e7ef; background: #fff; box-shadow: 0 -2px 10px rgba(24,40,80,.12); }
+.au-card > .lead-bulk-toolbar button { height: 36px; border: 1px solid #3658f7; border-radius: 4px; background: #3658f7; padding: 0 16px; color: #fff; font-size: 13px; white-space: nowrap; }
+.au-card > .lead-bulk-toolbar { color: #46516b; font-size: 13px; }
 .customer-lead-page .lead-metric-card { min-height: 86px; padding: 14px 16px; border-radius: 4px; background: #f7f8fa; }
 .customer-lead-page .lead-metric-card.selected { background: #eef2ff; }
 .customer-lead-page .lead-metric-card > div:first-child { color: #9299a5; font-size: 14px; }
@@ -1368,6 +1371,7 @@
 .cf-editor-toolbar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid #f0f1f4; flex-wrap: wrap; }
 .cf-tool { min-width: 26px; height: 26px; padding: 0 6px; border: 0; border-radius: 5px; background: transparent; color: #55607a; font-size: 12px; cursor: pointer; transition: background .15s, color .15s; }
 .cf-tool:hover { background: #eef1ff; color: #3658f7; }
+.cf-tool-hint, .ac-editor-tool-hint, .lp-editor-tool-hint, .mm-editor-tool-hint { color: #9aa3b2; font-size: 12px; }
 .cf-editor-text { display: block; width: 100%; min-height: 220px; padding: 12px 14px; border: 0; outline: none; resize: vertical; font-size: 13px; color: #333; background: #fbfbfd; }
 .cf-input { flex: 1; max-width: 320px; height: 38px; padding: 0 12px; border: 1px solid #e2e5ec; border-radius: 6px; font-size: 13px; color: #333; outline: none; transition: border-color .15s; background: #fff; }
 .cf-input:focus { border-color: #3d5cf1; }

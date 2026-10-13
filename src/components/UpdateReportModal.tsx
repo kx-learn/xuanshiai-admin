@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 /* ------------------------------------------------------------------ */
 /* 数据定义                                                            */
@@ -88,8 +90,6 @@ const items: UpdateItem[] = [
   { id: 48, category: "其他更新", title: "手机版的网站首页在最底部增加了备案编号显示,点击会跳转到工信部网站", time: "2025-03-29 17:12:04" },
 ];
 
-const catCount: Record<string, number> = { all: 639, 功能升级: 255, 细节改进: 391, 新功能: 16, BUG修复: 169, 其他更新: 4 };
-
 /* ------------------------------------------------------------------ */
 /* 复制文字工具                                                        */
 /* ------------------------------------------------------------------ */
@@ -114,6 +114,27 @@ function useCopy() {
 
 function FeedbackDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [type, setType] = useState("需求建议");
+  const [content, setContent] = useState("");
+  const [busy, setBusy] = useState(false);
+  const typeMap: Record<string, "BUG" | "咨询" | "建议"> = { "BUG反馈": "BUG", "使用咨询": "咨询", "需求建议": "建议", "故障诊断": "BUG", "其他": "咨询" };
+  const submit = async () => {
+    const text = content.trim();
+    if (!text) {
+      showConfigToast("请输入反馈内容", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      await adminEndpoints.createTicket({ feedback_type: typeMap[type], title: "系统更新消息反馈", content: text });
+      showConfigToast("反馈已提交");
+      onClose();
+      setContent("");
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "提交失败", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
   if (!open) return null;
   return (
     <div className="ur-feedback-mask" onClick={onClose}>
@@ -127,7 +148,7 @@ function FeedbackDrawer({ open, onClose }: { open: boolean; onClose: () => void 
           </span>
           <div className="ur-feedback-actions">
             <button type="button" className="ur-btn-cancel" onClick={onClose}>取消</button>
-            <button type="button" className="ur-btn-primary" onClick={onClose}>确定提交</button>
+            <button type="button" className="ur-btn-primary" disabled={busy} onClick={() => void submit()}>确定提交</button>
           </div>
         </div>
         <div className="ur-feedback-body">
@@ -148,17 +169,15 @@ function FeedbackDrawer({ open, onClose }: { open: boolean; onClose: () => void 
             <span className="ur-flabel ur-flabel-req">反馈内容<i>*</i></span>
             <div className="ur-editor">
               <div className="ur-editor-toolbar">
-                {["H", "B", "T₁", "T₂", "I", "U", "S", "🖌", "🖼", "📋", "🔗", "⊕", "≡", "↔", "💬", "📈"].map((t) => (
-                  <button type="button" key={t} className="ur-tool">{t}</button>
-                ))}
+                <span className="ur-tool-hint">纯文本反馈</span>
               </div>
-              <textarea className="ur-editor-text" placeholder="请输入正文" />
+              <textarea className="ur-editor-text" placeholder="请输入正文" value={content} onChange={(event) => setContent(event.target.value)} />
             </div>
           </div>
 
           <div className="ur-frow">
             <span className="ur-flabel ur-flabel-req">手机<i>*</i></span>
-            <input className="ur-finput" defaultValue="13285288888" />
+            <input className="ur-finput" placeholder="请输入手机号（可选）" />
           </div>
 
           <div className="ur-frow">
@@ -183,6 +202,7 @@ function FeedbackDrawer({ open, onClose }: { open: boolean; onClose: () => void 
 export default function UpdateReportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [activeKey, setActiveKey] = useState("all");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
   const [activeItem, setActiveItem] = useState<UpdateItem | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { copied, copy } = useCopy();
@@ -196,13 +216,17 @@ export default function UpdateReportModal({ open, onClose }: { open: boolean; on
     });
   }, [activeKey, keyword]);
 
-  const total = catCount[activeKey] ?? shown.length;
+  const total = shown.length;
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = shown.slice((page - 1) * pageSize, page * pageSize);
 
   // 打开时重置
   useEffect(() => {
     if (open) {
       setActiveItem(null);
       setKeyword("");
+      setPage(1);
       setFeedbackOpen(false);
     }
   }, [open]);
@@ -222,7 +246,7 @@ export default function UpdateReportModal({ open, onClose }: { open: boolean; on
             className="ur-search-input"
             placeholder="输入关键词搜索"
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
           />
           <svg className="ur-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
         </div>
@@ -237,6 +261,7 @@ export default function UpdateReportModal({ open, onClose }: { open: boolean; on
                 setActiveKey(t.key);
                 setKeyword("");
                 setActiveItem(null);
+                setPage(1);
               }}
             >
               {t.label}
@@ -249,7 +274,7 @@ export default function UpdateReportModal({ open, onClose }: { open: boolean; on
             {shown.length === 0 ? (
               <div className="ur-list-hint">未找到匹配的更新内容</div>
             ) : (
-              shown.map((it) => (
+              pageItems.map((it) => (
                 <button key={it.id} type="button" className={`ur-item ${activeItem?.id === it.id ? "active" : ""}`} onClick={() => setActiveItem(it)}>
                   <div className="ur-item-top">
                     <span className="ur-cat">{it.category}</span>
@@ -263,9 +288,9 @@ export default function UpdateReportModal({ open, onClose }: { open: boolean; on
             <div className="ur-footer">
               <span className="ur-count">共 {total} 条</span>
               <span className="ur-pager">
-                <button type="button" className="ur-page" disabled>‹</button>
-                <span className="ur-page cur">1</span>
-                <button type="button" className="ur-page" disabled>›</button>
+                <button type="button" className="ur-page" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
+                <span className="ur-page cur">{page} / {pageCount}</span>
+                <button type="button" className="ur-page" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>›</button>
               </span>
             </div>
           </div>

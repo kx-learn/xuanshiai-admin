@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 /* ------------------------------------------------------------------ */
 /* 数据定义                                                            */
@@ -120,6 +122,12 @@ export default function CloudMaterialModal({ open, onClose }: { open: boolean; o
   const [preview, setPreview] = useState<{ id: number; label: string; emoji: string; hue: number } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<"BUG" | "咨询" | "建议">("咨询");
+  const [feedbackContent, setFeedbackContent] = useState("");
+  const [feedbackPhone, setFeedbackPhone] = useState("");
+  const [feedbackWechat, setFeedbackWechat] = useState("");
+  const [feedbackQq, setFeedbackQq] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
 
   const album = albums.find((a) => a.key === activeKey) ?? albums[0];
 
@@ -129,12 +137,16 @@ export default function CloudMaterialModal({ open, onClose }: { open: boolean; o
       setPreview(null);
       setDetailOpen(false);
       setFeedbackOpen(false);
+      setFeedbackType("咨询");
+      setFeedbackContent("");
+      setFeedbackPhone("");
+      setFeedbackWechat("");
+      setFeedbackQq("");
     }
   }, [open]);
 
   const cards = useMemo<CardItem[]>(() => {
     if (album.empty) return [];
-    if (keyword.trim()) setSearchInput(keyword);
     const list: CardItem[] = [];
     for (let i = 0; i < album.count; i++) {
       list.push({
@@ -156,6 +168,35 @@ export default function CloudMaterialModal({ open, onClose }: { open: boolean; o
     if (value.trim() === "") setSearchInput("");
   };
 
+  const submitFeedback = async () => {
+    const content = feedbackContent.trim();
+    if (!content) {
+      showConfigToast("请填写反馈内容", "error");
+      return;
+    }
+    if (!feedbackPhone.trim()) {
+      showConfigToast("请填写手机号", "error");
+      return;
+    }
+    setFeedbackSubmitting(true);
+    try {
+      const contact = [`手机号：${feedbackPhone.trim()}`, feedbackWechat.trim() ? `微信：${feedbackWechat.trim()}` : "", feedbackQq.trim() ? `QQ：${feedbackQq.trim()}` : ""]
+        .filter(Boolean)
+        .join("\n");
+      await adminEndpoints.createTicket({
+        feedback_type: feedbackType,
+        title: "云端素材需求",
+        content: `${content}\n\n${contact}`,
+      });
+      showConfigToast("反馈已提交", "ok");
+      setFeedbackOpen(false);
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "提交反馈失败", "error");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
   const onGridClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const btn = target.closest("[data-act='view']") as HTMLElement | null;
@@ -168,8 +209,9 @@ export default function CloudMaterialModal({ open, onClose }: { open: boolean; o
       });
       return;
     }
-    if (target.closest("[data-act='download']")) {
-      // 模拟下载
+    const download = target.closest("[data-act='download']") as HTMLElement | null;
+    if (download) {
+      showConfigToast("该素材暂无可下载文件", "error");
     }
   };
 
@@ -360,16 +402,16 @@ export default function CloudMaterialModal({ open, onClose }: { open: boolean; o
               </div>
               <div className="cf-head-actions">
                 <button type="button" className="cf-btn-plain" onClick={() => setFeedbackOpen(false)}>取消</button>
-                <button type="button" className="cf-btn-primary" onClick={() => setFeedbackOpen(false)}>确定提交</button>
+                <button type="button" className="cf-btn-primary" disabled={feedbackSubmitting} onClick={() => void submitFeedback()}>{feedbackSubmitting ? "提交中..." : "确定提交"}</button>
               </div>
             </div>
             <div className="cf-feedback-body">
               <div className="cf-row">
                 <span className="cf-label">反馈类型</span>
                 <div className="cf-radios">
-                  {["BUG反馈", "使用咨询", "需求建议", "故障诊断", "其他"].map((t) => (
+                  {[["BUG反馈", "BUG"], ["使用咨询", "咨询"], ["需求建议", "建议"], ["故障诊断", "咨询"], ["其他", "咨询"]].map(([t, value]) => (
                     <label key={t} className="cf-radio">
-                      <input type="radio" name="cf-type" className="cf-radio-input" />
+                      <input type="radio" name="cf-type" className="cf-radio-input" checked={feedbackType === value} onChange={() => setFeedbackType(value as "BUG" | "咨询" | "建议")} />
                       <span className="cf-radio-dot"></span>
                       <span className="cf-radio-text">{t}</span>
                     </label>
@@ -380,28 +422,23 @@ export default function CloudMaterialModal({ open, onClose }: { open: boolean; o
               <div className="cf-row cf-row-top">
                 <span className="cf-label cf-label-req">内容<i>*</i></span>
                 <div className="cf-editor">
-                  <div className="cf-editor-toolbar">
-                    {["H", "B", "T₁", "T₂", "I", "U", "S", "字体", "引用", "✓", "链接", "🖼", "表格", "代码", "😊"].map((t) => (
-                      <button type="button" key={t} className="cf-tool">{t}</button>
-                    ))}
-                  </div>
-                  <textarea className="cf-editor-text" placeholder="请输入正文" />
+                  <textarea className="cf-editor-text" placeholder="请输入正文" maxLength={3900} value={feedbackContent} onChange={(event) => setFeedbackContent(event.target.value)} />
                 </div>
               </div>
 
               <div className="cf-row">
                 <span className="cf-label cf-label-req">手机<i>*</i></span>
-                <input className="cf-input" defaultValue="13285288888" />
+                <input className="cf-input" maxLength={32} value={feedbackPhone} onChange={(event) => setFeedbackPhone(event.target.value)} />
               </div>
 
               <div className="cf-row">
                 <span className="cf-label">微信</span>
-                <input className="cf-input" defaultValue="" />
+                <input className="cf-input" maxLength={100} value={feedbackWechat} onChange={(event) => setFeedbackWechat(event.target.value)} />
               </div>
 
               <div className="cf-row">
                 <span className="cf-label">QQ</span>
-                <input className="cf-input" defaultValue="" />
+                <input className="cf-input" maxLength={32} value={feedbackQq} onChange={(event) => setFeedbackQq(event.target.value)} />
               </div>
             </div>
           </div>

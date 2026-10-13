@@ -130,6 +130,31 @@ export default function LoveUserFollowUpPage() {
   useEffect(() => { void loadSummary(); }, [loadSummary]);
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
+  const exportRows = () => {
+    if (!rows.length) {
+      showConfigToast("当前没有可导出的跟进记录", "error");
+      return;
+    }
+    const escape = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const csv = [
+      ["会员编号", "会员昵称", "跟进红娘", "跟进时间", "跟进内容", "备注"].map(escape).join(","),
+      ...rows.map((row) => [
+        row.member_code,
+        row.nickname,
+        row.matchmaker_name,
+        formatTime(row.created_at),
+        row.content,
+        row.note,
+      ].map(escape).join(",")),
+    ].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `会员跟进-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    showConfigToast("导出成功", "ok");
+  };
 
   return (
     <div className="member-followup-page">
@@ -166,7 +191,7 @@ export default function LoveUserFollowUpPage() {
         <header className="member-followup-header">
           <h1>跟进全览</h1>
           <div className="member-followup-tools">
-            <button type="button" onClick={() => window.print()}><Download size={15} />导出EXCEL</button>
+            <button type="button" onClick={exportRows}><Download size={15} />导出EXCEL</button>
             <button type="button" onClick={() => router.push("/love-user-follow-up-import")}><Upload size={15} />导入历史跟进</button>
           </div>
         </header>

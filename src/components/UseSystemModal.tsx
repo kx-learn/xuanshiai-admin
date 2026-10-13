@@ -169,14 +169,7 @@ export default function UseSystemModal({ open, onClose }: { open: boolean; onClo
               ))
             )}
             <div className="us-footer">
-              <span className="us-count">共 72 条</span>
-              <span className="us-pager">
-                <button type="button" className="us-page" disabled>‹</button>
-                <span className="us-page cur">1</span>
-                <span className="us-dots">…</span>
-                <span className="us-page">4</span>
-                <button type="button" className="us-page" disabled>›</button>
-              </span>
+              <span className="us-count">共 {shown.length} 条</span>
             </div>
           </div>
 

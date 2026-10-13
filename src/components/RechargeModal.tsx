@@ -6,12 +6,7 @@ import { useEffect, useState } from "react";
 /* 数据定义                                                            */
 /* ------------------------------------------------------------------ */
 
-const balances = [
-  { label: "短信当前余量", value: 9410, unit: "条" },
-  { label: "人脸核验当前余量", value: 786, unit: "条" },
-  { label: "电子合同当前余量", value: 150, unit: "条" },
-  { label: "婚姻状况权威数据查询余量", value: 1, unit: "次" },
-];
+const balances = ["短信当前余量", "人脸核验当前余量", "电子合同当前余量", "婚姻状况权威数据查询余量"];
 
 interface Plan {
   id: string;
@@ -85,26 +80,8 @@ function PayModal({ plan, onClose }: { plan: Plan | null; onClose: () => void })
           </button>
         </div>
         <div className="pay-body">
-          <div className="pay-qr">
-            <svg viewBox="0 0 33 33" className="pay-qr-svg">
-              <rect width="33" height="33" fill="#fff" />
-              <g fill="#111">
-                {/* 定位角 */}
-                <path d="M2 2h7v7H2zM3 3v5h5V3zM4 4v3h3V4z" />
-                <path d="M24 2h7v7h-7zM25 3v5h5V3zM26 4v3h3V4z" />
-                <path d="M2 24h7v7H2zM3 25v5h5V25zM4 26v3h3V26z" />
-                {/* 随机数据点 */}
-                <path d="M11 2h2v2h-2zM14 4h2v3h-2zM11 8h3v2h-3zM17 2h3v2h-3zM21 5h2v2h-2z" />
-                <path d="M2 11h2v2H2zM5 11h3v2H5zM9 11h2v2H9zM12 12h2v2h-2zM17 11h2v2h-2zM20 12h3v2h-3zM24 11h2v2h-2zM28 11h2v2h-2z" />
-                <path d="M2 15h2v2H2zM5 15h2v2H5zM8 16h3v1H8zM14 15h2v2h-2zM18 16h2v1h-2zM22 15h2v2h-2zM26 16h2v1h-2zM30 15h1v2h-1z" />
-                <path d="M2 19h2v2H2zM6 19h2v2H6zM10 20h2v1h-2zM15 19h2v2h-2zM19 20h2v1h-2zM23 19h2v2h-2zM27 20h2v1h-2z" />
-                <path d="M2 23h2v2H2zM11 23h2v2h-2zM15 24h2v1h-2zM19 23h2v2h-2zM23 24h2v1h-2zM27 23h2v2h-2zM31 23h1v2h-1z" />
-                <path d="M11 26h2v2h-2zM15 27h2v1h-2zM19 26h2v2h-2zM23 27h2v1h-2z" />
-                <path d="M11 30h2v2h-2zM15 31h2v1h-2zM19 30h2v2h-2zM25 31h2v1h-2z" />
-              </g>
-            </svg>
-          </div>
-          <p className="pay-tip">请使用“手机支付宝”扫码并支付</p>
+          <div className="pay-qr pay-qr-unavailable">当前暂未配置在线支付渠道</div>
+          <p className="pay-tip">请联系平台服务商完成充值配置</p>
         </div>
       </div>
     </div>
@@ -146,9 +123,9 @@ export default function RechargeModal({ open, onClose }: { open: boolean; onClos
 
             <div className="chg-balances">
               {balances.map((b) => (
-                <div className="chg-balance" key={b.label}>
-                  <div className="chg-balance-label">{b.label}</div>
-                  <div className="chg-balance-value">{b.value.toLocaleString()}<span className="chg-balance-unit">{b.unit}</span></div>
+                  <div className="chg-balance" key={b}>
+                  <div className="chg-balance-label">{b}</div>
+                  <div className="chg-balance-value">未接入<span className="chg-balance-unit">无法查询</span></div>
                 </div>
               ))}
             </div>

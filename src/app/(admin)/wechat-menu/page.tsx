@@ -113,6 +113,17 @@ export default function WechatMenuPage() {
     setSubMenus((prev) => [...prev, sub]);
     setActiveSubId(newId);
   };
+  const addTop = () => {
+    if (topMenus.length >= 3) {
+      showConfigToast("一级菜单不能超过3个", "error");
+      return;
+    }
+    const id = Date.now();
+    const next: TopMenu = { id, name: "菜单项", type: "url", url: "", subs: [] };
+    setTopMenus((prev) => [...prev, next]);
+    setActiveTopId(id);
+    setActiveSubId(-1);
+  };
 
   /** 删除二级菜单 */
   const removeSub = (id: number) => {
@@ -225,6 +236,7 @@ export default function WechatMenuPage() {
               {/* 底部一级菜单栏：分两行——上一行「+」，下一行「键盘图标 + 菜单名」 */}
               <div className="menu-phone-foot">
                 <div className="menu-plus-row">
+                  <button type="button" className="menu-plus" title="添加一级菜单" onClick={addTop}>+</button>
                   {topMenus.map((top) => (
                     <button key={top.id} type="button" className="menu-plus" title="添加二级菜单" onClick={addSub}>+</button>
                   ))}

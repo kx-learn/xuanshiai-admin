@@ -22,14 +22,12 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 export default function Page() {
   const groupsDomain = useConfigDomain<Dict>("admin_groups", GROUPS_DEFAULTS as Dict);
-  const [groupOptions, setGroupOptions] = useState<{ label: string }[]>([{ label: "管理员组" }, { label: "红娘组" }, { label: "客服组" }]);
+  const [groupOptions, setGroupOptions] = useState<{ label: string }[]>([]);
 
   const [group, setGroup] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [lockOn, setLockOn] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -44,8 +42,8 @@ export default function Page() {
   }, [groupsDomain.snapshot]);
 
   const submit = async () => {
-    if (!username.trim() || !password || !displayName.trim()) {
-      showConfigToast("请填写账号、密码与姓名", "error");
+    if (!group || !username.trim() || !password || !displayName.trim()) {
+      showConfigToast("请填写分组、账号、密码与姓名", "error");
       return;
     }
     if (password.length < 8) {
@@ -66,7 +64,6 @@ export default function Page() {
       setUsername("");
       setPassword("");
       setDisplayName("");
-      setPhone("");
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "创建失败", "error");
     } finally {
@@ -119,8 +116,8 @@ export default function Page() {
             <input className="addacct-input" placeholder="4-16字符，最多8个汉字" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </Field>
 
-          <Field label="手机" required>
-            <input className="addacct-input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Field label="手机号（暂不可保存）">
+            <input className="addacct-input" disabled placeholder="后端账号接口暂不支持保存手机号" />
             <div className="sign-info addacct-info">
               <Info className="sign-info-i" />
               <span>接收短信通知和后台登录</span>
@@ -129,11 +126,10 @@ export default function Page() {
 
           <Field label="定时锁定">
             <div className="addacct-switch-row">
-              <label className={`mp-switch ${lockOn ? "on" : ""}`}>
-                {lockOn && <span className="mp-switch-label">开启</span>}
+              <label className="mp-switch" aria-disabled="true">
                 <span className="mp-switch-knob"></span>
               </label>
-              <span className="addacct-switch-text">开启</span>
+              <span className="addacct-switch-text">后端接口暂不支持定时锁定</span>
             </div>
             <div className="sign-info addacct-info">
               <Info className="sign-info-i" />

@@ -506,9 +506,6 @@ export default function LoveUserAuthPage() {
     if (tab === "marriage") {
       return (
         <div className="uath-filter-actions">
-          <button type="button" className="uath-btn link">
-            婚姻状况核验说明
-          </button>
           <button type="button" className="uath-btn primary" onClick={() => openConfigDrawer("marriage")}>
             配置《婚姻状态查询授权协议》
           </button>
@@ -535,13 +532,13 @@ export default function LoveUserAuthPage() {
 
   const realnameStatCards = rnStats
     ? [
-        { value: `${rnStats.quota_remaining}条`, label: "人脸核验余量", recharge: true },
+        { value: `${rnStats.quota_remaining}条`, label: "人脸核验余量" },
         { value: `${rnStats.success_count}次`, label: "核验成功" },
         { value: `${rnStats.fail_count}次`, label: "核验失败" },
         { value: `${rnStats.total_consumed}次`, label: "总计消耗" },
       ]
     : [
-        { value: "0条", label: "人脸核验余量", recharge: true },
+        { value: "0条", label: "人脸核验余量" },
         { value: "0次", label: "核验成功" },
         { value: "0次", label: "核验失败" },
         { value: "0次", label: "总计消耗" },
@@ -585,11 +582,6 @@ export default function LoveUserAuthPage() {
                 <div key={card.label} className="uath-stat">
                   <div className="uath-stat-top">
                     <span className="uath-stat-value">{card.value}</span>
-                    {card.recharge && (
-                      <button type="button" className="uath-btn primary sm">
-                        在线充值
-                      </button>
-                    )}
                   </div>
                   <div className="uath-stat-label">{card.label}</div>
                 </div>
@@ -850,9 +842,6 @@ export default function LoveUserAuthPage() {
               <div className="uath-stat">
                 <div className="uath-stat-top">
                   <span className="uath-stat-value">{mrStats ? `${mrStats.quota_remaining}条` : "0条"}</span>
-                  <button type="button" className="uath-btn primary sm">
-                    在线充值
-                  </button>
                 </div>
                 <div className="uath-stat-label">婚况核验查询余量</div>
               </div>

@@ -186,7 +186,6 @@ export default function MiniprogramConfigPage() {
                   className="mp-clear-btn"
                   onClick={() => {
                     setCoverUrl(null);
-                    setQrUrl(null);
                   }}
                 >
                   清空图片

@@ -41,6 +41,7 @@ export default function Page() {
   const [scope, setScope] = useState(scopes[0]);
   const [behavior, setBehavior] = useState(filterBehaviors[0]);
   const [keyword, setKeyword] = useState("");
+  const [submittedKeyword, setSubmittedKeyword] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [recordType, setRecordType] = useState("member");
@@ -71,13 +72,13 @@ export default function Page() {
   const shown = useMemo(() => rows.filter((r) => {
     if (recordType === "member" && r.record_type !== "member") return false;
     if (recordType === "lead" && r.record_type !== "lead") return false;
-    if (behavior === "按昵称搜" && keyword && !r.callee_name.includes(keyword)) return false;
-    if (behavior === "按号码搜" && keyword && !r.callee.includes(keyword)) return false;
+    if (behavior === "按昵称搜" && submittedKeyword && !r.callee_name.includes(submittedKeyword)) return false;
+    if (behavior === "按号码搜" && submittedKeyword && !r.callee.includes(submittedKeyword)) return false;
     const day = (r.started_at ?? "").slice(0, 10);
     if (fromDate && day && day < fromDate) return false;
     if (toDate && day && day > toDate) return false;
     return true;
-  }), [rows, keyword, behavior, fromDate, toDate, recordType]);
+  }), [rows, submittedKeyword, behavior, fromDate, toDate, recordType]);
 
   return (
     <div className="rec-page">
@@ -151,7 +152,7 @@ export default function Page() {
               <input className="rec-input" placeholder="请输入" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
             </div>
 
-            <button type="button" className="rec-search-btn">搜索</button>
+            <button type="button" className="rec-search-btn" onClick={() => setSubmittedKeyword(keyword.trim())}>搜索</button>
 
             <div className="rec-range">
               <input type="date" className="rec-input rec-date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} placeholder="开始日期" />

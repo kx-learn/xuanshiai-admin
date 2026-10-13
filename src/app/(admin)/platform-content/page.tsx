@@ -14,8 +14,6 @@ import {
 /* ------------------------------------------------------------------ */
 /* 富文本编辑器（复用 cf-editor 样式）                                */
 /* ------------------------------------------------------------------ */
-const TOOLS = ["H", "B", "T₁", "T₂", "I", "U", "S", "字体", "引用", "✓", "链接", "🖼", "表格", "代码", "😊"];
-
 function RichEditor({ seed, onEdit }: { seed?: string; onEdit?: (html: string) => void }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const dirtyRef = useRef(false);
@@ -28,11 +26,7 @@ function RichEditor({ seed, onEdit }: { seed?: string; onEdit?: (html: string) =
   }, [seed]);
   return (
     <div className="cc-editor">
-      <div className="cc-editor-toolbar">
-        {TOOLS.map((t) => (
-          <button type="button" key={t} className="cf-tool">{t}</button>
-        ))}
-      </div>
+      <div className="cc-editor-toolbar"><span className="cf-tool-hint">支持纯文本编辑</span></div>
       <div
         ref={editorRef}
         className="cc-editor-text"
