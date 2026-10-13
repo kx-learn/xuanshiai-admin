@@ -1,0 +1,3897 @@
+[
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activities/"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "POST",
+  "path": "/admin/activities/"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activities/options"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activities/{activity_id}/signups"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activities/{activity_id}/link"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "POST",
+  "path": "/admin/activities/{activity_id}/copy"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "PATCH",
+  "path": "/admin/activities/{activity_id}/status"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "PATCH",
+  "path": "/admin/activities/{activity_id}"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "DELETE",
+  "path": "/admin/activities/{activity_id}"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activities/{activity_id}"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activity-signups/"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activity-signups/statistics"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activity-signups/options"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activity-signups/export"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "GET",
+  "path": "/admin/activity-signups/{signup_id}"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "PATCH",
+  "path": "/admin/activity-signups/{signup_id}"
+ },
+ {
+  "file": "activity_admin.py",
+  "method": "DELETE",
+  "path": "/admin/activity-signups/{signup_id}"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/realname-reviews"
+ },
+ {
+  "file": "admin.py",
+  "method": "PATCH",
+  "path": "/admin/users/{user_id}/realname/review"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/certification-reviews"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/users/{user_id}/restrictions"
+ },
+ {
+  "file": "admin.py",
+  "method": "PATCH",
+  "path": "/admin/users/{user_id}/restrictions"
+ },
+ {
+  "file": "admin.py",
+  "method": "DELETE",
+  "path": "/admin/users/{user_id}/restrictions/{restriction_id}"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/community/moderation-items"
+ },
+ {
+  "file": "admin.py",
+  "method": "PATCH",
+  "path": "/admin/community/moderation-items/{task_id}/review"
+ },
+ {
+  "file": "admin.py",
+  "method": "POST",
+  "path": "/admin/users/grant"
+ },
+ {
+  "file": "admin.py",
+  "method": "PATCH",
+  "path": "/admin/media/{media_id}/review"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/reports"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/reports/{report_id}"
+ },
+ {
+  "file": "admin.py",
+  "method": "PATCH",
+  "path": "/admin/reports/{report_id}/review"
+ },
+ {
+  "file": "admin.py",
+  "method": "GET",
+  "path": "/admin/report-appeals"
+ },
+ {
+  "file": "admin.py",
+  "method": "PATCH",
+  "path": "/admin/users/{user_id}/certifications/{kind}/review"
+ },
+ {
+  "file": "admin_config.py",
+  "method": "GET",
+  "path": "/admin/configs/{namespace}"
+ },
+ {
+  "file": "admin_config.py",
+  "method": "PATCH",
+  "path": "/admin/configs/{namespace}"
+ },
+ {
+  "file": "admin_config.py",
+  "method": "GET",
+  "path": "/admin/configs/{namespace}/audit-logs"
+ },
+ {
+  "file": "admin_content.py",
+  "method": "GET",
+  "path": "/admin/content/{domain}"
+ },
+ {
+  "file": "admin_content.py",
+  "method": "POST",
+  "path": "/admin/content/{domain}"
+ },
+ {
+  "file": "admin_content.py",
+  "method": "PATCH",
+  "path": "/admin/content/{domain}/{item_id}"
+ },
+ {
+  "file": "admin_content.py",
+  "method": "DELETE",
+  "path": "/admin/content/{domain}/{item_id}"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/admin/bootstrap"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/admin/dashboard"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/admin/member-statistics"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/admin/announcements"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/admin/academy/categories"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/admin/finance/recharge-items"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/common/api/image/getConfig"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/common/api/system/getTenantDetail"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/common/api/config/getSystemBaseConfig"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/system/getTenantAuth"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/adminUser/info"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/system/getTenantData"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/system/getIndexTopStatistics"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/loveadmin/api/loveUser/getAdminIndexStatistic"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/system/getIncomeRank"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/loveadmin/api/loveUser/getAdminIndexLoveUserStatisticByDay"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/finOrder/getOrderStatics"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/adv/getPlatformCategoryList"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/recharge/getFinItems"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/sms/getStastics"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/feedback/checkFeedbackWhetherView"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/mUpdRep/getUnreadNum"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/mUpdRep/getWhetherNewReport"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/mUpdRep/getFirstVersion"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/mUpdRep/getAllVersions"
+ },
+ {
+  "file": "admin_home.py",
+  "method": "GET",
+  "path": "/commonadmin/api/mUpdRep/pageUpdReps"
+ },
+ {
+  "file": "admin_ticket.py",
+  "method": "GET",
+  "path": "/admin/tickets/"
+ },
+ {
+  "file": "admin_ticket.py",
+  "method": "GET",
+  "path": "/admin/tickets/statistics"
+ },
+ {
+  "file": "admin_ticket.py",
+  "method": "POST",
+  "path": "/admin/tickets/"
+ },
+ {
+  "file": "admin_ticket.py",
+  "method": "POST",
+  "path": "/admin/tickets/{ticket_id}/reply"
+ },
+ {
+  "file": "admin_ticket.py",
+  "method": "PATCH",
+  "path": "/admin/tickets/{ticket_id}/status"
+ },
+ {
+  "file": "ai.py",
+  "method": "POST",
+  "path": "/ai/assistant/sessions"
+ },
+ {
+  "file": "ai.py",
+  "method": "GET",
+  "path": "/ai/assistant/sessions"
+ },
+ {
+  "file": "ai.py",
+  "method": "POST",
+  "path": "/ai/assistant/sessions/{session_id}/messages"
+ },
+ {
+  "file": "ai.py",
+  "method": "POST",
+  "path": "/ai/profile/polish"
+ },
+ {
+  "file": "ai.py",
+  "method": "GET",
+  "path": "/ai/profile/thoughtfulness"
+ },
+ {
+  "file": "ai.py",
+  "method": "POST",
+  "path": "/ai/profile/thoughtfulness"
+ },
+ {
+  "file": "ai.py",
+  "method": "POST",
+  "path": "/ai/search"
+ },
+ {
+  "file": "ai.py",
+  "method": "GET",
+  "path": "/ai/matches/{match_type}"
+ },
+ {
+  "file": "ai_advisor.py",
+  "method": "POST",
+  "path": "/ai/advisor/sessions"
+ },
+ {
+  "file": "ai_advisor.py",
+  "method": "GET",
+  "path": "/ai/advisor/sessions"
+ },
+ {
+  "file": "ai_advisor.py",
+  "method": "DELETE",
+  "path": "/ai/advisor/sessions/{session_id}"
+ },
+ {
+  "file": "ai_advisor.py",
+  "method": "POST",
+  "path": "/ai/advisor/sessions/{session_id}/advice"
+ },
+ {
+  "file": "ai_advisor.py",
+  "method": "POST",
+  "path": "/ai/advisor/messages/{message_id}/feedback"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "POST",
+  "path": "/ai/avatar/{target_user_id}/reply"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "GET",
+  "path": "/ai-avatars/me/dashboard"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "POST",
+  "path": "/ai-avatars/me/questions"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "POST",
+  "path": "/ai-avatars/me/questions/{question_id}/answer"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "DELETE",
+  "path": "/ai-avatars/me/questions/{question_id}"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "DELETE",
+  "path": "/ai-avatars/me/answers/{answer_id}"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "GET",
+  "path": "/ai-avatars/{target_user_id}/profile"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "GET",
+  "path": "/ai-avatars/{target_user_id}/conversations"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "POST",
+  "path": "/ai-avatars/{target_user_id}/messages"
+ },
+ {
+  "file": "ai_avatar.py",
+  "method": "DELETE",
+  "path": "/ai-avatars/{target_user_id}/conversations"
+ },
+ {
+  "file": "ai_compatibility.py",
+  "method": "GET",
+  "path": "/compatibility/{target_user_id}"
+ },
+ {
+  "file": "ai_compatibility.py",
+  "method": "POST",
+  "path": "/compatibility/{target_user_id}/recompute"
+ },
+ {
+  "file": "ai_consents.py",
+  "method": "GET",
+  "path": "/consents"
+ },
+ {
+  "file": "ai_consents.py",
+  "method": "PUT",
+  "path": "/consents/{scope}"
+ },
+ {
+  "file": "ai_consents.py",
+  "method": "DELETE",
+  "path": "/consents/{scope}"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "GET",
+  "path": "/memory"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/{claim_id}/confirm"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/{claim_id}/correct"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/{claim_id}/suppress"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/suppressions/{suppression_id}/lift"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "GET",
+  "path": "/memory/view"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/grants/{grant_id}/revoke"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/pause"
+ },
+ {
+  "file": "ai_memory.py",
+  "method": "POST",
+  "path": "/memory/forget"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "GET",
+  "path": "/moxiang/continuous/state"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "GET",
+  "path": "/moxiang/continuous/turns"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "POST",
+  "path": "/moxiang/continuous/build"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "GET",
+  "path": "/moxiang/state"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "GET",
+  "path": "/profile-sessions/{session_id}/turns"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "POST",
+  "path": "/moxiang/journey/start"
+ },
+ {
+  "file": "ai_moxiang.py",
+  "method": "GET",
+  "path": "/moxiang/archive"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions/update-intent"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions/{session_id}/mode"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "GET",
+  "path": "/profile-sessions/{session_id}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions/{session_id}/turns"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions/{session_id}/skip-question"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions/{session_id}/pause"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-sessions/{session_id}/resume"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "DELETE",
+  "path": "/profile-sessions/{session_id}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "GET",
+  "path": "/profile-drafts/{draft_id}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "PATCH",
+  "path": "/profile-drafts/{draft_id}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-drafts/{draft_id}/publish"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-previews/{preview_id}/confirm"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-drafts/{draft_id}/preview"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "GET",
+  "path": "/profile-previews/{preview_id}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "GET",
+  "path": "/profile-revisions"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profile-revisions/{revision_id}/restore"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "GET",
+  "path": "/profiles/{subject}/fields"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "DELETE",
+  "path": "/profiles/{subject}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "DELETE",
+  "path": "/profiles/{subject}/fields/{field_key}"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "GET",
+  "path": "/profiles/{subject}/narrative"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profiles/{subject}/narrative/confirm"
+ },
+ {
+  "file": "ai_profile.py",
+  "method": "POST",
+  "path": "/profiles/{subject}/narrative/regenerate"
+ },
+ {
+  "file": "ai_profile_card.py",
+  "method": "POST",
+  "path": "/profile-card/summarize"
+ },
+ {
+  "file": "ai_profile_card.py",
+  "method": "GET",
+  "path": "/profile-card/draft"
+ },
+ {
+  "file": "ai_profile_card.py",
+  "method": "POST",
+  "path": "/profile-card/draft/apply"
+ },
+ {
+  "file": "ai_profile_card.py",
+  "method": "GET",
+  "path": "/profile-card/export"
+ },
+ {
+  "file": "ai_recommend.py",
+  "method": "GET",
+  "path": "/recommendations"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "POST",
+  "path": "/search-drafts"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "GET",
+  "path": "/search-drafts/{draft_id}"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "PATCH",
+  "path": "/search-drafts/{draft_id}"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "POST",
+  "path": "/search-drafts/{draft_id}/confirm"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "POST",
+  "path": "/search-suggestions/generate"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "GET",
+  "path": "/search-suggestions"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "GET",
+  "path": "/search-snapshots/{snapshot_id}/results"
+ },
+ {
+  "file": "ai_search.py",
+  "method": "DELETE",
+  "path": "/search-snapshots/{snapshot_id}"
+ },
+ {
+  "file": "ai_tasks.py",
+  "method": "GET",
+  "path": "/tasks/{task_id}"
+ },
+ {
+  "file": "ai_tasks.py",
+  "method": "POST",
+  "path": "/tasks/{task_id}/cancel"
+ },
+ {
+  "file": "app_version.py",
+  "method": "GET",
+  "path": "/app/version"
+ },
+ {
+  "file": "apportion_config_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/apportion-config/"
+ },
+ {
+  "file": "apportion_config_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/apportion-config/{scope}/{config_type}"
+ },
+ {
+  "file": "apportion_config_admin.py",
+  "method": "PUT",
+  "path": "/admin/matchmaker/apportion-config/{scope}/assign"
+ },
+ {
+  "file": "apportion_config_admin.py",
+  "method": "PUT",
+  "path": "/admin/matchmaker/apportion-config/{scope}/abandon"
+ },
+ {
+  "file": "apportion_config_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/apportion-config/{scope}/{config_type}/toggle"
+ },
+ {
+  "file": "apportion_config_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/apportion-config/audit-log"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/sms/send"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/phone/login"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/wechat/login"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/test-login"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/bind-phone"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/refresh"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/logout"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/logout-all"
+ },
+ {
+  "file": "auth.py",
+  "method": "GET",
+  "path": "/auth/me"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/agreements/accept"
+ },
+ {
+  "file": "auth.py",
+  "method": "GET",
+  "path": "/auth/agreements"
+ },
+ {
+  "file": "auth.py",
+  "method": "POST",
+  "path": "/auth/realname"
+ },
+ {
+  "file": "certifications.py",
+  "method": "GET",
+  "path": "/users/me/certifications/"
+ },
+ {
+  "file": "certifications.py",
+  "method": "PUT",
+  "path": "/users/me/certifications/education"
+ },
+ {
+  "file": "certifications.py",
+  "method": "PUT",
+  "path": "/users/me/certifications/education/material"
+ },
+ {
+  "file": "certifications.py",
+  "method": "PUT",
+  "path": "/users/me/certifications/single-pledge"
+ },
+ {
+  "file": "certifications.py",
+  "method": "PUT",
+  "path": "/users/me/certifications/house"
+ },
+ {
+  "file": "certifications.py",
+  "method": "PUT",
+  "path": "/users/me/certifications/marriage"
+ },
+ {
+  "file": "commission_level_admin.py",
+  "method": "GET",
+  "path": "/admin/commission-levels/"
+ },
+ {
+  "file": "commission_level_admin.py",
+  "method": "GET",
+  "path": "/admin/commission-levels/{level_id}"
+ },
+ {
+  "file": "commission_level_admin.py",
+  "method": "PUT",
+  "path": "/admin/commission-levels/{level_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/media/uploads"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/media/{media_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/media/{media_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/posts"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/posts"
+ },
+ {
+  "file": "community.py",
+  "method": "PUT",
+  "path": "/community/posts/{post_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/posts/{post_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/posts/{post_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "PUT",
+  "path": "/community/posts/{post_id}/like"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/posts/{post_id}/like"
+ },
+ {
+  "file": "community.py",
+  "method": "PUT",
+  "path": "/community/posts/{post_id}/collect"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/posts/{post_id}/collect"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/posts/{post_id}/comments"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/posts/{post_id}/comments/page"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/comments/{comment_id}/replies"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/posts/{post_id}/comments"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/comments/{comment_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "PUT",
+  "path": "/community/comments/{comment_id}/like"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/comments/{comment_id}/like"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/topics"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/topics/page"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/topics/{topic_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/topics/{topic_id}/detail"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/topics/{topic_id}/join"
+ },
+ {
+  "file": "community.py",
+  "method": "DELETE",
+  "path": "/community/topics/{topic_id}/leave"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/activities"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/activities/mine"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/activities/{activity_id}"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/activities/{activity_id}/signup"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/banners"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/quotas"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/city"
+ },
+ {
+  "file": "community.py",
+  "method": "PUT",
+  "path": "/community/city"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/report-reasons"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/reports"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/reports/mine"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/community/reports/{report_id}/appeals"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/community/report-appeals/mine"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/paper-planes"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/paper-planes"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/paper-planes/mine"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/paper-planes/{plane_id}/replies"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/paper-plane-conversations"
+ },
+ {
+  "file": "community.py",
+  "method": "GET",
+  "path": "/paper-plane-conversations/{conversation_id}/messages"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/paper-plane-conversations/{conversation_id}/messages"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/paper-plane-conversations/{conversation_id}/read"
+ },
+ {
+  "file": "community.py",
+  "method": "POST",
+  "path": "/paper-plane-conversations/{conversation_id}/end"
+ },
+ {
+  "file": "community_admin.py",
+  "method": "GET",
+  "path": "/admin/community/topics"
+ },
+ {
+  "file": "community_admin.py",
+  "method": "POST",
+  "path": "/admin/community/topics"
+ },
+ {
+  "file": "community_admin.py",
+  "method": "PATCH",
+  "path": "/admin/community/topics/{topic_id}"
+ },
+ {
+  "file": "community_admin.py",
+  "method": "GET",
+  "path": "/admin/community/banners"
+ },
+ {
+  "file": "community_admin.py",
+  "method": "POST",
+  "path": "/admin/community/banners"
+ },
+ {
+  "file": "community_admin.py",
+  "method": "PATCH",
+  "path": "/admin/community/banners/{banner_id}"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/statistics"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/options"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/import-template"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/abandoned"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/abandonments"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/import"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/{lead_id}/convert"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/{lead_id}"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "PATCH",
+  "path": "/admin/customer-leads/{lead_id}"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "GET",
+  "path": "/admin/customer-leads/{lead_id}/follow-ups"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/batch-import"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/{lead_id}/follow-ups"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "PATCH",
+  "path": "/admin/customer-leads/{lead_id}/assignment"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/{lead_id}/abandon"
+ },
+ {
+  "file": "customer_leads_admin.py",
+  "method": "POST",
+  "path": "/admin/customer-leads/{lead_id}/restore"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/filter-options"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/recommendations"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/plaza"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/search"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/filters/saved"
+ },
+ {
+  "file": "discovery.py",
+  "method": "PUT",
+  "path": "/discovery/filters/saved"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/browse-history"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/visitors"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/favorites"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/favorites/received"
+ },
+ {
+  "file": "discovery.py",
+  "method": "PUT",
+  "path": "/discovery/favorites/{target_id}"
+ },
+ {
+  "file": "discovery.py",
+  "method": "DELETE",
+  "path": "/discovery/favorites/{target_id}"
+ },
+ {
+  "file": "discovery.py",
+  "method": "POST",
+  "path": "/discovery/applications/{target_id}"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/applications/incoming"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/applications/outgoing"
+ },
+ {
+  "file": "discovery.py",
+  "method": "POST",
+  "path": "/discovery/applications/{application_id}/accept"
+ },
+ {
+  "file": "discovery.py",
+  "method": "POST",
+  "path": "/discovery/applications/{application_id}/reject"
+ },
+ {
+  "file": "discovery.py",
+  "method": "POST",
+  "path": "/discovery/superlikes/{target_id}"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/superlikes/sent"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/discovery/superlikes/received"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/users/{user_id}/profile"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/users/{user_id}/visitor-count"
+ },
+ {
+  "file": "discovery.py",
+  "method": "GET",
+  "path": "/users/{user_id}/poster"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/finance/orders"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/finance/balance"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/finance/commission-entries"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/finance/withdrawals"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/admin/finance/commission-rules"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/commission-rules"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/admin/finance/product-commission-rules/{product_id}"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/report"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/daily-report"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/orders"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/withdrawals"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/ledger"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/admin/finance/orders/{order_id}/settle"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/admin/finance/orders/{order_id}/refund"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/admin/finance/commission-entries/{entry_id}/release"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/commission-entries"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/commission-entries/options"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/store-commission-entries"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/store-commission-entries/options"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/store-commission-summary"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/store-commission-entries/export"
+ },
+ {
+  "file": "finance.py",
+  "method": "PATCH",
+  "path": "/admin/finance/withdrawals/{withdrawal_id}"
+ },
+ {
+  "file": "finance.py",
+  "method": "GET",
+  "path": "/admin/finance/credit-records"
+ },
+ {
+  "file": "finance.py",
+  "method": "POST",
+  "path": "/admin/finance/credit-grants"
+ },
+ {
+  "file": "health.py",
+  "method": "GET",
+  "path": "/health"
+ },
+ {
+  "file": "identity.py",
+  "method": "GET",
+  "path": "/registration/intents"
+ },
+ {
+  "file": "identity.py",
+  "method": "PUT",
+  "path": "/auth/registration-intent"
+ },
+ {
+  "file": "identity.py",
+  "method": "GET",
+  "path": "/auth/registration-intent"
+ },
+ {
+  "file": "identity.py",
+  "method": "GET",
+  "path": "/matchmaker/application-types"
+ },
+ {
+  "file": "identity.py",
+  "method": "POST",
+  "path": "/matchmaker/applications"
+ },
+ {
+  "file": "identity.py",
+  "method": "GET",
+  "path": "/matchmaker/applications/mine"
+ },
+ {
+  "file": "identity.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/applications"
+ },
+ {
+  "file": "identity.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/applications/{application_id}"
+ },
+ {
+  "file": "identity.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/applications/{application_id}"
+ },
+ {
+  "file": "live.py",
+  "method": "GET",
+  "path": "/live/sessions"
+ },
+ {
+  "file": "live.py",
+  "method": "GET",
+  "path": "/live/sessions/{session_id}"
+ },
+ {
+  "file": "live.py",
+  "method": "GET",
+  "path": "/live/sessions/{session_id}/reservation/me"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/reservations"
+ },
+ {
+  "file": "live.py",
+  "method": "DELETE",
+  "path": "/live/sessions/{session_id}/reservations"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/device-check"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/check-in"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/invitations/respond"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/stage/leave"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/interactions"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/reports"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/rtc-ticket"
+ },
+ {
+  "file": "live.py",
+  "method": "POST",
+  "path": "/live/sessions/{session_id}/ws-ticket"
+ },
+ {
+  "file": "live_admin.py",
+  "method": "POST",
+  "path": "/admin/live/sessions"
+ },
+ {
+  "file": "live_admin.py",
+  "method": "PUT",
+  "path": "/admin/live/sessions/{session_id}/roles"
+ },
+ {
+  "file": "live_callbacks.py",
+  "method": "POST",
+  "path": "/live/callbacks/tencent"
+ },
+ {
+  "file": "live_host.py",
+  "method": "POST",
+  "path": "/live/host/sessions/{session_id}/transition"
+ },
+ {
+  "file": "live_host.py",
+  "method": "POST",
+  "path": "/live/host/sessions/{session_id}/invitations"
+ },
+ {
+  "file": "live_host.py",
+  "method": "POST",
+  "path": "/live/host/sessions/{session_id}/stage/remove"
+ },
+ {
+  "file": "live_host.py",
+  "method": "PUT",
+  "path": "/live/host/sessions/{session_id}/restrictions"
+ },
+ {
+  "file": "live_host.py",
+  "method": "GET",
+  "path": "/live/host/sessions/{session_id}/operations"
+ },
+ {
+  "file": "location.py",
+  "method": "POST",
+  "path": "/users/me/location/"
+ },
+ {
+  "file": "location.py",
+  "method": "PUT",
+  "path": "/users/me/location/sharing"
+ },
+ {
+  "file": "location.py",
+  "method": "GET",
+  "path": "/users/me/location/"
+ },
+ {
+  "file": "location.py",
+  "method": "DELETE",
+  "path": "/users/me/location/"
+ },
+ {
+  "file": "location.py",
+  "method": "GET",
+  "path": "/users/nearby"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmakers/"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmakers/ranking"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmakers/{matchmaker_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmakers/{matchmaker_id}/ratings"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "POST",
+  "path": "/matchmaker/services/{service_id}/rating"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-products/"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-products/{product_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "POST",
+  "path": "/matchmaker/service-products/"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "PATCH",
+  "path": "/matchmaker/service-products/{product_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "POST",
+  "path": "/matchmaker/service-requests/orders"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/orders/{order_no}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/orders"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "POST",
+  "path": "/matchmaker/service-requests/"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/mine"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/assigned"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/{service_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "PATCH",
+  "path": "/matchmaker/service-requests/{service_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "PATCH",
+  "path": "/matchmaker/service-requests/{service_id}/contact"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/{service_id}/contact"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "POST",
+  "path": "/matchmaker/service-requests/{service_id}/contact-exchanges"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "PATCH",
+  "path": "/matchmaker/service-requests/contact-exchanges/{exchange_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/contact-exchanges/{exchange_id}"
+ },
+ {
+  "file": "matchmaker.py",
+  "method": "GET",
+  "path": "/matchmaker/service-requests/contact-exchanges/{exchange_id}/contacts"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/auth/login"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/auth/refresh"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/auth/me"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/auth/logout"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/matchmakers"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/matchmakers/{matchmaker_id}/status"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/matchmakers/{matchmaker_id}"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/service-products"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/service-products"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/service-products/{product_id}"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/service-products/{product_id}"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/service-requests"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/service-requests/{service_id}"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/statistics"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/branches"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/branches"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/branches/{branch_id}"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/branches/{branch_id}/members"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/assignments"
+ },
+ {
+  "file": "matchmaker_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/assignments"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/accounts"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/accounts"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/accounts/login-logs"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/audit-logs"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/accounts/{account_id}"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/accounts/{account_id}"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/accounts/{account_id}/status"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/accounts/{account_id}/reset-password"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/accounts/{account_id}/sessions"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/accounts/{account_id}/sessions/revoke-all"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "DELETE",
+  "path": "/admin/matchmaker/accounts/{account_id}"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/account-cancellations"
+ },
+ {
+  "file": "matchmaker_admin_account.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/account-cancellations/{cancellation_id}/review"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/match-records"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/match-records"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/statistics"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/members/batch-status"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/auth"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/realname-reviews"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/members/{member_id}/realname/review"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/certification-reviews"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/members/{member_id}/certifications/{kind}/review"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/{member_id}"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/members/{member_id}/assignment"
+ },
+ {
+  "file": "matchmaker_crm_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/members/{member_id}/status"
+ },
+ {
+  "file": "matchmaker_dashboard_admin.py",
+  "method": "GET",
+  "path": "/admin/dashboard/stats"
+ },
+ {
+  "file": "matchmaker_member_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/members/"
+ },
+ {
+  "file": "matchmaker_member_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/members/{member_id}"
+ },
+ {
+  "file": "matchmaker_member_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/{member_id}/certifications"
+ },
+ {
+  "file": "matchmaker_member_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/{member_id}/certifications/{kind}"
+ },
+ {
+  "file": "matchmaker_member_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/members/{member_id}/audit-logs"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers/user-candidates"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmakers"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers/tutorial"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers/{matchmaker_id}"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "PUT",
+  "path": "/admin/matchmakers/{matchmaker_id}"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "DELETE",
+  "path": "/admin/matchmakers/{matchmaker_id}"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmakers/{matchmaker_id}/lock"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmakers/{matchmaker_id}/visibility"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/menus/tree"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers/{matchmaker_id}/permissions"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "PUT",
+  "path": "/admin/matchmakers/{matchmaker_id}/permissions"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers/{matchmaker_id}/work-report"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmakers/{matchmaker_id}/report"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmakers/{matchmaker_id}/poster"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmakers/{matchmaker_id}/platform-token"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/dict/commission-levels"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/dict/stores"
+ },
+ {
+  "file": "matchmaker_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/common/upload"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/management-center/access"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/management-center/dashboard"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/profile"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/profile"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/leads"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/leads"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/leads/{lead_id}"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/leads/{lead_id}/follow-ups"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/leads/{lead_id}/abandon"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/leads/{lead_id}/follow-ups"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/leads/followers"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/leads/{lead_id}/assign"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/leads/{lead_id}/convert"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/leads/{lead_id}/restore"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/members"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/introductions"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/meeting-requests"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/members/{member_id}/public-profile-review"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/members/{member_id}/follow-ups"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/members/{member_id}/follow-ups"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/members/{member_id}/contact"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/members/{member_id}/match-candidates"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/members/{member_id}/match-history"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/matchmakers"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/members/{member_id}/assignment"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/workbench/members/{member_id}/note"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/members/{member_id}/note"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/partner-center"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PUT",
+  "path": "/matchmaker/partner-center/team"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/partner-center/invites"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/promoter-center"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/promoter-center/leads"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/promoter-center/promotion-codes"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/promoter-center/team-requests"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "DELETE",
+  "path": "/matchmaker/promoter-center/team-requests/{request_id}"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "GET",
+  "path": "/matchmaker/partner-center/join-requests"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/partner-center/join-requests/{request_id}"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/partner-center/qrcode"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/members"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/meeting-requests/{request_id}/status"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "DELETE",
+  "path": "/matchmaker/workbench/meeting-requests/{request_id}"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/meeting-requests/{request_id}/schedule"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/meetings/{meeting_id}/status"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "PATCH",
+  "path": "/matchmaker/workbench/introductions/{introduction_id}/status"
+ },
+ {
+  "file": "matchmaker_workspace.py",
+  "method": "POST",
+  "path": "/matchmaker/workbench/introductions"
+ },
+ {
+  "file": "media.py",
+  "method": "POST",
+  "path": "/media/uploads"
+ },
+ {
+  "file": "meeting.py",
+  "method": "POST",
+  "path": "/matchmaker/meetings/requests"
+ },
+ {
+  "file": "meeting.py",
+  "method": "POST",
+  "path": "/matchmaker/meetings/requests/from-service"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/matchmaker/meetings/requests/mine"
+ },
+ {
+  "file": "meeting.py",
+  "method": "PATCH",
+  "path": "/matchmaker/meetings/requests/{request_id}"
+ },
+ {
+  "file": "meeting.py",
+  "method": "POST",
+  "path": "/matchmaker/meetings/{meeting_id}/feedback"
+ },
+ {
+  "file": "meeting.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/meetings/requests/{request_id}/schedule"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/meetings/requests"
+ },
+ {
+  "file": "meeting.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/meetings/requests/{request_id}"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/meetings/"
+ },
+ {
+  "file": "meeting.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/meetings/"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/meetings/statistics"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/meetings/options"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/meetings/{meeting_id}"
+ },
+ {
+  "file": "meeting.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/meetings/{meeting_id}"
+ },
+ {
+  "file": "meeting.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/meetings/{meeting_id}/feedback"
+ },
+ {
+  "file": "meeting.py",
+  "method": "DELETE",
+  "path": "/admin/matchmaker/meetings/requests/{request_id}"
+ },
+ {
+  "file": "meeting.py",
+  "method": "DELETE",
+  "path": "/admin/matchmaker/meetings/{meeting_id}"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/realname-reviews"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/realname-stats"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/commitment-reviews"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/marriage-reviews"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/marriage-stats"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/house-reviews"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/education-reviews"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/other-reviews"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "GET",
+  "path": "/admin/members/auth/types"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "POST",
+  "path": "/admin/members/auth/types"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "PUT",
+  "path": "/admin/members/auth/types/{type_id}"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "DELETE",
+  "path": "/admin/members/auth/types/{type_id}"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "PATCH",
+  "path": "/admin/members/auth/{kind}/{review_id}"
+ },
+ {
+  "file": "member_auth_admin.py",
+  "method": "DELETE",
+  "path": "/admin/members/auth/{kind}/{review_id}"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/browse-history"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/visitors"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/favorites"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/favorites/received"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/superlikes"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/superlikes/received"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/gifts"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/gifts/received"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/behavior-events"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/behavior-events"
+ },
+ {
+  "file": "member_behavior_admin.py",
+  "method": "DELETE",
+  "path": "/admin/members/behavior-events/{category}/{event_id}"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "GET",
+  "path": "/admin/members/follow-ups"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "GET",
+  "path": "/admin/members/follow-ups/summary"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "GET",
+  "path": "/admin/members/follow-ups/import-template"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "POST",
+  "path": "/admin/members/follow-ups/import"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/follow-ups"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "POST",
+  "path": "/admin/members/{member_id}/follow-ups"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "POST",
+  "path": "/admin/members/{member_id}/follow-ups/media"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/behavior"
+ },
+ {
+  "file": "member_follow_up_admin.py",
+  "method": "GET",
+  "path": "/admin/members/behavior/all"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/profile-ext/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "PUT",
+  "path": "/admin/members/profile-ext/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/preference/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "PUT",
+  "path": "/admin/members/preference/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/media/intros"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "PUT",
+  "path": "/admin/members/media/intros/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/private-info/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "PUT",
+  "path": "/admin/members/private-info/{user_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{user_id}/recommendations"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{user_id}/met-members"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/media"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "GET",
+  "path": "/admin/members/media/{user_id}/history"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "PATCH",
+  "path": "/admin/members/media/{media_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "PUT",
+  "path": "/admin/members/media/{media_id}"
+ },
+ {
+  "file": "member_media_admin.py",
+  "method": "DELETE",
+  "path": "/admin/members/media/{media_id}"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/match-records"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/match-quota"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "PATCH",
+  "path": "/admin/members/{member_id}/match-quota"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "PATCH",
+  "path": "/admin/members/{member_id}/profile"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/recommend-history"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "POST",
+  "path": "/admin/members/{member_id}/recommendations"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/dating-records"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/meeting-requests"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/media-records"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/activity-signups"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/private-info-records"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/super-info"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/call-records"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "POST",
+  "path": "/admin/members/{member_id}/call-records"
+ },
+ {
+  "file": "member_records_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/source-records"
+ },
+ {
+  "file": "member_vip_admin.py",
+  "method": "PATCH",
+  "path": "/admin/members/{member_id}/vip"
+ },
+ {
+  "file": "member_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/members/vip"
+ },
+ {
+  "file": "member_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/members/{member_id}/behavior/login-logs"
+ },
+ {
+  "file": "membership.py",
+  "method": "GET",
+  "path": "/membership/packages"
+ },
+ {
+  "file": "membership.py",
+  "method": "GET",
+  "path": "/users/me/membership"
+ },
+ {
+  "file": "membership.py",
+  "method": "GET",
+  "path": "/users/me/membership/history"
+ },
+ {
+  "file": "membership.py",
+  "method": "POST",
+  "path": "/membership/orders"
+ },
+ {
+  "file": "membership.py",
+  "method": "GET",
+  "path": "/membership/orders/{order_no}"
+ },
+ {
+  "file": "membership.py",
+  "method": "POST",
+  "path": "/membership/orders/{order_no}/pay-with-balance"
+ },
+ {
+  "file": "membership.py",
+  "method": "POST",
+  "path": "/payments/wechat/callback"
+ },
+ {
+  "file": "membership.py",
+  "method": "POST",
+  "path": "/payments/test/pay"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchant-categories/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "POST",
+  "path": "/admin/merchant-categories/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "POST",
+  "path": "/admin/merchant-categories/reorder"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "PATCH",
+  "path": "/admin/merchant-categories/{category_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "DELETE",
+  "path": "/admin/merchant-categories/{category_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchants/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "POST",
+  "path": "/admin/merchants/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchants/options"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "PATCH",
+  "path": "/admin/merchants/{merchant_id}/visible"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "PUT",
+  "path": "/admin/merchants/{merchant_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "DELETE",
+  "path": "/admin/merchants/{merchant_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchants/{merchant_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchant-products/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "POST",
+  "path": "/admin/merchant-products/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "PATCH",
+  "path": "/admin/merchant-products/{product_id}/status"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "PUT",
+  "path": "/admin/merchant-products/{product_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "DELETE",
+  "path": "/admin/merchant-products/{product_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchant-products/{product_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchant-orders/"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchant-orders/export"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "PATCH",
+  "path": "/admin/merchant-orders/{order_id}"
+ },
+ {
+  "file": "merchant_admin.py",
+  "method": "GET",
+  "path": "/admin/merchant-orders/{order_id}"
+ },
+ {
+  "file": "message_admin.py",
+  "method": "GET",
+  "path": "/admin/messages/"
+ },
+ {
+  "file": "message_admin.py",
+  "method": "PATCH",
+  "path": "/admin/messages/{message_id}/moderation"
+ },
+ {
+  "file": "message_admin.py",
+  "method": "POST",
+  "path": "/admin/messages/announcements"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "GET",
+  "path": "/admin/mutual-activities/"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "POST",
+  "path": "/admin/mutual-activities/"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "GET",
+  "path": "/admin/mutual-activities/{activity_id}/participants"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "POST",
+  "path": "/admin/mutual-activities/{activity_id}/participants"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "DELETE",
+  "path": "/admin/mutual-activities/{activity_id}/participants/{user_id}"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "POST",
+  "path": "/admin/mutual-activities/{activity_id}/copy"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "PATCH",
+  "path": "/admin/mutual-activities/{activity_id}/visible"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "PATCH",
+  "path": "/admin/mutual-activities/{activity_id}"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "DELETE",
+  "path": "/admin/mutual-activities/{activity_id}"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "GET",
+  "path": "/admin/mutual-activities/{activity_id}"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "GET",
+  "path": "/admin/mutual-records/"
+ },
+ {
+  "file": "mutual_selection_admin.py",
+  "method": "GET",
+  "path": "/admin/mutual-records/options"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/offline-vips/"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/offline-vips/statistics"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/offline-vips/options"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "POST",
+  "path": "/admin/offline-vips/"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/offline-vips/{vip_id}"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "PUT",
+  "path": "/admin/offline-vips/{vip_id}"
+ },
+ {
+  "file": "offline_vip_admin.py",
+  "method": "GET",
+  "path": "/admin/offline-vips/{vip_id}/meet-logs"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/organizations/stores"
+ },
+ {
+  "file": "organization.py",
+  "method": "GET",
+  "path": "/organizations/stores"
+ },
+ {
+  "file": "organization.py",
+  "method": "GET",
+  "path": "/organizations/stores/{store_id}"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/organizations/stores/{store_id}/members"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/organizations/assignments"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/promotions/touches"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/promotions/attributions"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/partners/teams"
+ },
+ {
+  "file": "organization.py",
+  "method": "POST",
+  "path": "/partners/memberships"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/stores"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/stores"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/stores/{store_id}"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/stores/{store_id}"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "PATCH",
+  "path": "/admin/matchmaker/stores/{store_id}/status"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/stores/{store_id}/members"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/stores/{store_id}/members"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "DELETE",
+  "path": "/admin/matchmaker/store-members/{member_id}"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "DELETE",
+  "path": "/admin/matchmaker/stores/{store_id}"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/stores/{store_id}/report"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/stores/{store_id}/report/summary"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "GET",
+  "path": "/admin/matchmaker/stores/{store_id}/report/monthly"
+ },
+ {
+  "file": "organization_admin.py",
+  "method": "POST",
+  "path": "/admin/matchmaker/assignments/{assignment_id}/end"
+ },
+ {
+  "file": "paper_plane_contact_exchange.py",
+  "method": "POST",
+  "path": "/paper-plane-conversations/{conversation_id}/contact-exchanges"
+ },
+ {
+  "file": "paper_plane_contact_exchange.py",
+  "method": "POST",
+  "path": "/paper-plane-contact-exchanges/{exchange_id}/respond"
+ },
+ {
+  "file": "paper_plane_unlock.py",
+  "method": "GET",
+  "path": "/paper-plane/profile-unlocks/{target_user_id}"
+ },
+ {
+  "file": "paper_plane_unlock.py",
+  "method": "POST",
+  "path": "/paper-plane/profile-unlocks/{target_user_id}"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "POST",
+  "path": "/admin/partners/"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/statistics"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/user-candidates"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/team-options"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/commission-entries"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/commission-entries/options"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "POST",
+  "path": "/admin/partners/commission-entries"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partners/{team_id}"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "PUT",
+  "path": "/admin/partners/{team_id}"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "DELETE",
+  "path": "/admin/partners/{team_id}"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "GET",
+  "path": "/admin/partner-relations/"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "POST",
+  "path": "/admin/partner-relations/"
+ },
+ {
+  "file": "partner_admin.py",
+  "method": "POST",
+  "path": "/admin/partner-relations/{relation_id}/remove"
+ },
+ {
+  "file": "partner_level_admin.py",
+  "method": "GET",
+  "path": "/admin/partner-levels/"
+ },
+ {
+  "file": "partner_level_admin.py",
+  "method": "GET",
+  "path": "/admin/partner-levels/{level_id}"
+ },
+ {
+  "file": "partner_level_admin.py",
+  "method": "PUT",
+  "path": "/admin/partner-levels/{level_id}"
+ },
+ {
+  "file": "payments.py",
+  "method": "GET",
+  "path": "/boost/packages"
+ },
+ {
+  "file": "payments.py",
+  "method": "GET",
+  "path": "/users/me/boost/status"
+ },
+ {
+  "file": "payments.py",
+  "method": "POST",
+  "path": "/boost/orders"
+ },
+ {
+  "file": "payments.py",
+  "method": "GET",
+  "path": "/boost/orders/{order_no}"
+ },
+ {
+  "file": "payments.py",
+  "method": "POST",
+  "path": "/spotlights/payments"
+ },
+ {
+  "file": "payments.py",
+  "method": "GET",
+  "path": "/spotlights/payments/{order_no}"
+ },
+ {
+  "file": "points.py",
+  "method": "GET",
+  "path": "/users/me/quotas"
+ },
+ {
+  "file": "points.py",
+  "method": "GET",
+  "path": "/users/me/points"
+ },
+ {
+  "file": "points.py",
+  "method": "GET",
+  "path": "/users/me/points/ledger"
+ },
+ {
+  "file": "points.py",
+  "method": "POST",
+  "path": "/users/me/checkin"
+ },
+ {
+  "file": "points.py",
+  "method": "GET",
+  "path": "/users/me/tasks"
+ },
+ {
+  "file": "points.py",
+  "method": "POST",
+  "path": "/users/me/tasks/{task_code}/claim"
+ },
+ {
+  "file": "points.py",
+  "method": "GET",
+  "path": "/users/me/invites"
+ },
+ {
+  "file": "points.py",
+  "method": "GET",
+  "path": "/points/products"
+ },
+ {
+  "file": "points.py",
+  "method": "POST",
+  "path": "/users/me/points/redeem"
+ },
+ {
+  "file": "presence.py",
+  "method": "POST",
+  "path": "/users/me/presence/heartbeat"
+ },
+ {
+  "file": "presence.py",
+  "method": "POST",
+  "path": "/users/me/presence/status"
+ },
+ {
+  "file": "presence.py",
+  "method": "GET",
+  "path": "/users/me/presence/"
+ },
+ {
+  "file": "profile.py",
+  "method": "GET",
+  "path": "/profile/tag-options"
+ },
+ {
+  "file": "promoter_level_admin.py",
+  "method": "GET",
+  "path": "/admin/promoter-levels/"
+ },
+ {
+  "file": "promoter_level_admin.py",
+  "method": "GET",
+  "path": "/admin/promoter-levels/{level_id}"
+ },
+ {
+  "file": "promoter_level_admin.py",
+  "method": "PUT",
+  "path": "/admin/promoter-levels/{level_id}"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/statistics"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/user-candidates"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/teams"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/commission-entries"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/commission-entries/options"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/promoters/"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "GET",
+  "path": "/admin/promoters/{user_id}"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "PUT",
+  "path": "/admin/promoters/{user_id}"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "PUT",
+  "path": "/admin/promoters/{user_id}/team"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/promoters/{user_id}/poster"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "POST",
+  "path": "/admin/promoters/{user_id}/platform-token"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "DELETE",
+  "path": "/admin/promoters/{user_id}"
+ },
+ {
+  "file": "promoter_staff_admin.py",
+  "method": "PATCH",
+  "path": "/admin/promoters/{user_id}/status"
+ },
+ {
+  "file": "promotion_order_admin.py",
+  "method": "GET",
+  "path": "/admin/promotion-orders/"
+ },
+ {
+  "file": "promotion_order_admin.py",
+  "method": "GET",
+  "path": "/admin/promotion-orders/statistics"
+ },
+ {
+  "file": "promotion_order_admin.py",
+  "method": "GET",
+  "path": "/admin/promotion-orders/{order_id}"
+ },
+ {
+  "file": "promotion_order_admin.py",
+  "method": "PATCH",
+  "path": "/admin/promotion-orders/{order_id}"
+ },
+ {
+  "file": "promotion_order_admin.py",
+  "method": "DELETE",
+  "path": "/admin/promotion-orders/{order_id}"
+ },
+ {
+  "file": "regions.py",
+  "method": "GET",
+  "path": "/regions/provinces"
+ },
+ {
+  "file": "regions.py",
+  "method": "GET",
+  "path": "/regions/cities"
+ },
+ {
+  "file": "regions.py",
+  "method": "GET",
+  "path": "/regions/districts"
+ },
+ {
+  "file": "reward_rule_admin.py",
+  "method": "GET",
+  "path": "/admin/reward-rules/"
+ },
+ {
+  "file": "reward_rule_admin.py",
+  "method": "POST",
+  "path": "/admin/reward-rules/"
+ },
+ {
+  "file": "reward_rule_admin.py",
+  "method": "GET",
+  "path": "/admin/reward-rules/{task_code}"
+ },
+ {
+  "file": "reward_rule_admin.py",
+  "method": "PATCH",
+  "path": "/admin/reward-rules/{task_code}"
+ },
+ {
+  "file": "reward_rule_admin.py",
+  "method": "DELETE",
+  "path": "/admin/reward-rules/{task_code}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/short-video-categories/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "POST",
+  "path": "/admin/short-video-categories/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "PATCH",
+  "path": "/admin/short-video-categories/{category_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "DELETE",
+  "path": "/admin/short-video-categories/{category_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/short-videos/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "POST",
+  "path": "/admin/short-videos/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "POST",
+  "path": "/admin/short-videos/brush"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "PATCH",
+  "path": "/admin/short-videos/{video_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "DELETE",
+  "path": "/admin/short-videos/{video_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/short-videos/{video_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/short-video-comments/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "POST",
+  "path": "/admin/short-video-comments/batch-delete"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "PATCH",
+  "path": "/admin/short-video-comments/{comment_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "DELETE",
+  "path": "/admin/short-video-comments/{comment_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/short-video-tips/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/video-red-packets/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/video-red-packets/{packet_id}/claims"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "GET",
+  "path": "/admin/short-video-homepages/"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "PATCH",
+  "path": "/admin/short-video-homepages/{homepage_id}"
+ },
+ {
+  "file": "short_video_admin.py",
+  "method": "DELETE",
+  "path": "/admin/short-video-homepages/{homepage_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "PUT",
+  "path": "/users/{target_id}/like"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/users/{target_id}/like"
+ },
+ {
+  "file": "social.py",
+  "method": "PUT",
+  "path": "/users/{target_id}/follow"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/users/{target_id}/follow"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/relations/likes"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/relations/liked-by"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/relations/following"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/relations/followers"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/relations/matches"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/relations/matches/{target_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/chat/sessions"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/chat/sessions/{session_id}/messages/cursor"
+ },
+ {
+  "file": "social.py",
+  "method": "PUT",
+  "path": "/chat/sessions/{session_id}/pin"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/chat/sessions/{session_id}/pin"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/chat/sessions/{session_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/chat/sessions/{session_id}/restore"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/chat/sessions/{session_id}/requests"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/chat/sessions/{session_id}/requests"
+ },
+ {
+  "file": "social.py",
+  "method": "PATCH",
+  "path": "/chat/session-requests/{request_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/chat/sessions/{session_id}/messages"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/chat/sessions/{session_id}/messages"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/chat/sessions/{session_id}/read"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/chat/messages/{message_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/chat/messages/{message_id}/recall"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/notifications"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/notifications/unread-summary"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/notifications/{notification_id}/read"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/notifications/read-all"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/users/me/privacy"
+ },
+ {
+  "file": "social.py",
+  "method": "PUT",
+  "path": "/users/me/privacy"
+ },
+ {
+  "file": "social.py",
+  "method": "PATCH",
+  "path": "/users/me/privacy"
+ },
+ {
+  "file": "social.py",
+  "method": "GET",
+  "path": "/security/blocks"
+ },
+ {
+  "file": "social.py",
+  "method": "PUT",
+  "path": "/security/blocks/{target_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "DELETE",
+  "path": "/security/blocks/{target_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/security/reports/{target_id}"
+ },
+ {
+  "file": "social.py",
+  "method": "POST",
+  "path": "/security/reports"
+ },
+ {
+  "file": "user_cancellation_admin.py",
+  "method": "GET",
+  "path": "/admin/user-cancellations/"
+ },
+ {
+  "file": "user_cancellation_admin.py",
+  "method": "GET",
+  "path": "/admin/user-cancellations/statistics"
+ },
+ {
+  "file": "user_cancellation_admin.py",
+  "method": "POST",
+  "path": "/admin/user-cancellations/{cancellation_id}/review"
+ },
+ {
+  "file": "users.py",
+  "method": "GET",
+  "path": "/users/me/overview"
+ },
+ {
+  "file": "users.py",
+  "method": "GET",
+  "path": "/users/me/profile"
+ },
+ {
+  "file": "users.py",
+  "method": "PATCH",
+  "path": "/users/me/profile"
+ },
+ {
+  "file": "users.py",
+  "method": "PATCH",
+  "path": "/users/me/nickname"
+ },
+ {
+  "file": "users.py",
+  "method": "GET",
+  "path": "/users/me/completion"
+ },
+ {
+  "file": "users.py",
+  "method": "GET",
+  "path": "/users/me/profile/preview"
+ },
+ {
+  "file": "users.py",
+  "method": "GET",
+  "path": "/users/me/intro-templates"
+ },
+ {
+  "file": "users.py",
+  "method": "GET",
+  "path": "/users/me/preferences"
+ },
+ {
+  "file": "users.py",
+  "method": "PUT",
+  "path": "/users/me/preferences"
+ },
+ {
+  "file": "users.py",
+  "method": "POST",
+  "path": "/users/me/avatar"
+ },
+ {
+  "file": "users.py",
+  "method": "POST",
+  "path": "/users/me/background"
+ },
+ {
+  "file": "users.py",
+  "method": "POST",
+  "path": "/users/me/photos"
+ },
+ {
+  "file": "users.py",
+  "method": "POST",
+  "path": "/users/me/video"
+ },
+ {
+  "file": "users.py",
+  "method": "PUT",
+  "path": "/users/me/photos/order"
+ },
+ {
+  "file": "users.py",
+  "method": "PUT",
+  "path": "/users/me/photos/{media_id}/primary"
+ },
+ {
+  "file": "users.py",
+  "method": "DELETE",
+  "path": "/users/me/photos/{media_id}"
+ },
+ {
+  "file": "voice.py",
+  "method": "POST",
+  "path": "/ws-ticket"
+ },
+ {
+  "file": "voice.py",
+  "method": "POST",
+  "path": "/transcribe"
+ },
+ {
+  "file": "voice.py",
+  "method": "POST",
+  "path": "/synthesize"
+ }
+]

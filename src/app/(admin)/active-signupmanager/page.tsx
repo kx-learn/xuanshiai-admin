@@ -7,6 +7,7 @@ import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type ActivityOption, type ActivitySignupItem, type ActivitySignupStatistics } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
+import { XIANGQIN_STATUS } from "@/lib/filter-options";
 
 const breadcrumb = getBreadcrumb("活动报名", "报名管理");
 
@@ -153,6 +154,9 @@ export default function ActiveSignupmanagerPage() {
             <select className="sm-select" value={audit} onChange={(e) => setAudit(e.target.value)}><option value="全部">审核：全部</option><option value="待审">审核：待审</option><option value="未通过">审核：未通过</option><option value="通过">审核：通过</option></select>
             <select className="sm-select" value={pay} onChange={(e) => setPay(e.target.value)}><option value="全部">支付：全部</option><option value="已支付">支付：已支付</option><option value="未支付">支付：未支付</option></select>
             <select className="sm-select" value={checkin} onChange={(e) => setCheckin(e.target.value)}><option value="全部">签到：全部</option><option value="已签到">签到：已签</option><option value="未签到">签到：未签</option></select>
+            {/* 暂不接线：报名列表接口（activity_admin.signup_list）没有 xiangqin_status 参数，
+                后端补齐前这里保持纯展示。 */}
+            <select className="sm-select" defaultValue=""><option value="">相亲状态：不限</option>{XIANGQIN_STATUS.map((o) => <option key={o} value={o}>{o}</option>)}</select>
             <label className="sm-radio">
               <input type="radio" name="signupTab" value="全部" checked={signupTab === "全部"} onChange={() => setSignupTab("全部")} />
               <span>全部</span>

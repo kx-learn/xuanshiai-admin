@@ -231,25 +231,7 @@ export default function LoginPage() {
 
       <section className="lg-art">
         <div className="lg-stage">
-          <span className="lg-bubble lg-bubble-member">会员<br />管理</span>
-          <span className="lg-bubble lg-bubble-sea">公海<br />客源</span>
-          <span className="lg-bubble lg-bubble-store">门店<br />管理</span>
-          <span className="lg-bubble lg-bubble-service">服务<br />跟进</span>
-          <span className="lg-bubble lg-bubble-match">牵线<br />匹配</span>
-          <span className="lg-bubble lg-bubble-activity">活动<br />报名</span>
-          <span className="lg-bubble lg-bubble-office">红娘<br />办公</span>
-
-          <span className="lg-person lg-person-m">
-            <i className="lg-head" />
-            <i className="lg-torso" />
-          </span>
-          <span className="lg-person lg-person-f">
-            <i className="lg-head" />
-            <i className="lg-torso" />
-          </span>
-
-          <span className="lg-heart lg-heart-a">♥</span>
-          <span className="lg-heart lg-heart-b">♥</span>
+          <img src="/refimg/20260210-login-img2.png" alt="婚恋管理系统功能示意" className="lg-art-img" />
         </div>
         <p className="lg-slogan">成就天下美好姻缘</p>
       </section>

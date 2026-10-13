@@ -1337,6 +1337,33 @@ export interface LedgerEntryPage {
   total: number;
   has_more: boolean;
 }
+/**
+ * 积分明细流水（GET /admin/finance/credit-records）。
+ * 与账务流水 ledger 是两套接口：ledger 按 account 记账，credit-records 按会员维度
+ * 下发昵称/头像，并直接给出 category 编码与 action_source 文案。
+ */
+export interface CreditRecordItem {
+  id: number;
+  user_id: number;
+  nickname: string | null;
+  avatar: string | null;
+  phone: string | null;
+  direction: "CREDIT" | "DEBIT";
+  amount: string;
+  state: "PENDING" | "AVAILABLE" | "REVERSED";
+  source_type: string;
+  action_source: string;
+  category: string | null;
+  operator_id: number | null;
+  created_at: string;
+}
+export interface CreditRecordPage {
+  items: CreditRecordItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
 export interface FinanceReportRow {
   beneficiary_type: string;
   beneficiary_id: number;
@@ -2762,12 +2789,14 @@ export const adminEndpoints = {
   merchants: (query: AdminListQuery = {}) => list("admin/merchants", query),
   merchantProducts: (query: AdminListQuery = {}) => list("admin/merchant-products", query),
   merchantOrders: (query: AdminListQuery = {}) => list("admin/merchant-orders", query),
-  videos: (query: AdminListQuery = {}) => list("admin/videos", query),
-  createVideo: (body: JsonBody) => create("admin/videos", body),
-  updateVideo: (id: number | string, body: JsonBody) => update(`admin/videos/${id}`, body),
-  videoComments: (query: AdminListQuery = {}) => list("admin/video-comments", query),
-  videoTips: (query: AdminListQuery = {}) => list("admin/video-tips", query),
-  updateVideoTip: (id: number | string, body: JsonBody) => update(`admin/video-tips/${id}`, body),
+  // 注意：后端实际路径是 short-videos / short-video-tips / short-video-comments
+  // （旧写法 admin/videos 会 404，已按线上 openapi 校正）
+  videos: (query: AdminListQuery = {}) => list("admin/short-videos", query),
+  createVideo: (body: JsonBody) => create("admin/short-videos", body),
+  updateVideo: (id: number | string, body: JsonBody) => update(`admin/short-videos/${id}`, body),
+  videoComments: (query: AdminListQuery = {}) => list("admin/short-video-comments", query),
+  videoTips: (query: AdminListQuery = {}) => list("admin/short-video-tips", query),
+  updateVideoTip: (id: number | string, body: JsonBody) => update(`admin/short-video-tips/${id}`, body),
   moderationItems: (query: PageQuery = {}) => adminApi("admin/community/moderation-items", { method: "GET", query }),
   reviewModerationItem: (taskId: number | string, body: ReviewPayload) => adminApi(`admin/community/moderation-items/${taskId}/review`, { method: "PATCH", body }),
   moderatePost: (postId: number | string, body: ReviewPayload) => adminApi(`admin/community/posts/${postId}/moderation`, { method: "PATCH", body }),
@@ -2831,6 +2860,8 @@ export const adminEndpoints = {
     adminApi<WithdrawalAdminPage>("admin/finance/withdrawals", { method: "GET", query }),
   financeLedger: (query: AdminListQuery = {}) =>
     adminApi<LedgerEntryPage>("admin/finance/ledger", { method: "GET", query }),
+  creditRecords: (query: AdminListQuery = {}) =>
+    adminApi<CreditRecordPage>("admin/finance/credit-records", { method: "GET", query }),
   vipMembers: (query: AdminListQuery = {}) => list("admin/members/vip", query),
   updateProductCommissionRule: (productId: number | string, body: Record<string, unknown>) => adminApi(`admin/finance/product-commission-rules/${productId}`, { method: "POST", body }),
   settleFinanceOrder: (orderId: number | string, body: Record<string, unknown> = {}) => adminApi(`admin/finance/orders/${orderId}/settle`, { method: "POST", body }),
@@ -3136,6 +3167,10 @@ export const adminEndpoints = {
       sign_start?: string;
       sign_end?: string;
       keyword?: string;
+      /** 服务状态：与 progress 服务进度是两套维度 */
+      service_status?: "active" | "expired" | "no_refund_risk";
+      /** 统计排序维度 */
+      sort_by?: "member_last_paid" | "member_history_paid" | "monthly_sales" | "yearly_sales" | "monthly_champion";
     } = {},
   ) => adminApi<OfflineVipPage>("admin/offline-vips", { method: "GET", query }),
   offlineVipStatistics: () =>

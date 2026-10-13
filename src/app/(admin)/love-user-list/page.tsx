@@ -20,6 +20,22 @@ import AdminPagination from "@/components/AdminPagination";
 import { Button } from "@/components/ui/button";
 import MemberDetailWorkspace from "@/components/MemberDetailWorkspace";
 import Link from "next/link";
+import { PackageOpen } from "lucide-react";
+
+import {
+  BEHAVIOR_SORT,
+  BEHAVIOR_TYPE,
+  BEHAVIOR_TYPE_VALUE,
+  CERT_STATUS,
+  CERT_STATUS_VALUE,
+  RECORD_ORDER_VALUE,
+  REGION_TYPE,
+  REGION_TYPE_VALUE,
+  WECHAT_ADDED_STATUS,
+  WECHAT_ADDED_VALUE,
+  XIANGQIN_STATUS_CLOSE,
+  XIANGQIN_STATUS_VALUE,
+} from "@/lib/filter-options";
 
 type Member = {
   id: number;
@@ -83,6 +99,13 @@ type Filters = {
   lastLoginDate: string;
   whetherAbandon: string;
   matchmakerId: string;
+  /** 以下 6 项为后端补齐的新筛选：界面存中文文案，传参时按 filter-options 的映射表转成接口值 */
+  region: string;
+  cert_status: string;
+  wechat_added: string;
+  behavior_type: string;
+  order: string;
+  xiangqin_status: string;
 };
 const initialFilters: Filters = {
   search: "",
@@ -92,6 +115,12 @@ const initialFilters: Filters = {
   auth_status: "",
   assigned: "",
   follow_state: "",
+  region: "",
+  cert_status: "",
+  wechat_added: "",
+  behavior_type: "",
+  order: "",
+  xiangqin_status: "",
   feedbackDay: "",
   whetherCurrentDayFollow: "",
   whetherCurrentDayCall: "",
@@ -128,6 +157,8 @@ export default function LoveUserListPage() {
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [draft, setDraft] = useState<Filters>(initialFilters);
   const [sortBy, setSortBy] = useState("created_at");
+  const [memberTab, setMemberTab] = useState<"profile" | "abandon" | "abandon-log">("profile");
+  const [abandonCount, setAbandonCount] = useState(0);
   const [activeQuickFilter, setActiveQuickFilter] = useState("all");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [followMember, setFollowMember] = useState<Member | null>(null);
@@ -174,8 +205,15 @@ export default function LoveUserListPage() {
       sort_by: sortBy,
       ...filters,
     };
+    // 界面值是中文文案，这里按 filter-options 的映射表换成接口枚举值后再发请求。
+    if (filters.region) query.region = REGION_TYPE_VALUE[filters.region];
+    if (filters.cert_status) query.cert_status = CERT_STATUS_VALUE[filters.cert_status];
+    if (filters.wechat_added) query.wechat_added = WECHAT_ADDED_VALUE[filters.wechat_added];
+    if (filters.behavior_type) query.behavior_type = BEHAVIOR_TYPE_VALUE[filters.behavior_type];
+    if (filters.order) query.order = RECORD_ORDER_VALUE[filters.order];
+    if (filters.xiangqin_status) query.xiangqin_status = XIANGQIN_STATUS_VALUE[filters.xiangqin_status];
     Object.keys(query).forEach((key) => {
-      if (query[key] === "") delete query[key];
+      if (query[key] === "" || query[key] === undefined) delete query[key];
     });
     try {
       const [result, summary] = await Promise.all([
@@ -198,6 +236,17 @@ export default function LoveUserListPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  // 顶部「弃海会员」Tab 的计数：弃海数据在客源侧，后端只有 /admin/customer-leads/abandoned
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await adminApi<unknown[]>("admin/customer-leads/abandoned");
+        setAbandonCount(Array.isArray(rows) ? rows.length : 0);
+      } catch {
+        setAbandonCount(0);
+      }
+    })();
+  }, []);
   useEffect(() => {
     const k = new URLSearchParams(window.location.search).get("keyword") ?? "";
     if (k) {
@@ -447,17 +496,33 @@ export default function LoveUserListPage() {
   }
   return (
     <div className="min-w-0">
-      <AdminBreadcrumb items={getBreadcrumb("会员CRM", "资料管理")} />
+      <AdminBreadcrumb items={getBreadcrumb("会员CRM", memberTab === "abandon-log" ? "弃海记录" : "资料管理")} />
       <section className="bg-white px-6 pb-4 pt-3">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f0f0f0] pb-3">
           <div className="flex h-9 items-start gap-7 text-sm">
-            <button className="h-9 border-b-2 border-[#3658f7] px-0 text-[#3658f7]">
+            <button
+              type="button"
+              onClick={() => setMemberTab("profile")}
+              className={`h-9 border-b-2 px-0 ${memberTab === "profile" ? "border-[#3658f7] text-[#3658f7]" : "border-transparent text-[#333]"}`}
+            >
               会员资料
             </button>
-            <button className="text-[#333]">弃海会员(0)</button>
-            <button className="text-[#333]">弃海记录</button>
+            <button
+              type="button"
+              onClick={() => setMemberTab("abandon")}
+              className={`h-9 border-b-2 px-0 ${memberTab === "abandon" ? "border-[#3658f7] text-[#3658f7]" : "border-transparent text-[#333]"}`}
+            >
+              弃海会员({abandonCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMemberTab("abandon-log")}
+              className={`h-9 border-b-2 px-0 ${memberTab === "abandon-log" ? "border-[#3658f7] text-[#3658f7]" : "border-transparent text-[#333]"}`}
+            >
+              弃海记录
+            </button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2" style={memberTab === "abandon-log" ? { display: "none" } : undefined}>
             <ToolButton
               icon={<Plus />}
               label="添加资料"
@@ -491,7 +556,43 @@ export default function LoveUserListPage() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2 xl:grid-cols-7">
+        <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2 xl:grid-cols-7" style={memberTab === "abandon-log" ? { display: "none" } : undefined}>
+          <StaticSelect
+            label="地区：不限"
+            options={[...REGION_TYPE]}
+            value={draft.region}
+            onChange={(region) => setDraft({ ...draft, region })}
+          />
+          <StaticSelect
+            label="认证：不限"
+            options={[...CERT_STATUS]}
+            value={draft.cert_status}
+            onChange={(cert_status) => setDraft({ ...draft, cert_status })}
+          />
+          <StaticSelect
+            label="加上了吗?"
+            options={[...WECHAT_ADDED_STATUS]}
+            value={draft.wechat_added}
+            onChange={(wechat_added) => setDraft({ ...draft, wechat_added })}
+          />
+          <StaticSelect
+            label="线上行为：不限"
+            options={[...BEHAVIOR_TYPE]}
+            value={draft.behavior_type}
+            onChange={(behavior_type) => setDraft({ ...draft, behavior_type })}
+          />
+          <StaticSelect
+            label="记录排序"
+            options={[...BEHAVIOR_SORT]}
+            value={draft.order}
+            onChange={(order) => setDraft({ ...draft, order })}
+          />
+          <StaticSelect
+            label="相亲状态：不限"
+            options={[...XIANGQIN_STATUS_CLOSE]}
+            value={draft.xiangqin_status}
+            onChange={(xiangqin_status) => setDraft({ ...draft, xiangqin_status })}
+          />
           <StaticSelect label="门店：不限" />
           <Select
             value={draft.assigned}
@@ -582,12 +683,13 @@ export default function LoveUserListPage() {
           type="button"
           onClick={() => setShowMoreFilters((current) => !current)}
           aria-expanded={showMoreFilters}
+          style={memberTab === "abandon-log" ? { display: "none" } : undefined}
           className="mb-4 inline-flex items-center text-xs text-[#3658f7]"
         >
           {showMoreFilters ? "收起选项" : "更多选项"}
           <span className={`ml-2 size-1.5 border-b border-r border-current ${showMoreFilters ? "-translate-y-px rotate-[225deg]" : "-translate-y-0.5 rotate-45"}`} />
         </button>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3" style={memberTab === "abandon-log" ? { display: "none" } : undefined}>
           <div className="flex h-8">
             <label className="relative flex h-8 items-center border border-r-0 border-[#d9d9d9] bg-white text-xs text-[#595959]">
               <select className="h-full appearance-none bg-transparent py-0 pl-3 pr-7 outline-none">
@@ -670,7 +772,7 @@ export default function LoveUserListPage() {
             </button>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-8">
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-8" style={memberTab === "abandon-log" ? { display: "none" } : undefined}>
           {[
             ["all", "全部", stats.total, () => quickFilter("all")],
             [
@@ -737,7 +839,7 @@ export default function LoveUserListPage() {
             );
           })}
         </div>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto" style={memberTab === "abandon-log" ? { display: "none" } : undefined}>
           <table className={view === "compact" ? "min-w-[2400px] w-full text-xs" : "min-w-[1250px] w-full text-xs"}>
             <thead className="bg-[#fafafa] text-[#333]">
               <tr>
@@ -1031,7 +1133,7 @@ export default function LoveUserListPage() {
             </tbody>
           </table>
         </div>
-        {selectedIds.length > 0 && (
+        {selectedIds.length > 0 && memberTab !== "abandon-log" && (
           <div className="sticky bottom-0 z-10 flex h-12 items-center gap-3 border border-[#d9d9d9] bg-white px-4 text-xs shadow-sm">
             <span className="text-[#595959]">已选 {selectedIds.length} 条</span>
             <button type="button" disabled={saving} onClick={() => void batchStatus(1)} className="border border-[#d9d9d9] px-3 py-1.5 text-[#595959] disabled:opacity-50">批量设为公开</button>
@@ -1040,8 +1142,58 @@ export default function LoveUserListPage() {
             <button type="button" onClick={() => setSelectedIds([])} className="ml-auto text-[#3658f7]">取消选择</button>
           </div>
         )}
-        <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
+        {memberTab !== "abandon-log" && <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
       </section>
+
+      {memberTab === "abandon-log" && (
+        <section className="admin-card mt-4 overflow-hidden pt-4">
+          <div className="mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b] mx-5">
+            <h2 className="mb-1 font-semibold text-[#26324a]">💡 知情</h2>
+            <p>红娘可以将自己名下的“会员资料”进行放入弃海，资料一旦进入到弃海，则其“分派跟进”状态自动变更为“待分派”。</p>
+            <p>所有红娘均可见弃海中的“未被捞取”的资料信息，可进行捞取操作，捞取成功后自动分派到自己名下进行跟进。</p>
+            <p>红娘在将弃海中的资料捞取到自己名下之前，不可见资料中的客户联系方式。</p>
+            <p>红娘超过约定的时长未对会员进行跟进操作，将被系统自动放入弃海；红娘可设置自动弃海的资料数上限。</p>
+            <p>同一资料可多次放入弃海，每次放入弃海均生成一次记录，历史可查。</p>
+            <p>管理员、超级红娘可以直接将弃海会员重新分派给红娘，也可以将任意资料直接放入到弃海。</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 px-8 py-5">
+            <select className="h-10 w-56 rounded border px-3 text-sm" defaultValue="">
+              <option value="">放弃红娘：不限</option>
+            </select>
+            <div className="flex h-10 items-center gap-2 rounded border px-3 text-sm text-[#999]">
+              <input aria-label="开始日期" type="date" className="w-32 text-sm outline-none" />
+              <span aria-hidden>→</span>
+              <input aria-label="结束日期" type="date" className="w-32 text-sm outline-none" />
+            </div>
+            <div className="flex h-10 min-w-[280px] flex-1">
+              <input placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l border border-r-0 px-3 text-sm" />
+              <button type="button" className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>
+            </div>
+            <label className="whitespace-nowrap text-sm"><input type="checkbox" /> 待捞取/分派</label>
+            <span className="ml-auto whitespace-nowrap text-sm">共有弃海记录：<b className="text-[#3658f7]">0条</b>　待捞取/分派：<b className="text-[#3658f7]">0条</b></span>
+          </div>
+          <div className="overflow-x-auto px-8">
+            <table className="w-full min-w-[1100px] table-fixed text-sm">
+              <thead>
+                <tr>
+                  {["ID", "头像", "资料", "放弃人", "放弃类型", "放弃原因", "弃海时间", "分派状态（捞取人）", "捞取/分派时间"].map((x) => (
+                    <th key={x} className="border-b bg-[#fafafa] px-3 py-3 text-left font-normal">{x}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan={9} className="h-52 text-center text-[#8c8c8c]">
+                    <PackageOpen className="mx-auto mb-2" />
+                    暂无数据
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {detailMember && (
         <MemberDetailWorkspace
           member={detailMember}
@@ -1316,7 +1468,18 @@ function Select({
     </select>
   );
 }
-function StaticSelect({ label, options: customOptions }: { label: string; options?: string[] }) {
+function StaticSelect({
+  label,
+  options: customOptions,
+  value,
+  onChange,
+}: {
+  label: string;
+  options?: string[];
+  /** 传了 onChange 就是受控筛选（会真的参与查询）；不传则保持纯展示 */
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   const options = customOptions ?? (label.includes("婚况")
     ? ["未婚", "离异", "丧偶"]
     : label.includes("学历")
@@ -1331,7 +1494,7 @@ function StaticSelect({ label, options: customOptions }: { label: string; option
   return (
     <label className="relative block min-w-[108px]">
       <select
-        defaultValue=""
+        {...(onChange ? { value: value ?? "", onChange: (e) => onChange(e.target.value) } : { defaultValue: "" })}
         className={`${selectClass} w-full appearance-none pr-7 text-[#8c8c8c]`}
         aria-label={label}
       >

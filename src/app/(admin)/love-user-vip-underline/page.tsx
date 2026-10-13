@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -25,6 +26,7 @@ import type {
   OfflineVipUpdatePayload,
 } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
+import { VIP_SERVICE_STATUS, VIP_SERVICE_STATUS_VALUE } from "@/lib/filter-options";
 
 type StatCard = { value: string; label: string; color: string };
 
@@ -101,7 +103,14 @@ const emptyForm: FormState = {
   promiseCount: "0", successCount: "0", progress: "", remark: "", attachUrls: [],
 };
 
+/* 页内子页面（不跳路由，动态加载避免循环依赖） */
+const LoveAppointmentPage = dynamic(() => import("../love-appointment/page"), { ssr: false });
+const EContractListPage = dynamic(() => import("../e-contract-list/page"), { ssr: false });
+
+type LvipTab = "vip" | "appointment" | "contract";
+
 export default function LoveUserVipUnderlinePage() {
+  const [tab, setTab] = useState<LvipTab>("vip");
   const [activeTab, setActiveTab] = useState<"all" | OfflineVipProgress>("all");
   const [searchType, setSearchType] = useState("按昵称搜");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -124,6 +133,7 @@ export default function LoveUserVipUnderlinePage() {
   const [filterPromoterId, setFilterPromoterId] = useState("");
   const [filterSignStart, setFilterSignStart] = useState("");
   const [filterSignEnd, setFilterSignEnd] = useState("");
+  const [filterServiceStatus, setFilterServiceStatus] = useState("");
   const [keyword, setKeyword] = useState("");
   const [submittedKeyword, setSubmittedKeyword] = useState("");
 
@@ -158,6 +168,8 @@ export default function LoveUserVipUnderlinePage() {
         sign_start: filterSignStart || undefined,
         sign_end: filterSignEnd || undefined,
         keyword: submittedKeyword || undefined,
+        // 服务状态与 progress（服务进度）是两套维度，独立参数
+        service_status: filterServiceStatus ? VIP_SERVICE_STATUS_VALUE[filterServiceStatus] : undefined,
       });
       setRows(result.items ?? []);
       setTotal(result.total ?? 0);
@@ -168,7 +180,7 @@ export default function LoveUserVipUnderlinePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, activeTab, filterServiceId, filterSalesId, filterPromoterId, filterSignStart, filterSignEnd, submittedKeyword]);
+  }, [page, pageSize, activeTab, filterServiceId, filterSalesId, filterPromoterId, filterSignStart, filterSignEnd, submittedKeyword, filterServiceStatus]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -323,16 +335,16 @@ export default function LoveUserVipUnderlinePage() {
     <div className="min-w-0">
       <AdminBreadcrumb items={getBreadcrumb("会员CRM", "线下VIP")} />
 
-      <section className="lvip-card">
+      <section className="lvip-card" style={tab === "vip" ? undefined : { display: "none" }}>
         <div className="lvip-head">
           <div className="lvip-tabs">
-            <button type="button" className="lvip-tab active">
+            <button type="button" className={`lvip-tab ${tab === "vip" ? "active" : ""}`} onClick={() => setTab("vip")}>
               线下VIP
             </button>
-            <button type="button" className="lvip-tab">
+            <button type="button" className={`lvip-tab ${tab === "appointment" ? "active" : ""}`} onClick={() => setTab("appointment")}>
               约会管理
             </button>
-            <button type="button" className="lvip-tab">
+            <button type="button" className={`lvip-tab ${tab === "contract" ? "active" : ""}`} onClick={() => setTab("contract")}>
               合同管理
             </button>
           </div>
@@ -400,6 +412,26 @@ export default function LoveUserVipUnderlinePage() {
         <div className="lvip-subtabs-line" />
 
         <div className="lvip-filters">
+          {/* 「线下VIP：是/不是」暂不接线：/admin/offline-vips 没有对应参数，
+              本页本身就是线下VIP列表，后端也无「是否VIP」维度可筛。 */}
+          <label className="lvip-select">
+            <select defaultValue="">
+              <option value="">线下VIP：不限</option>
+              <option value="yes">线下VIP：是</option>
+              <option value="no">线下VIP：不是</option>
+            </select>
+            <span className="lvip-caret" />
+          </label>
+          <label className="lvip-select">
+            <select
+              value={filterServiceStatus}
+              onChange={(event) => { setFilterServiceStatus(event.target.value); setPage(1); }}
+            >
+              <option value="">服务状态：不限</option>
+              {VIP_SERVICE_STATUS.filter((o) => o !== "不限").map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <span className="lvip-caret" />
+          </label>
           <label className="lvip-select">
             <select value={filterServiceId} onChange={(event) => { setFilterServiceId(event.target.value); setPage(1); }}>
               <option value="">全部服务红娘</option>
@@ -533,6 +565,17 @@ export default function LoveUserVipUnderlinePage() {
 
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </section>
+
+      {tab === "appointment" && (
+        <div className="subpage-embed">
+          <LoveAppointmentPage />
+        </div>
+      )}
+      {tab === "contract" && (
+        <div className="subpage-embed">
+          <EContractListPage />
+        </div>
+      )}
 
       {drawerOpen && (
         <div className="lvip-mask" onClick={() => setDrawerOpen(false)}>

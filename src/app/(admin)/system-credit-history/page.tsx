@@ -5,9 +5,17 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
-import type { LedgerEntryItem } from "@/lib/admin-endpoints";
+import type { CreditRecordItem } from "@/lib/admin-endpoints";
+import {
+  CREDIT_ACTION_SOURCE,
+  CREDIT_ACTION_SOURCE_VALUE,
+  CREDIT_CATEGORY,
+  CREDIT_CATEGORY_VALUE,
+  CREDIT_MEMBER_SCOPE,
+  CREDIT_MEMBER_SCOPE_VALUE,
+} from "@/lib/filter-options";
 
-type Row = LedgerEntryItem;
+type Row = CreditRecordItem;
 
 const TARGET_OPTIONS: { value: "all" | "member" | "verified" | "matchmaker_team"; label: string }[] = [
   { value: "all", label: "所有注册用户" },
@@ -31,6 +39,12 @@ function formatItem(item: Row): { item: string; category: string } {
   return { item: `${item.source_type} ${item.direction}`, category: amount >= 0 ? "积分充值" : "礼品兑换" };
 }
 
+/** 分类编码 → 中文文案；后端未归类（null）时回落到按流水方向推断 */
+function categoryLabel(code?: string | null): string | null {
+  if (!code) return null;
+  return CREDIT_CATEGORY.find((label) => CREDIT_CATEGORY_VALUE[label] === code) ?? null;
+}
+
 export default function SystemCreditHistoryPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -47,21 +61,44 @@ export default function SystemCreditHistoryPage() {
   const [granting, setGranting] = useState(false);
   const [grantMessage, setGrantMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [memberScope, setMemberScope] = useState("");
+  const [actionSource, setActionSource] = useState("");
+  const [category, setCategory] = useState("");
 
   const load = async () => {
     setLoading(true);
     try {
+      // 积分明细走专用接口 /admin/finance/credit-records（原来接的 ledger 是账务流水，
+      // 不支持会员范围/操作来源/分类这些筛选，参数名也不同：start_time → start_date）。
       const query: Record<string, string | number | undefined> = {
         page,
         page_size: pageSize,
-        account_type: "user",
       };
-      if (startDate) query.start_time = startDate;
-      if (endDate) query.end_time = endDate;
-      if (keyword) query.account_id = Number(keyword) || 0;
-      const result = await adminEndpoints.financeLedger(query);
-      setRows(result?.items ?? []);
-      setTotal(result?.total ?? 0);
+      if (memberScope) query.member_scope = CREDIT_MEMBER_SCOPE_VALUE[memberScope];
+      if (actionSource) query.action_source = CREDIT_ACTION_SOURCE_VALUE[actionSource];
+      if (category) query.category = CREDIT_CATEGORY_VALUE[category];
+      if (startDate) query.start_date = startDate;
+      if (endDate) query.end_date = endDate;
+      if (keyword.trim()) query.keyword = keyword.trim();
+      let items: Row[];
+      let count: number;
+      try {
+        const result = await adminEndpoints.creditRecords(query);
+        items = result?.items ?? [];
+        count = result?.total ?? 0;
+      } catch {
+        // 降级：/admin/finance/credit-records 是新增接口，线上环境可能尚未部署（实测 404）。
+        // 此时回退到账务流水 /admin/finance/ledger，参数名不同：start/end_date → start/end_time。
+        const legacy: Record<string, string | number | undefined> = { page, page_size: pageSize, account_type: "user" };
+        if (startDate) legacy.start_time = startDate;
+        if (endDate) legacy.end_time = endDate;
+        if (keyword.trim()) legacy.account_id = Number(keyword.trim()) || 0;
+        const result = await adminEndpoints.financeLedger(legacy);
+        items = (result?.items ?? []) as unknown as Row[];
+        count = result?.total ?? 0;
+      }
+      setRows(items);
+      setTotal(count);
       setSelected([]);
     } catch (e) {
       setRows([]);
@@ -128,12 +165,17 @@ export default function SystemCreditHistoryPage() {
         </div>
 
         <div className="finord-filters">
-          <select className="finord-select" disabled>
-            <option>全部支付分类</option>
-            <option>积分充值</option>
-            <option>礼品兑换</option>
-            <option>收礼物奖励</option>
-            <option>送礼物</option>
+          <select className="finord-select" value={memberScope} onChange={(e) => setMemberScope(e.target.value)}>
+            <option value="">会员范围：不限</option>
+            {CREDIT_MEMBER_SCOPE.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <select className="finord-select" value={actionSource} onChange={(e) => setActionSource(e.target.value)}>
+            <option value="">操作来源：不限</option>
+            {CREDIT_ACTION_SOURCE.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <select className="finord-select" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">全部支付分类</option>
+            {CREDIT_CATEGORY.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
           <div className="finord-daterange">
             <input
@@ -193,9 +235,9 @@ export default function SystemCreditHistoryPage() {
                     <tr key={rec.id}>
                       <td><input type="checkbox" aria-label={`选择流水 ${rec.id}`} checked={selected.includes(rec.id)} onChange={() => setSelected((current) => current.includes(rec.id) ? current.filter((id) => id !== rec.id) : [...current, rec.id])} /></td>
                       <td className="crh-col-id">{rec.id}</td>
-                      <td>用户#{rec.account_id}</td>
+                      <td>{rec.nickname?.trim() ? rec.nickname : `用户#${rec.user_id}`}</td>
                       <td>{meta.item}</td>
-                      <td className="crh-col-category">{meta.category}</td>
+                      <td className="crh-col-category">{categoryLabel(rec.category) ?? meta.category}</td>
                       <td className={`crh-col-amount ${signed >= 0 ? "income" : "expense"}`}>
                         {signed >= 0 ? "+" : "-"}
                         {Math.abs(signed)}金币

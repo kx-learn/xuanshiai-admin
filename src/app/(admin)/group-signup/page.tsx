@@ -64,7 +64,7 @@ export default function GroupSignupPage() {
     void load(1);
     void adminApi<{ items: { id: number; title: string }[] }>("admin/content/community_group", {
       method: "GET",
-      query: { page: 1, page_size: 200 },
+      query: { page: 1, page_size: 100 },
     })
       .then((res) => setGroups((res.items ?? []).map((g) => ({ id: g.id, title: g.title }))))
       .catch(() => undefined);

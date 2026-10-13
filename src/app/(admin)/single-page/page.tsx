@@ -7,6 +7,7 @@ import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
+import { QRCODE_TYPE, QRCODE_TYPE_VALUE } from "@/lib/filter-options";
 
 const breadcrumb = getBreadcrumb("运营工具", "内容单页");
 
@@ -86,12 +87,19 @@ export default function SinglePagePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draft, setDraft] = useState<PageDraft>(EMPTY_DRAFT);
   const [selected, setSelected] = useState<number[]>([]);
+  const [qrcodeType, setQrcodeType] = useState("");
 
   const load = async (page = pageIdx, kw = keyword) => {
     try {
       const resp = await adminApi<ContentPage>("admin/content/single_page", {
         method: "GET",
-        query: { page, page_size: 20, keyword: kw || undefined },
+        query: {
+          page,
+          page_size: 20,
+          keyword: kw || undefined,
+          // 取自 extra.qrcode_type：h5 普通H5二维码 / follow 引导关注公众号
+          qrcode_type: qrcodeType ? QRCODE_TYPE_VALUE[qrcodeType] : undefined,
+        },
       });
       setRows(resp.items);
       setTotal(resp.total);
@@ -234,6 +242,10 @@ export default function SinglePagePage() {
         </div>
 
         <div className="finord-filters sp-filters">
+          <select className="finord-select" value={qrcodeType} onChange={(e) => { setQrcodeType(e.target.value); void load(1); }}>
+            <option value="">二维码类型：不限</option>
+            {QRCODE_TYPE.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
           <input
             className="finord-search-input sp-search"
             placeholder="请输入关键字"

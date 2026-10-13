@@ -252,9 +252,14 @@ export default function MutualSelectionListPage() {
                   </td>
                   <td>
                     <div className="ms-activity">
-                      <div className="ms-cover ms-cover-mutual">{r.title.slice(0, 2)}</div>
+                      {r.cover
+                        ? <img className="ms-cover ms-cover-mutual" src={r.cover} alt="" />
+                        : <div className="ms-cover ms-cover-mutual">{r.title.slice(0, 2)}</div>}
                       <div className="ms-activity-info">
                         <div className="ms-activity-name">{r.title}</div>
+                        {(r.price_male > 0 || r.price_female > 0) && (
+                          <div className="ms-activity-fee">男 {r.price_male}元 / 女 {r.price_female}元</div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -270,6 +275,7 @@ export default function MutualSelectionListPage() {
                     <div className="ms-count">
                       <div>男生 <span className="ms-count-num">{r.male_count}</span>人</div>
                       <div>女生 <span className="ms-count-num">{r.female_count}</span>人</div>
+                      <div>共 <span className="ms-count-num">{r.participant_count}</span>人</div>
                     </div>
                   </td>
                   <td><a className="finord-link" onClick={() => setParticipantOf(r)}>添加/查看</a></td>

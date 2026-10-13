@@ -7,6 +7,7 @@ import AdminPagination from "@/components/AdminPagination";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi } from "@/lib/admin-api";
 import { pickAndUploadImage, showConfigToast, useConfigDomain } from "@/lib/platform-config";
+import { PAY_SEARCH_TYPE, PAY_SEARCH_TYPE_VALUE } from "@/lib/filter-options";
 
 const breadcrumb = getBreadcrumb("运营工具", "自由收款");
 
@@ -97,6 +98,8 @@ export default function FreePayPage() {
   const [itemTotal, setItemTotal] = useState(0);
   const [orderTotal, setOrderTotal] = useState(0);
   const [itemSelected, setItemSelected] = useState<number[]>([]);
+  const [orderSearchType, setOrderSearchType] = useState("");
+  const [orderKeyword, setOrderKeyword] = useState("");
   const [orderSelected, setOrderSelected] = useState<number[]>([]);
   const [itemDrawer, setItemDrawer] = useState(false);
   const [itemDraft, setItemDraft] = useState<ItemDraft>(EMPTY_ITEM);
@@ -138,7 +141,13 @@ export default function FreePayPage() {
     try {
       const resp = await adminApi<{ items: ItemContent[]; total: number }>("admin/content/free_pay_order", {
         method: "GET",
-        query: { page: nextPage, page_size: 20 },
+        query: {
+          page: nextPage,
+          page_size: 20,
+          // search_type 只在该域生效：nickname 会员昵称 / phone 手机号 / order_no 订单号
+          search_type: orderSearchType ? PAY_SEARCH_TYPE_VALUE[orderSearchType] : undefined,
+          keyword: orderKeyword.trim() || undefined,
+        },
       });
       setOrders(resp.items);
       setOrderTotal(resp.total);
@@ -389,6 +398,23 @@ export default function FreePayPage() {
                   <p>客户在平台点击&ldquo;立即支付&rdquo;系统就会创建一个订单，您在这里可以查询到您的全部订单信息，您可以在&ldquo;财务管理-收入明细&rdquo;中进行更多操作。</p>
                 </div>
               </div>
+            </div>
+            <div className="finord-filters">
+              <select
+                className="finord-select"
+                value={orderSearchType}
+                onChange={(e) => { setOrderSearchType(e.target.value); void loadOrders(1); }}
+              >
+                <option value="">按会员昵称</option>
+                {PAY_SEARCH_TYPE.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <input
+                className="finord-search-input"
+                placeholder="请输入"
+                value={orderKeyword}
+                onChange={(e) => setOrderKeyword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void loadOrders(1); }}
+              />
             </div>
             <div className="finord-table-wrap">
               <table className="finord-table">

@@ -143,7 +143,7 @@ export default function AdminBreadcrumb({ items }: AdminBreadcrumbProps) {
   };
 
   return (
-    <div className="flex items-center gap-1 text-sm text-[#999] mb-4" ref={containerRef}>
+    <div className="admin-breadcrumb flex items-center gap-1 text-sm text-[#999] mb-4" ref={containerRef}>
       {items.map((item, index) => (
         <span key={index} className="flex items-center gap-1">
           {index > 0 && <span className="select-none">/</span>}

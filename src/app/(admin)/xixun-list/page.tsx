@@ -98,7 +98,7 @@ export default function XixunListPage() {
 
   useEffect(() => {
     adminEndpoints
-      .matchmakers({ page: 1, page_size: 200 })
+      .matchmakers({ page: 1, page_size: 100 })
       .then((res) => {
         const data = (res ?? {}) as { items?: Array<{ id: number; nickname?: string; real_name?: string }> };
         const items = data.items ?? [];

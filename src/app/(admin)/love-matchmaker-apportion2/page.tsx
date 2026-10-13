@@ -85,7 +85,7 @@ export default function Page() {
     try {
       const [cfg, staff] = await Promise.all([
         adminEndpoints.apportionConfigs(),
-        adminEndpoints.matchmakerStaffList({ page: 1, page_size: 200 }),
+        adminEndpoints.matchmakerStaffList({ page: 1, page_size: 100 }),
       ]);
       setConfigs(cfg ?? []);
       setServiceMatchmakers(staff.items ?? []);

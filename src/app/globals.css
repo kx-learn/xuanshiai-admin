@@ -371,14 +371,15 @@
 .customer-lead-page .lead-metrics-grid { margin-top: 4px; margin-bottom: 16px; }
 .customer-lead-page .lead-tabs { min-height: 58px; align-items: stretch; padding-left: 32px; padding-right: 32px; font-size: 16px; gap: 32px; }
 .customer-lead-page .lead-tabs > div:first-child { display: flex; align-items: stretch; gap: 32px; }
-.customer-lead-page .lead-tabs > a, .customer-lead-page .lead-tabs > div > a, .customer-lead-page .lead-tabs > div > b { display: inline-flex; min-height: 58px; align-items: center; padding: 0 !important; line-height: 1; color: #333; font-weight: 400; }
+.customer-lead-page .lead-tabs > a, .customer-lead-page .lead-tabs > div:first-child > a, .customer-lead-page .lead-tabs > div:first-child > b, .customer-lead-page .lead-tabs > div:first-child > button, .customer-lead-page .lead-tabs > button { display: inline-flex; min-height: 58px; align-items: center; padding: 0 !important; line-height: 1; color: #333; font-weight: 400; }
+.customer-lead-page .lead-tabs > div:first-child > button, .customer-lead-page .lead-tabs > button { background: none; border: 0; cursor: pointer; font-size: inherit; font-family: inherit; outline: none; }
 .customer-lead-page .lead-tabs a, .customer-lead-page .lead-tabs b { transition: color .16s ease, border-color .16s ease; }
-.customer-lead-page .lead-tabs a.active, .customer-lead-page .lead-tabs b { border-bottom: 2px solid #3658f7; color: #3658f7 !important; font-weight: 400; }
+.customer-lead-page .lead-tabs a.active, .customer-lead-page .lead-tabs b, .customer-lead-page .lead-tabs > div:first-child > button.active, .customer-lead-page .lead-tabs > button.active { border-bottom: 2px solid #3658f7; color: #3658f7 !important; font-weight: 400; }
 .customer-lead-page .lead-tabs a, .customer-lead-page .lead-tabs b { white-space: nowrap; }
 .customer-lead-page .lead-tabs > div:last-child a,
 .customer-lead-page .lead-tabs > div:last-child button { white-space: nowrap; color: #fff; }
 .customer-lead-page .lead-tabs > div:last-child a,
-.customer-lead-page .lead-tabs > div:last-child button { display: inline-flex; width: 126px; height: 38px; align-items: center; justify-content: center; padding: 0 8px; font-size: 13px; line-height: 1; color: #fff !important; }
+.customer-lead-page .lead-tabs > div:last-child button { display: inline-flex; width: auto; min-width: 96px; height: 38px; align-items: center; justify-content: center; padding: 0 14px; font-size: 13px; line-height: 1; color: #fff !important; }
 .customer-lead-page .lead-tabs > div:last-child { align-items: center !important; padding-bottom: 0 !important; }
 .customer-lead-page .lead-tabs > div:last-child a,
 .customer-lead-page .lead-tabs > div:last-child button { min-height: 38px !important; max-height: 38px; }
@@ -2730,7 +2731,7 @@ button.au-page-num.active { border-color: #3658f7; background: #3658f7; color: #
 
 .ov-greet { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 2px 18px; }
 .ov-greet-left { display: inline-flex; align-items: center; gap: 10px; }
-.ov-wave { font-size: 26px; line-height: 1; }
+.ov-wave { width: 26px; height: 26px; object-fit: contain; }
 .ov-greet-text { font-size: 20px; font-weight: 700; color: #1f2430; }
 .ov-greet-actions { display: inline-flex; align-items: center; gap: 10px; }
 .ov-greet-btn { display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 14px; border-radius: 4px; background: #3658f7; color: #fff; font-size: 14px; }
@@ -2739,8 +2740,9 @@ button.au-page-num.active { border-color: #3658f7; background: #3658f7; color: #
 
 .ov-stats { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
 .ov-stat { display: flex; align-items: flex-start; gap: 12px; padding: 16px 12px; border: 1px solid #edf0f5; border-radius: 6px; background: #fff; }
-.ov-stat-icon { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; }
+.ov-stat-icon { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; overflow: hidden; }
 .ov-stat-icon svg { width: 22px; height: 22px; }
+.ov-stat-icon img { width: 44px; height: 44px; object-fit: contain; }
 .ov-stat-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ov-stat-label { font-size: 12px; color: #9aa0ae; white-space: nowrap; }
 .ov-stat-value { font-size: 21px; font-weight: 700; color: #2f3542; white-space: nowrap; }
@@ -6771,7 +6773,9 @@ button.au-page-num.active { border-color: #3658f7; background: #3658f7; color: #
 .lvip-card { background: #fff; padding: 14px 20px 24px; }
 .lvip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
 .lvip-tabs { display: flex; align-items: center; gap: 26px; }
-.lvip-tab { height: 34px; padding: 0 2px; border: 0; background: none; font-size: 14px; color: #333; cursor: pointer; border-bottom: 2px solid transparent; }
+.lvip-tab { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; text-decoration: none; height: 34px; line-height: 34px; padding: 0 2px; border: 0; background: none; outline: none; font-size: 14px; font-family: inherit; color: #333; cursor: pointer; border-bottom: 2px solid transparent; vertical-align: middle; }
+/* 页内嵌入的子页面：隐藏其自带面包屑，避免与宿主页重复 */
+.subpage-embed .admin-breadcrumb { display: none; }
 .lvip-tab.active { color: #3658f7; font-weight: 500; border-bottom-color: #3658f7; }
 .lvip-tools { display: flex; align-items: center; gap: 10px; }
 .lvip-btn { display: inline-flex; height: 32px; align-items: center; gap: 6px; padding: 0 14px; border-radius: 4px; font-size: 13px; cursor: pointer; border: 1px solid #d9dde6; background: #fff; color: #545a69; white-space: nowrap; }
@@ -8474,7 +8478,8 @@ button.mdt-tag:hover{border-color:#3658f7}
 .lg-arc-c { width: 900px; height: 900px; left: 43%; top: -466px; }
 
 .lg-art { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
-.lg-stage { position: relative; width: 480px; height: 300px; }
+.lg-stage { position: relative; width: 480px; min-height: 300px; display: flex; align-items: center; justify-content: center; }
+.lg-stage .lg-art-img { width: 100%; max-width: 520px; height: auto; object-fit: contain; }
 .lg-slogan { margin-top: 46px; color: #fff; font-size: clamp(28px, 3vw, 48px); font-weight: 400; letter-spacing: .1em; text-shadow: 0 3px 12px rgba(14,50,139,.28); }
 
 .lg-bubble { position: absolute; z-index: 3; display: grid; place-items: center; width: 87px; height: 87px; border-radius: 50% 50% 50% 12px; color: #24406e; font-size: 15px; font-weight: 600; line-height: 1.2; text-align: center; box-shadow: 0 10px 22px rgba(21,69,173,.16); }

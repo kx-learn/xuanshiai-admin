@@ -1,15 +1,24 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, FileDown, Plus, Search } from "lucide-react";
+import { BarChart3, CalendarDays, FileDown, PackageOpen, Plus, Search } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import AdminPagination from "@/components/AdminPagination";
 import DateRangePicker from "@/components/DateRangePicker";
 import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
+
+import {
+  ACCOUNT_BIND_MODE,
+  ACCOUNT_BIND_MODE_VALUE,
+  RECORD_ORDER,
+  RECORD_ORDER_VALUE,
+  WECHAT_ADDED_VALUE,
+  XIANGQIN_STATUS_CLOSE,
+  XIANGQIN_STATUS_VALUE,
+} from "@/lib/filter-options";
 
 type Lead = {
   id: number;
@@ -62,6 +71,9 @@ const isToday = (date: string) => {
   return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
 };
 
+type AbandonLogRow = { id: number; lead_id: number; reason: string; abandoned_by: number; abandoned_at: string; restored_by: number | null; restored_at: string | null };
+const logFmt = (v: string | null) => (v ? new Date(v).toLocaleString("zh-CN", { hour12: false }) : "-");
+
 export default function Page() {
   const [data, setData] = useState<Page>(empty),
     [loading, setLoading] = useState(true),
@@ -77,12 +89,28 @@ export default function Page() {
   const [assignStartDate, setAssignStartDate] = useState("");
   const [assignEndDate, setAssignEndDate] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  /** 「更多选项」里有后端参数的 4 项；key 与接口 query 参数同名，界面存中文文案 */
+  const [moreFilters, setMoreFilters] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<"professional" | "simple">("professional");
   const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
   const [smartOpen, setSmartOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [statsTab, setStatsTab] = useState<"follow"|"intent"|"source"|"status"|"delta"|"split"|"promoter">("follow");
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [leadTab, setLeadTab] = useState<"list" | "abandon" | "log">("list");
+  const [abandonLeads, setAbandonLeads] = useState<Lead[]>([]);
+  const [abandonLoading, setAbandonLoading] = useState(false);
+  const [logRows, setLogRows] = useState<AbandonLogRow[]>([]);
+  const [logLeads, setLogLeads] = useState<Record<number, string>>({});
+  const [logLoading, setLogLoading] = useState(false);
+  const [logKeyword, setLogKeyword] = useState("");
+  const [logSearch, setLogSearch] = useState("");
+  const [logBy, setLogBy] = useState("");
+  const [logFrom, setLogFrom] = useState("");
+  const [logTo, setLogTo] = useState("");
+  const [logWaitOnly, setLogWaitOnly] = useState(false);
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize, setLogPageSize] = useState(20);
   const [createOpen, setCreateOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickRows, setQuickRows] = useState<QuickRow[]>([emptyQuickRow()]);
@@ -159,6 +187,9 @@ export default function Page() {
     });
   };
   const visibleLeads = filterByDate(data.items);
+  /* 弃海客源 Tab 复用专业视图列，数据源换成弃海线索 */
+  const tableLeads = leadTab === "abandon" ? abandonLeads : visibleLeads;
+  const effectiveView = leadTab === "abandon" ? "professional" : viewMode;
   const load = useCallback(
     async (page = 1, size = 20) => {
       setLoading(true);
@@ -170,6 +201,11 @@ export default function Page() {
             search: keyword || undefined,
             status: status || undefined,
             source: source || undefined,
+            // 「更多选项」里已接线的 4 项：中文文案 → 接口枚举，未选则不传该参数
+            wechat_added: moreFilters.wechat_added ? WECHAT_ADDED_VALUE[moreFilters.wechat_added] : undefined,
+            xiangqin_status: moreFilters.xiangqin_status ? XIANGQIN_STATUS_VALUE[moreFilters.xiangqin_status] : undefined,
+            bind_mode: moreFilters.bind_mode ? ACCOUNT_BIND_MODE_VALUE[moreFilters.bind_mode] : undefined,
+            order: moreFilters.order ? RECORD_ORDER_VALUE[moreFilters.order] : undefined,
           }),
           adminEndpoints.customerLeadStatistics(),
           adminEndpoints.abandonedCustomerLeads().catch(() => []),
@@ -185,20 +221,53 @@ export default function Page() {
         setLoading(false);
       }
     },
-    [keyword, status, source],
+    [keyword, status, source, moreFilters],
   );
   useEffect(() => {
     void load();
   }, [load]);
+  /* 支持 /love-customer-abandon、/love-customer-abandon-log 重定向带来的 tab 参数 */
   useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "abandon" || tab === "log") setLeadTab(tab);
+  }, []);
+  const loadAbandon = useCallback(async () => {
+    setAbandonLoading(true);
+    try {
+      const rows = (await adminEndpoints.abandonedCustomerLeads()) as { id: number; lead_id: number }[];
+      const details = await Promise.all(rows.map((r) => adminEndpoints.customerLead(r.lead_id).catch(() => null)));
+      setAbandonLeads(details.filter(Boolean) as unknown as Lead[]);
+    } finally {
+      setAbandonLoading(false);
+    }
+  }, []);
+  const loadLog = useCallback(async () => {
+    setLogLoading(true);
+    try {
+      const rows = (await adminEndpoints.customerLeadAbandonments()) as AbandonLogRow[];
+      const details = await Promise.all(rows.map((r) => adminEndpoints.customerLead(r.lead_id).catch(() => null)));
+      const map: Record<number, string> = {};
+      details.forEach((l) => { if (l) map[(l as unknown as Lead).id] = (l as unknown as Lead).name; });
+      setLogRows(rows);
+      setLogLeads(map);
+    } finally {
+      setLogLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    if (leadTab === "abandon") void loadAbandon();
+    if (leadTab === "log") void loadLog();
+  }, [leadTab, loadAbandon, loadLog]);
+  useEffect(() => {
+    const sourceItems = leadTab === "abandon" ? abandonLeads : data.items;
     const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".customer-lead-page table tbody tr"));
-    if (viewMode === "simple") rows.forEach((row) => row.querySelector(".lead-selection-cell")?.remove());
-    if (viewMode === "professional") rows.forEach((row) => { const cell = row.cells[0]; if (cell && !cell.querySelector("input[type=checkbox]")) { const box = document.createElement("input"); box.type = "checkbox"; cell.prepend(box); } if (cell && cell.querySelector("input[type=checkbox]") && !row.querySelector(".lead-selection-cell")) { const box = cell.querySelector("input[type=checkbox]")!; const selectionCell = document.createElement("td"); selectionCell.className = "lead-selection-cell"; selectionCell.appendChild(box); row.insertBefore(selectionCell, cell); } });
+    if (effectiveView === "simple") rows.forEach((row) => row.querySelector(".lead-selection-cell")?.remove());
+    if (effectiveView === "professional") rows.forEach((row) => { const cell = row.cells[0]; if (cell && !cell.querySelector("input[type=checkbox]")) { const box = document.createElement("input"); box.type = "checkbox"; cell.prepend(box); } if (cell && cell.querySelector("input[type=checkbox]") && !row.querySelector(".lead-selection-cell")) { const box = cell.querySelector("input[type=checkbox]")!; const selectionCell = document.createElement("td"); selectionCell.className = "lead-selection-cell"; selectionCell.appendChild(box); row.insertBefore(selectionCell, cell); } });
     const boxes = Array.from(document.querySelectorAll<HTMLInputElement>(".customer-lead-page table tbody input[type=checkbox]"));
-    boxes.forEach((box, index) => { const item = data.items[index]; if (item) box.checked = selectedLeadIds.includes(item.id); });
-    const handlers = boxes.map((box, index) => { const handler = () => { const item = data.items[index]; if (!item) return; setSelectedLeadIds((current) => box.checked ? [...new Set([...current, item.id])] : current.filter((id) => id !== item.id)); }; box.addEventListener("change", handler); return [box, handler] as const; });
+    boxes.forEach((box, index) => { const item = sourceItems[index]; if (item) box.checked = selectedLeadIds.includes(item.id); });
+    const handlers = boxes.map((box, index) => { const handler = () => { const item = sourceItems[index]; if (!item) return; setSelectedLeadIds((current) => box.checked ? [...new Set([...current, item.id])] : current.filter((id) => id !== item.id)); }; box.addEventListener("change", handler); return [box, handler] as const; });
     return () => handlers.forEach(([box, handler]) => box.removeEventListener("change", handler));
-  }, [selectedLeadIds, data.items, viewMode]);
+  }, [selectedLeadIds, data.items, viewMode, leadTab, abandonLeads, effectiveView]);
   const open = (kind: NonNullable<typeof modal>, lead?: Lead) => {
     setCurrent(lead || null);
     setForm(
@@ -401,10 +470,26 @@ export default function Page() {
     link.click();
     URL.revokeObjectURL(link.href);
   };
+  /* 弃海记录：前端过滤（放弃红娘/日期/关键字/待捞取） */
+  const filteredLogRows = useMemo(() => {
+    const kw = logSearch.trim().toLowerCase();
+    const fromTs = logFrom ? new Date(`${logFrom}T00:00:00`).getTime() : -Infinity;
+    const toTs = logTo ? new Date(`${logTo}T23:59:59`).getTime() : Infinity;
+    return logRows.filter((row) => {
+      if (logWaitOnly && row.restored_at) return false;
+      if (logBy && String(row.abandoned_by) !== logBy) return false;
+      const ts = new Date(row.abandoned_at).getTime();
+      if (ts < fromTs || ts > toTs) return false;
+      if (kw && !(logLeads[row.lead_id] || "").toLowerCase().includes(kw)) return false;
+      return true;
+    });
+  }, [logRows, logLeads, logSearch, logBy, logFrom, logTo, logWaitOnly]);
+  const logWaitCount = useMemo(() => logRows.filter((row) => !row.restored_at).length, [logRows]);
+  const pagedLogRows = useMemo(() => filteredLogRows.slice((logPage - 1) * logPageSize, logPage * logPageSize), [filteredLogRows, logPage, logPageSize]);
   return (
     <div className="customer-lead-page">
-      <AdminBreadcrumb items={getBreadcrumb("客源线索", "线索管理")} />
-      <section className="customer-notice mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b]">
+      <AdminBreadcrumb items={getBreadcrumb("客源线索", leadTab === "list" ? "线索管理" : leadTab === "abandon" ? "弃海客源" : "弃海记录")} />
+      <section className="customer-notice mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b]" style={leadTab === "list" ? undefined : { display: "none" }}>
         <h2 className="mb-1 font-semibold text-[#26324a]">💡 须知</h2>
         <span>
           客源线索（简称“线索库”）是指您广泛通过各种渠道获取到的单身潜在客户简单信息以快速便捷的形式收集汇总到“线索管理”中，分派给红娘进行销售跟进，并丰富完善更多信息。
@@ -421,13 +506,17 @@ export default function Page() {
       <section className="bg-white px-5 pt-4">
         <div className="lead-tabs flex items-center justify-between border-b">
           <div>
-            <b className="text-[#3658f7]">
+            <button type="button" className={leadTab === "list" ? "active" : ""} onClick={() => setLeadTab("list")}>
               线索管理
-            </b>
-            <Link href="/love-customer-abandon">弃海客源({abandonCount})</Link>
-            <Link href="/love-customer-abandon-log">弃海记录</Link>
+            </button>
+            <button type="button" className={leadTab === "abandon" ? "active" : ""} onClick={() => setLeadTab("abandon")}>
+              弃海客源({abandonCount})
+            </button>
+            <button type="button" className={leadTab === "log" ? "active" : ""} onClick={() => setLeadTab("log")}>
+              弃海记录
+            </button>
           </div>
-          <div className="flex gap-2 pb-3">
+          <div className="flex gap-2 pb-3" style={leadTab === "log" ? { display: "none" } : undefined}>
             <div className="lead-add-wrap" onMouseEnter={() => setAddMenuOpen(true)} onMouseLeave={() => setAddMenuOpen(false)}>
               <button
                 onClick={() => setModal("create")}
@@ -449,7 +538,7 @@ export default function Page() {
             <button onClick={exportCsv} className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"><FileDown size={15} />导出EXCEL</button>
           </div>
         </div>
-        <div className="lead-filter-grid grid gap-3 pt-4 md:grid-cols-4 xl:grid-cols-8">
+        <div className="lead-filter-grid grid gap-3 pt-4 md:grid-cols-4 xl:grid-cols-8" style={leadTab === "log" ? { display: "none" } : undefined}>
           {([
             ["审核状态：不限", ["不限", "待核", "无效", "有效"]],
             ["分派跟进：不限", ["不限", "待分派"]],
@@ -478,19 +567,41 @@ export default function Page() {
           </select>
           <input placeholder="推广红娘" className="h-10 rounded border border-[#ddd] px-3 text-sm placeholder:text-[#9aa1ad]" />
         </div>
-        <button className="lead-more-filters" onClick={() => setShowMoreFilters((value) => !value)}>{showMoreFilters ? "收起选项" : "更多选项"}<span className="lead-chevron" /></button>
-        {showMoreFilters && <div className="lead-extra-filters">
+        <button className="lead-more-filters" style={leadTab === "log" ? { display: "none" } : undefined} onClick={() => setShowMoreFilters((value) => !value)}>{showMoreFilters ? "收起选项" : "更多选项"}<span className="lead-chevron" /></button>
+        {showMoreFilters && leadTab !== "log" && <div className="lead-extra-filters">
           {([
-            ["客户意向：不限", ["不限"]],
-            ["年龄：不限", ["不限"]],
-            ["身高：不限", ["不限"]],
-            ["职业：不限", ["不限"]],
-            ["学历：不限", ["不限"]],
-            ["家乡：不限", ["不限"]],
-            ["现居：不限", ["不限"]],
-            ["婚况：不限", ["不限"]],
-            ["加上了吗?", ["不限", "未添加", "已加上", "没加上"]],
-          ] as const).map(([label, options]) => <select key={label} defaultValue="" className="lead-filter-select"><option value="">{label}</option>{options.map((option) => <option key={option}>{option}</option>)}</select>)}
+            { label: "客户意向：不限", options: ["不限"] },
+            { label: "年龄：不限", options: ["不限"] },
+            { label: "身高：不限", options: ["不限"] },
+            { label: "职业：不限", options: ["不限"] },
+            { label: "学历：不限", options: ["不限"] },
+            { label: "家乡：不限", options: ["不限"] },
+            { label: "现居：不限", options: ["不限"] },
+            { label: "婚况：不限", options: ["不限"] },
+            { label: "加上了吗?", options: ["不限", "未添加", "已加上", "没加上"], key: "wechat_added" },
+            { label: "相亲状态：不限", options: XIANGQIN_STATUS_CLOSE, key: "xiangqin_status" },
+            { label: "落户方式：不限", options: ACCOUNT_BIND_MODE, key: "bind_mode" },
+            { label: "记录排序：最新记录显示在前面", options: RECORD_ORDER, key: "order" },
+          ] as { label: string; options: readonly string[]; key?: string }[]).map((item) => (
+            <select
+              key={item.label}
+              {...(item.key
+                ? {
+                    value: moreFilters[item.key] ?? "",
+                    onChange: (e: ChangeEvent<HTMLSelectElement>) =>
+                      setMoreFilters((current) => ({ ...current, [item.key as string]: e.target.value })),
+                  }
+                : { defaultValue: "" })}
+              className="lead-filter-select"
+            >
+              <option value="">{item.label}</option>
+              {item.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          ))}
           <input placeholder="标签：不限（多选）" />
           <div className="lead-date-ranges">
             <DateRangePicker label="录" startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-full max-w-[300px]" />
@@ -498,7 +609,7 @@ export default function Page() {
           </div>
           <label><input type="checkbox" /> 隐藏今日已跟进</label><label><input type="checkbox" /> 隐藏今日已通话</label><label><input type="checkbox" /> 有电话</label><label><input type="checkbox" /> 有微信</label>
         </div>}
-        <div className="lead-search-row flex flex-wrap items-end gap-3 py-4">
+        <div className="lead-search-row flex flex-wrap items-end gap-3 py-4" style={leadTab === "log" ? { display: "none" } : undefined}>
           <div className="flex items-end">
             <select
               className="h-10 rounded border border-r-0 border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"
@@ -534,7 +645,7 @@ export default function Page() {
           <select defaultValue="" className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"><option value="">排序：录入时间</option><option>排序：分派时间</option><option>排序：捞取时间</option></select>
           <div className="lead-mode-switch">{viewMode === "simple" && <button className="lead-settings" aria-label="简洁模式设置" onClick={() => setSimpleSetOpen(true)}>⚙</button>}<button className={viewMode === "simple" ? "active" : ""} onClick={() => setViewMode("simple")}>简洁</button><button className={viewMode === "professional" ? "active" : ""} onClick={() => setViewMode("professional")}>专业</button></div>
         </div>
-        <div className="lead-metrics-grid grid grid-cols-2 gap-3 md:grid-cols-6">
+        <div className="lead-metrics-grid grid grid-cols-2 gap-3 md:grid-cols-6" style={leadTab === "list" ? undefined : { display: "none" }}>
           {[
             ["全部", visibleLeads.length],
             ["未分派", visibleLeads.filter((x) => !x.matchmaker_id).length],
@@ -550,11 +661,11 @@ export default function Page() {
           ))}
         </div>
       </section>
-      <div className="overflow-x-auto bg-white">
+      <div className="overflow-x-auto bg-white" style={leadTab === "log" ? { display: "none" } : undefined}>
         <table className="w-full min-w-[1580px] text-sm">
           <thead className="bg-[#fafafa] text-[#666]">
             <tr>
-              {(viewMode === "simple" ? ["", "标记", "客源ID", "称呼", "姓名", "性别", "出生", "婚况", "学历", "身高", "职业", "来源", "录入", "跟进", "状态", "审核", "意向", "标签", "入库状态", "描述", "操作"] : ["", "客源ID", "资料", "客户意向", "来源", "审核", "录入人", "状态", "分派跟进", "跟进", "通话", "入库状态", "操作"]).map((x, index) => (
+              {(effectiveView === "simple" ? ["", "标记", "客源ID", "称呼", "姓名", "性别", "出生", "婚况", "学历", "身高", "职业", "来源", "录入", "跟进", "状态", "审核", "意向", "标签", "入库状态", "描述", "操作"] : ["", "客源ID", "资料", "客户意向", "来源", "审核", "录入人", "状态", "分派跟进", "跟进", "通话", "入库状态", "操作"]).map((x, index) => (
                 <th
                   key={x}
                   className="border-b px-3 py-3 text-left font-normal"
@@ -564,26 +675,26 @@ export default function Page() {
               ))}
             </tr>
           </thead>
-          <tbody className={viewMode === "simple" ? "lead-simple-body" : "lead-professional-body"}>
-            {loading ? (
+          <tbody className={effectiveView === "simple" ? "lead-simple-body" : "lead-professional-body"}>
+            {(leadTab === "abandon" ? abandonLoading : loading) ? (
               <tr>
                 <td colSpan={12} className="p-10 text-center text-[#999]">
                   加载中...
                 </td>
               </tr>
-            ) : visibleLeads.length === 0 ? (
+            ) : tableLeads.length === 0 ? (
               <tr>
                 <td colSpan={12} className="p-10 text-center text-[#999]">
-                  暂无客源线索
+                  {leadTab === "abandon" ? <>暂无数据</> : <>暂无客源线索</>}
                 </td>
               </tr>
             ) : (
-              visibleLeads.map((x) => (
+              tableLeads.map((x) => (
                 <tr
                   key={x.id}
                   className="border-b align-top hover:bg-[#fafcff]"
                 >
-                  {viewMode === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? "已分派" : "待分派"}><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3"><button onClick={() => open("edit", x)}>编辑</button><button onClick={() => open("edit", x)}>详情</button><button onClick={() => open("follow", x)}>跟进</button><button onClick={() => void abandon(x)}>放入弃海</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
+                  {effectiveView === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? "已分派" : "待分派"}><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3"><button onClick={() => open("edit", x)}>编辑</button><button onClick={() => open("edit", x)}>详情</button><button onClick={() => open("follow", x)}>跟进</button><button onClick={() => void abandon(x)}>放入弃海</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
                   <td className="px-3 py-3">
                     <div className="lead-profile"><div className="lead-avatar">#{x.id}</div><div><b>{x.name || "-"}</b>{x.phone && <span className="lead-tag">有电话</span>}{x.wechat && <span className="lead-tag">有微信</span>}</div></div>
                     <div className="lead-actions"><button onClick={() => open("edit", x)}>基本资料</button><button onClick={() => open("edit", x)}>择偶要求</button><button onClick={() => open("follow", x)}>跟进信息</button><button onClick={() => open("edit", x)} className="lead-more-button">更多</button></div>
@@ -625,15 +736,77 @@ export default function Page() {
           </tbody>
         </table>
       </div>
-      {selectedLeadIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedLeadIds.length}</b> 项</span><select><option>更换分派跟进</option></select><select><option>更换推广红娘</option></select><button>有效</button><button>待核</button><button>无效</button><button>打标签</button><button>批量删除</button><button>批量弃海</button><button>批量入库</button></div>}
-      {message && <p className="mt-3 text-sm text-red-600">{message}</p>}
-      <AdminPagination
-        page={data.page}
-        pageSize={data.page_size}
-        total={data.total}
-        onPageChange={(p) => void load(p, data.page_size)}
-        onPageSizeChange={(size) => void load(1, size)}
-      />
+      {leadTab === "list" && selectedLeadIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedLeadIds.length}</b> 项</span><select><option>更换分派跟进</option></select><select><option>更换推广红娘</option></select><button>有效</button><button>待核</button><button>无效</button><button>打标签</button><button>批量删除</button><button>批量弃海</button><button>批量入库</button></div>}
+      {leadTab === "list" && message && <p className="mt-3 text-sm text-red-600">{message}</p>}
+      {leadTab === "list" && (
+        <AdminPagination
+          page={data.page}
+          pageSize={data.page_size}
+          total={data.total}
+          onPageChange={(p) => void load(p, data.page_size)}
+          onPageSizeChange={(size) => void load(1, size)}
+        />
+      )}
+
+      {leadTab === "log" && (
+        <section className="admin-card overflow-hidden pt-4">
+          <div className="flex flex-wrap items-center gap-3 px-8 py-5">
+            <select className="h-10 w-56 rounded border px-3 text-sm" value={logBy} onChange={(event) => { setLogBy(event.target.value); setLogPage(1); }}>
+              <option value="">放弃红娘：不限</option>
+              {Array.from(new Set(logRows.map((row) => row.abandoned_by))).map((id) => <option key={id} value={id}>账号 #{id}</option>)}
+            </select>
+            <div className="date-range-picker w-80">
+              <span className="dr-field">
+                {!logFrom && <span className="dr-placeholder">开始日期</span>}
+                <input aria-label="开始日期" type="date" value={logFrom} onChange={(event) => { setLogFrom(event.target.value); setLogPage(1); }} />
+              </span>
+              <span aria-hidden className="dr-arrow">→</span>
+              <span className="dr-field">
+                {!logTo && <span className="dr-placeholder">结束日期</span>}
+                <input aria-label="结束日期" type="date" value={logTo} onChange={(event) => { setLogTo(event.target.value); setLogPage(1); }} />
+              </span>
+              <CalendarDays size={16} />
+            </div>
+            <div className="flex h-10 min-w-[280px] flex-1">
+              <input value={logKeyword} onChange={(event) => setLogKeyword(event.target.value)} placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l border border-r-0 px-3 text-sm" />
+              <button type="button" onClick={() => { setLogSearch(logKeyword); setLogPage(1); }} className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>
+            </div>
+            <label className="whitespace-nowrap text-sm"><input type="checkbox" checked={logWaitOnly} onChange={(event) => { setLogWaitOnly(event.target.checked); setLogPage(1); }} /> 待捞取/分派</label>
+            <span className="ml-auto whitespace-nowrap text-sm">共有弃海记录：<b className="text-[#3658f7]">{filteredLogRows.length}条</b>　待捞取/分派：<b className="text-[#3658f7]">{logWaitCount}条</b></span>
+          </div>
+          <div className="overflow-x-auto px-8">
+            <table className="w-full min-w-[1100px] table-fixed text-sm">
+              <thead>
+                <tr>
+                  {["记录ID", "客源ID", "资料", "放弃人", "放弃类型", "放弃原因", "弃海时间", "分派状态（捞取人）", "捞取/分派时间"].map((x) => (
+                    <th key={x} className="border-b bg-[#fafafa] px-3 py-3 text-left font-normal">{x}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {logLoading ? (
+                  <tr><td colSpan={9} className="h-52 text-center text-[#999]">加载中...</td></tr>
+                ) : pagedLogRows.length === 0 ? (
+                  <tr><td colSpan={9} className="h-52 text-center text-[#999]"><PackageOpen className="mx-auto mb-2" />暂无数据</td></tr>
+                ) : pagedLogRows.map((x) => (
+                  <tr key={x.id} className="border-b">
+                    <td className="px-3 py-3">{x.id}</td>
+                    <td className="px-3 py-3 text-[#3658f7]">{x.lead_id}</td>
+                    <td className="px-3 py-3">{logLeads[x.lead_id] || "-"}</td>
+                    <td className="px-3 py-3">服务红娘<br />账号 #{x.abandoned_by}</td>
+                    <td className="px-3 py-3">主动放弃</td>
+                    <td className="px-3 py-3">{x.reason || "-"}</td>
+                    <td className="px-3 py-3">{logFmt(x.abandoned_at)}</td>
+                    <td className="px-3 py-3">{x.restored_at ? <>已分派/被捞取<br /><span className="text-xs text-[#999]">账号 #{x.restored_by}</span></> : "未分派"}</td>
+                    <td className="px-3 py-3">{logFmt(x.restored_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <AdminPagination page={logPage} pageSize={logPageSize} total={filteredLogRows.length} onPageChange={setLogPage} onPageSizeChange={(size) => { setLogPageSize(size); setLogPage(1); }} />
+        </section>
+      )}
       {simpleSetOpen && (
         <div className="lc-set-mask" onClick={() => setSimpleSetOpen(false)}>
           <div className="lc-set-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>

@@ -6,6 +6,7 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
+import { XIANGQIN_STATUS_CLOSE, XIANGQIN_STATUS_VALUE } from "@/lib/filter-options";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -113,12 +114,19 @@ export default function CustomerLandingPage() {
   const [keyword, setKeyword] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [draft, setDraft] = useState<LandingDraft>(EMPTY_DRAFT);
+  const [xiangqinStatus, setXiangqinStatus] = useState("");
 
   const load = async (page = pageIdx) => {
     try {
       const resp = await adminApi<LandingPage>("admin/content/landing_page", {
         method: "GET",
-        query: { page, page_size: 20, keyword: keyword || undefined },
+        query: {
+          page,
+          page_size: 20,
+          keyword: keyword || undefined,
+          // 取自 extra.xiangqin_status，接口收 1-5 的字符串
+          xiangqin_status: xiangqinStatus ? String(XIANGQIN_STATUS_VALUE[xiangqinStatus]) : undefined,
+        },
       });
       setRows(resp.items);
       setTotal(resp.total);
@@ -268,6 +276,10 @@ export default function CustomerLandingPage() {
         </div>
 
         <div className="finord-filters cl-filters">
+          <select className="finord-select" value={xiangqinStatus} onChange={(e) => { setXiangqinStatus(e.target.value); void load(1); }}>
+            <option value="">相亲状态：不限</option>
+            {XIANGQIN_STATUS_CLOSE.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
           <input
             className="finord-search-input cl-search"
             placeholder="请输入关键字"

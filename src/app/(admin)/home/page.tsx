@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Users, MessageCircle, ClipboardList, Heart, UserRound, Wallet,
-  FilePlus2, PartyPopper,
+  ClipboardList, FilePlus2, PartyPopper,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -139,13 +138,13 @@ export default function HomePage() {
 
   /* ---------- 统计卡 ---------- */
   const statCards = [
-    { label: "平台用户", value: `${report.metrics.platform_user_count}`, unit: "人", delta: `+${month.member}人`, icon: Users, color: "#5a72ef", bg: "#eef1ff" },
-    { label: "公众号粉丝", value: `${report.metrics.wechat_fan_count}`, unit: "人", delta: "+0人", icon: MessageCircle, color: "#ff9a44", bg: "#fff3e8" },
-    { label: "客源线索", value: `${report.metrics.lead_count}`, unit: "条", delta: `+${month.lead}条`, icon: ClipboardList, color: "#9270e8", bg: "#f2edff" },
-    { label: "会员总数", value: `${report.metrics.member_count}`, unit: "人", delta: `+${month.member}人`, icon: Heart, color: "#eb5f75", bg: "#ffecef" },
-    { label: "红娘团队", value: `${report.metrics.matchmaker_count}`, unit: "人", delta: "+0人", icon: UserRound, color: "#ff9a44", bg: "#fff3e8" },
-    { label: "线上总收入", value: `${fmtMoney(report.metrics.online_income)}`, unit: "元", delta: `+${fmtMoney(month.online)}元`, icon: Wallet, color: "#eb5f75", bg: "#ffecef" },
-    { label: "线下总收入", value: `${fmtMoney(report.metrics.offline_income)}`, unit: "元", delta: `+${fmtMoney(month.offline)}元`, icon: Wallet, color: "#4bb6a2", bg: "#e9f8f4" },
+    { label: "平台用户", value: `${report.metrics.platform_user_count}`, unit: "人", delta: `+${month.member}人`, img: "/refimg/20260906-home-stat-platform-user.png" },
+    { label: "公众号粉丝", value: `${report.metrics.wechat_fan_count}`, unit: "人", delta: "+0人", img: "/refimg/20260906-home-stat-wechat-fans.png" },
+    { label: "客源线索", value: `${report.metrics.lead_count}`, unit: "条", delta: `+${month.lead}条`, img: "/refimg/20260906-home-stat-customer-lead.png" },
+    { label: "会员总数", value: `${report.metrics.member_count}`, unit: "人", delta: `+${month.member}人`, img: "/refimg/20260906-home-stat-member-total.png" },
+    { label: "红娘团队", value: `${report.metrics.matchmaker_count}`, unit: "人", delta: "+0人", img: "/refimg/20260906-home-stat-matchmaker-team.png" },
+    { label: "线上总收入", value: `${fmtMoney(report.metrics.online_income)}`, unit: "元", delta: `+${fmtMoney(month.online)}元`, img: "/refimg/20260906-home-stat-income-online.png" },
+    { label: "线下总收入", value: `${fmtMoney(report.metrics.offline_income)}`, unit: "元", delta: `+${fmtMoney(month.offline)}元`, img: "/refimg/20260906-home-stat-income-offline.png" },
   ];
 
   /* ---------- 待审工作（后端 pending 映射，无对应项为 0） ---------- */
@@ -185,12 +184,12 @@ export default function HomePage() {
   ];
   const genderDiff = Math.abs(num(gender.male) - num(gender.female));
 
-  /* ---------- 耗材余量（短信取自后端，实名/合同/婚况暂无对应接口，暂用固定值） ---------- */
+  /* ---------- 耗材余量（短信取自后端，实名/合同/婚况暂无对应接口，暂用固定值；配图为原站同款） ---------- */
   const materials = [
-    { label: "实名", value: "786", unit: "次", art: "card" as const },
-    { label: "短信", value: `${smsRemaining}`, unit: "条", art: "chat" as const },
-    { label: "合同", value: "150", unit: "次", art: "card" as const },
-    { label: "婚况", value: "1", unit: "次", art: "chat" as const },
+    { label: "实名", value: "786", unit: "次", img: "/refimg/20260906-home-supply-realname.png" },
+    { label: "短信", value: `${smsRemaining}`, unit: "条", img: "/refimg/20260906-home-supply-sms.png" },
+    { label: "合同", value: "150", unit: "次", img: "/refimg/20260906-home-supply-contract.png" },
+    { label: "婚况", value: "1", unit: "次", img: "/refimg/20260906-home-supply-marital.png" },
   ];
 
   /* ---------- 系统更新（后端公告） ---------- */
@@ -216,7 +215,7 @@ export default function HomePage() {
 
       {/* 问候行 */}
       <div className="ov-greet">
-        <div className="ov-greet-left"><span className="ov-wave">😊</span><span className="ov-greet-text">{greeting()}，{operatorName}!</span></div>
+        <div className="ov-greet-left"><img className="ov-wave" src="/refimg/20260906-home-icon-greeting.png" alt="" /><span className="ov-greet-text">{greeting()}，{operatorName}!</span></div>
         <div className="ov-greet-actions">
           {quickBtns.map((btn) => {
             const Icon = btn.icon;
@@ -227,19 +226,16 @@ export default function HomePage() {
 
       {/* 统计卡 */}
       <section className="ov-stats">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div className="ov-stat" key={card.label}>
-              <span className="ov-stat-icon" style={{ background: card.bg, color: card.color }}><Icon /></span>
-              <div className="ov-stat-info">
-                <div className="ov-stat-label">{card.label}</div>
-                <div className="ov-stat-value">{card.value}<em>{card.unit}</em></div>
-                <div className="ov-stat-delta">本月 <em>{card.delta}</em></div>
-              </div>
+        {statCards.map((card) => (
+          <div className="ov-stat" key={card.label}>
+            <span className="ov-stat-icon"><img src={card.img} alt="" /></span>
+            <div className="ov-stat-info">
+              <div className="ov-stat-label">{card.label}</div>
+              <div className="ov-stat-value">{card.value}<em>{card.unit}</em></div>
+              <div className="ov-stat-delta">本月 <em>{card.delta}</em></div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </section>
 
       {/* 待审工作 */}
@@ -380,26 +376,7 @@ export default function HomePage() {
               <div className="ov-mat-item" key={item.label}>
                 <span className="ov-mat-label">{item.label}</span>
                 <strong className="ov-mat-value">{item.value}<em>{item.unit}</em></strong>
-                <svg className="ov-mat-art" viewBox="0 0 48 48" aria-hidden="true">
-                  {item.art === "card" ? (
-                    <>
-                      <rect x="5" y="10" width="30" height="22" rx="4" className="ov-mat-art-fill" />
-                      <circle cx="15" cy="19" r="4" className="ov-mat-art-ink" />
-                      <path d="M9 28c1.6-3.4 4-5 6-5s4.4 1.6 6 5Z" className="ov-mat-art-ink" />
-                      <rect x="24" y="16" width="9" height="2.4" rx="1.2" className="ov-mat-art-ink" />
-                      <rect x="24" y="21" width="9" height="2.4" rx="1.2" className="ov-mat-art-ink" />
-                      <rect x="34" y="18" width="10" height="20" rx="3" className="ov-mat-art-fill" />
-                    </>
-                  ) : (
-                    <>
-                      <path d="M6 12h22a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4h-9l-7 5v-5H6a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4Z" className="ov-mat-art-fill" />
-                      <circle cx="11" cy="22" r="1.8" className="ov-mat-art-ink" />
-                      <circle cx="17" cy="22" r="1.8" className="ov-mat-art-ink" />
-                      <circle cx="23" cy="22" r="1.8" className="ov-mat-art-ink" />
-                      <rect x="32" y="18" width="14" height="18" rx="4" className="ov-mat-art-fill" />
-                    </>
-                  )}
-                </svg>
+                <img className="ov-mat-art" src={item.img} alt="" />
               </div>
             ))}
           </div>

@@ -6,6 +6,7 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
+import { XIANGQIN_STATUS, XIANGQIN_STATUS_VALUE } from "@/lib/filter-options";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -53,6 +54,7 @@ export default function FreeFormPage() {
   const [gender, setGender] = useState("");
   const [landingId, setLandingId] = useState("");
   const [landings, setLandings] = useState<{ id: number; title: string }[]>([]);
+  const [xiangqinStatus, setXiangqinStatus] = useState("");
   const [fieldOpen, setFieldOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
 
@@ -65,7 +67,13 @@ export default function FreeFormPage() {
       ].filter(Boolean).join(" ") || undefined;
       const resp = await adminApi<FormPage>("admin/content/free_form", {
         method: "GET",
-        query: { page, page_size: 20, keyword: kws },
+        query: {
+          page,
+          page_size: 20,
+          keyword: kws,
+          // 取自 extra.xiangqin_status，接口收 1-5 的字符串
+          xiangqin_status: xiangqinStatus ? String(XIANGQIN_STATUS_VALUE[xiangqinStatus]) : undefined,
+        },
       });
       setRows(resp.items);
       setTotal(resp.total);
@@ -79,7 +87,7 @@ export default function FreeFormPage() {
     void load(1);
     void adminApi<{ items: { id: number; title: string }[] }>("admin/content/landing_page", {
       method: "GET",
-      query: { page: 1, page_size: 200 },
+      query: { page: 1, page_size: 100 },
     })
       .then((res) => setLandings((res.items ?? []).map((l) => ({ id: l.id, title: l.title }))))
       .catch(() => undefined);
@@ -123,6 +131,10 @@ export default function FreeFormPage() {
         </div>
 
         <div className="finord-filters ff-filters">
+          <select className="finord-select" value={xiangqinStatus} onChange={(e) => { setXiangqinStatus(e.target.value); void load(1); }}>
+            <option value="">相亲状态：不限</option>
+            {XIANGQIN_STATUS.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
           <div className="finord-searchbox">
             <input
               className="finord-search-input ff-search"
