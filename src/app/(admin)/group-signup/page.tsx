@@ -43,14 +43,15 @@ export default function GroupSignupPage() {
   const load = async (page = pageIdx) => {
     try {
       const payMap: Record<PayKey, string> = { "不限": "", "免费": "free", "已支付": "paid" };
-      const kw = [
-        group && `group_id\\":${group}`,
-        payMap[pay] && `pay\\":\\"${payMap[pay]}`,
-        keyword && `nick\\":\\"${keyword}`,
-      ].filter(Boolean).join(" ") || undefined;
       const resp = await adminApi<SignupPage>("admin/content/group_signup", {
         method: "GET",
-        query: { page, page_size: 20, keyword: kw },
+        query: {
+          page,
+          page_size: 20,
+          group_id: group || undefined,
+          pay: payMap[pay] || undefined,
+          nick: keyword.trim() || undefined,
+        },
       });
       setRows(resp.items);
       setTotal(resp.total);
