@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Inbox, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
@@ -235,6 +235,26 @@ function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSucce
   const [target, setTarget] = useState("所有注册用户");
   const [tplId, setTplId] = useState("Q1329");
   const [customPhones, setCustomPhones] = useState("");
+  const phoneFileRef = useRef<HTMLInputElement>(null);
+
+  const importPhones = async (file: File) => {
+    try {
+      const text = await file.text();
+      const phones = text.match(/1\d{10}/g) ?? [];
+      const unique = [...new Set(phones)];
+      if (unique.length === 0) {
+        showConfigToast("文件中未找到有效手机号", "error");
+        return;
+      }
+      setCustomPhones((current) => {
+        const existing = current.split(/[,，\s]+/).filter(Boolean);
+        return [...new Set([...existing, ...unique])].join(",");
+      });
+      showConfigToast(`已导入 ${unique.length} 个手机号`, "ok");
+    } catch {
+      showConfigToast("文件读取失败", "error");
+    }
+  };
 
   const submit = async () => {
     if (!taskName.trim()) {
@@ -321,8 +341,21 @@ function CreateTaskDrawer({ onClose, onSuccess }: { onClose: () => void; onSucce
                   onChange={(e) => setCustomPhones(e.target.value)}
                 />
                 <div className="sms-form-row">
-                  <input className="sms-input" placeholder="输入手机" value="" onChange={() => undefined} />
-                  <button type="button" className="finord-btn sms-cancel">上传文件</button>
+                  <input className="sms-input" placeholder="输入手机" value="" readOnly />
+                  <input
+                    ref={phoneFileRef}
+                    type="file"
+                    accept=".txt,.csv,text/plain,text/csv"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void importPhones(file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <button type="button" className="finord-btn sms-cancel" onClick={() => phoneFileRef.current?.click()}>
+                    上传文件
+                  </button>
                 </div>
               </div>
             </div>
