@@ -71,9 +71,18 @@ export default function RegUserAllPage() {
     if (query.order === "last_login") items.sort((a, b) => (b.last_login_at ?? "").localeCompare(a.last_login_at ?? ""));
     return items;
   }, [result.items, query.member, query.order]);
-  const toggleAccountStatus = (account: AdminAccountItem) => {
+  const toggleAccountStatus = async (account: AdminAccountItem) => {
     const currentStatus = accountStatuses[account.id] ?? account.status;
-    setAccountStatuses((current) => ({ ...current, [account.id]: currentStatus === 1 ? 3 : 1 }));
+    const next = currentStatus === 1 ? 3 : 1;
+    setAccountStatuses((current) => ({ ...current, [account.id]: next }));
+    try {
+      await adminEndpoints.updateAdminAccountStatus(account.id, { status: next, reason: "后台列表状态切换" });
+      await load(result.page);
+      showConfigToast(next === 1 ? "账号已启用" : "账号已锁定", "ok");
+    } catch (cause) {
+      setAccountStatuses((current) => ({ ...current, [account.id]: currentStatus }));
+      showConfigToast(cause instanceof Error ? cause.message : "账号状态更新失败", "error");
+    }
   };
   const update = (key: keyof Form, value: string) => setForm((current) => ({ ...current, [key]: value }));
   const close = () => { setDialog(null); setSelected(null); setForm(initialForm); setReason(""); };

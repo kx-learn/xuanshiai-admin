@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { useConfigDomain } from "@/lib/platform-config";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -16,6 +17,7 @@ type EContractConfigForm = {
   company_name: string;
   credit_code: string;
   legal_rep: string;
+  items: Array<{ id: number; key: string; name: string; value: string; description?: string }>;
 };
 
 const DEFAULTS: EContractConfigForm = {
@@ -24,6 +26,7 @@ const DEFAULTS: EContractConfigForm = {
   company_name: "",
   credit_code: "",
   legal_rep: "",
+  items: [],
 };
 
 export default function EContractConfigPage() {
@@ -35,21 +38,25 @@ export default function EContractConfigPage() {
     ? { ...DEFAULTS, ...snapshot.config }
     : DEFAULTS;
   const [form, setForm] = useState<EContractConfigForm>(DEFAULTS);
+  const [bannerVisible, setBannerVisible] = useState(true);
 
   useEffect(() => {
     setForm(cfg);
   }, [cfg.enabled, cfg.company_name, cfg.credit_code, cfg.legal_rep, cfg.contract_quota]);
 
   const handleSave = async () => {
-    await save(form, "更新电子合同配置");
+    await save({ ...form, contract_quota: cfg.contract_quota }, "更新电子合同配置");
+  };
+  const openGuide = (demo: boolean) => {
+    window.open(demo ? "https://qian.tencent.com/developers" : "https://qian.tencent.com/document", "_blank", "noopener,noreferrer");
   };
 
   return (
     <div>
-      <div className="etc-alert" style={{ display: cfg.enabled ? "none" : "flex" }}>
-        <span className="etc-alert-x">✕</span>
+      {bannerVisible && !cfg.enabled && <div className="etc-alert">
+        <button type="button" className="etc-alert-x" aria-label="关闭提示" onClick={() => setBannerVisible(false)}>✕</button>
         <span className="etc-alert-text">电子签功能已关闭,请先打开电子签配置</span>
-      </div>
+      </div>}
 
       <AdminBreadcrumb items={breadcrumb} />
 
@@ -71,10 +78,10 @@ export default function EContractConfigPage() {
         <div className="ecc-head">
           <div className="crh-title">合同配置</div>
           <div className="ecc-links">
-            <button className="ecc-link">配置使用教程</button>
-            <button className="ecc-link">客户签署流程演示</button>
+            <button className="ecc-link" onClick={() => openGuide(false)}>配置使用教程</button>
+            <button className="ecc-link" onClick={() => openGuide(true)}>客户签署流程演示</button>
           </div>
-          <button className="finord-btn finord-btn-primary ecc-auth">授权电子签</button>
+          <button className="finord-btn finord-btn-primary ecc-auth" onClick={() => showConfigToast("请先保存企业信息，再按腾讯电子签指引完成授权", "ok")}>授权电子签</button>
         </div>
 
         <div className="ecc-form">
@@ -133,10 +140,14 @@ export default function EContractConfigPage() {
               className="ecc-input"
               type="number"
               value={form.contract_quota}
-              onChange={(e) => setForm({ ...form, contract_quota: Number(e.target.value) || 0 })}
+              readOnly
             />
             <span className="ecc-suffix">份</span>
           </div>
+
+          {form.items.length > 0 && <div className="ecc-settings">
+            {form.items.map((item) => <div className="ecc-row" key={item.key}><span className="ecc-label">{item.name}</span><span className="ecc-input" aria-label={item.name}>{item.value}</span></div>)}
+          </div>}
 
           <button className="ecc-submit" onClick={handleSave} disabled={loading}>
             {loading ? "保存中..." : "确定提交"}

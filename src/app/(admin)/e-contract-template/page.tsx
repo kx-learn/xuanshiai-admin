@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -20,6 +21,8 @@ type TemplateRow = {
   creator: string;
   created_at: string;
 };
+type TemplateForm = { name: string; template_id: string; version: string; contract_type: string; creator: string };
+const EMPTY_FORM: TemplateForm = { name: "", template_id: "", version: "1.0", contract_type: "线上会员合同", creator: "" };
 
 export default function EContractTemplatePage() {
   const [rows, setRows] = useState<TemplateRow[]>([]);
@@ -28,6 +31,11 @@ export default function EContractTemplatePage() {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
+  const [form, setForm] = useState<TemplateForm>(EMPTY_FORM);
+  const [editing, setEditing] = useState<TemplateRow | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,13 +55,44 @@ export default function EContractTemplatePage() {
     void load();
   }, [load]);
   const allSelected = rows.length > 0 && selected.length === rows.length;
+  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setModalOpen(true); };
+  const openEdit = (row: TemplateRow) => {
+    setEditing(row);
+    setForm({ name: row.name, template_id: row.template_id, version: row.version, contract_type: row.contract_type, creator: row.creator });
+    setModalOpen(true);
+  };
+  const saveTemplate = async () => {
+    if (!form.name.trim() || !form.template_id.trim()) {
+      showConfigToast("请填写模板名称和模板ID", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const body = { title: form.name.trim(), extra: { template_id: form.template_id.trim(), version: form.version.trim(), contract_type: form.contract_type, creator: form.creator.trim() } };
+      if (editing) await adminEndpoints.updateContent("econtract_template", editing.id, body);
+      else await adminEndpoints.createContent("econtract_template", body);
+      showConfigToast(editing ? "模板已更新" : "模板已创建", "ok");
+      setModalOpen(false);
+      await load();
+    } catch (cause) {
+      showConfigToast(cause instanceof Error ? cause.message : "模板保存失败", "error");
+    } finally { setSaving(false); }
+  };
+  const removeTemplate = async (row: TemplateRow) => {
+    if (!window.confirm(`确认删除模板“${row.name}”吗？`)) return;
+    try {
+      await adminEndpoints.deleteContent("econtract_template", row.id);
+      showConfigToast("模板已删除", "ok");
+      await load();
+    } catch (cause) { showConfigToast(cause instanceof Error ? cause.message : "模板删除失败", "error"); }
+  };
 
   return (
     <div>
-      <div className="etc-alert">
-        <span className="etc-alert-x">✕</span>
+      {bannerVisible && <div className="etc-alert">
+        <button type="button" className="etc-alert-x" aria-label="关闭提示" onClick={() => setBannerVisible(false)}>✕</button>
         <span className="etc-alert-text">电子签功能已关闭,请先打开电子签配置</span>
-      </div>
+      </div>}
 
       <AdminBreadcrumb items={breadcrumb} />
 
@@ -74,7 +113,7 @@ export default function EContractTemplatePage() {
         <div className="crh-head">
           <div className="crh-title">模板管理</div>
           <div className="etc-actions">
-            <button className="finord-btn finord-btn-primary">＋ 添加合同模板</button>
+            <button className="finord-btn finord-btn-primary" onClick={openCreate}>＋ 添加合同模板</button>
             <button className="finord-btn finord-btn-primary" onClick={load} disabled={loading}>
               {loading ? "刷新中..." : "↻ 刷新列表"}
             </button>
@@ -112,8 +151,8 @@ export default function EContractTemplatePage() {
                     <td>{r.template_id}</td>
                     <td>{r.creator}</td>
                     <td>
-                      <button className="ecc-link">编辑</button>
-                      <button className="ecc-link ecl-del">删除</button>
+                      <button className="ecc-link" onClick={() => openEdit(r)}>编辑</button>
+                      <button className="ecc-link ecl-del" onClick={() => void removeTemplate(r)}>删除</button>
                     </td>
                   </tr>
                 ))
@@ -123,6 +162,16 @@ export default function EContractTemplatePage() {
         </div>
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
       </div>
+      {modalOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+        <div className="w-full max-w-lg rounded bg-white p-6 shadow-xl">
+          <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{editing ? "编辑合同模板" : "添加合同模板"}</h2><button type="button" onClick={() => setModalOpen(false)} aria-label="关闭">✕</button></div>
+          <div className="grid gap-3">
+            {([["name", "模板名称"], ["template_id", "模板ID"], ["version", "版本号"], ["creator", "创建人"]] as const).map(([key, label]) => <label key={key} className="grid gap-1 text-sm"><span>{label}</span><input className="rounded border px-3 py-2" value={form[key]} onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))} /></label>)}
+            <label className="grid gap-1 text-sm"><span>合同类型</span><select className="rounded border px-3 py-2" value={form.contract_type} onChange={(e) => setForm((current) => ({ ...current, contract_type: e.target.value }))}><option>线上会员合同</option><option>线下会员合同</option></select></label>
+          </div>
+          <div className="mt-5 flex justify-end gap-2"><button type="button" className="finord-btn finord-btn-outline" onClick={() => setModalOpen(false)}>取消</button><button type="button" className="finord-btn finord-btn-primary" disabled={saving} onClick={() => void saveTemplate()}>{saving ? "保存中..." : "确定提交"}</button></div>
+        </div>
+      </div>}
     </div>
   );
 }

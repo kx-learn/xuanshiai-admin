@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminEndpoints } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = [
   { label: "首页", href: "/" },
@@ -45,6 +46,7 @@ export default function EContractListPage() {
         page,
         page_size: pageSize,
         keyword: keyword || undefined,
+        search_type: searchField,
       });
       const items = (data.items ?? []) as ContractRow[];
       setRows(items);
@@ -62,6 +64,7 @@ export default function EContractListPage() {
     void load();
   }, [load]);
   const allSelected = rows.length > 0 && selected.length === rows.length;
+  const openDemo = () => window.open("https://qian.tencent.com/developers", "_blank", "noopener,noreferrer");
 
   return (
     <div>
@@ -94,7 +97,7 @@ export default function EContractListPage() {
             <div className="ecl-stat-label">可用合同余量</div>
             <div className="ecl-stat-value">150条</div>
           </div>
-          <button className="ecl-recharge">在线充值</button>
+          <button className="ecl-recharge" onClick={() => showConfigToast("请前往腾讯电子签控制台完成合同充值", "ok")}>在线充值</button>
         </div>
       </div>
 
@@ -124,7 +127,7 @@ export default function EContractListPage() {
           <button className="finord-btn finord-btn-primary" onClick={load}>
             搜索
           </button>
-          <button className="finord-btn finord-btn-outline ecl-demo">📃 客户签署流程演示</button>
+          <button className="finord-btn finord-btn-outline ecl-demo" onClick={openDemo}>📃 客户签署流程演示</button>
         </div>
 
         <div className="finord-table-wrap">
