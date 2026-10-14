@@ -66,6 +66,7 @@ export default function WechatAutoreplyPage() {
     message: { mode: "all", items: [] },
   });
   const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -94,8 +95,8 @@ export default function WechatAutoreplyPage() {
   };
 
   const current = state[activeTab];
-  const shownItems = activeTab === "keyword" && keyword
-    ? current.items.filter((r) => r.content.includes(keyword))
+  const shownItems = activeTab === "keyword" && appliedKeyword
+    ? current.items.filter((r) => r.content.includes(appliedKeyword))
     : current.items;
 
   const addReply = async () => {
@@ -193,8 +194,9 @@ export default function WechatAutoreplyPage() {
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="输入关键词"
+                    onKeyDown={(e) => { if (e.key === "Enter") setAppliedKeyword(keyword.trim()); }}
                   />
-                  <button type="button" className="ar-search-btn" title="搜索">🔍</button>
+                  <button type="button" className="ar-search-btn" title="搜索" onClick={() => setAppliedKeyword(keyword.trim())}>🔍</button>
                 </div>
               ) : (
                 <ReplyRadio

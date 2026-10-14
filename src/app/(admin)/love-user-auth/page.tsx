@@ -29,6 +29,7 @@ import { showConfigToast, pickAndUploadImage, asStr, asBool } from "@/lib/platfo
 import type { Dict } from "@/lib/platform-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
+import AdminPagination from "@/components/AdminPagination";
 
 type AuthTab = "realname" | "commitment" | "marriage" | "house" | "education" | "other";
 
@@ -199,6 +200,8 @@ export default function LoveUserAuthPage() {
   const [edLoading, setEdLoading] = useState(false);
   const [otRows, setOtRows] = useState<OtherReviewItem[]>([]);
   const [otLoading, setOtLoading] = useState(false);
+  const [authPage, setAuthPage] = useState(1);
+  const [authTotal, setAuthTotal] = useState(0);
 
   // 认证类型（其他认证 select + 管理抽屉）
   const [authTypes, setAuthTypes] = useState<AuthTypeItem[]>([]);
@@ -236,13 +239,13 @@ export default function LoveUserAuthPage() {
   const label = tabs.find((item) => item.key === tab)?.label || "实名认证";
 
   // ─── 数据加载 ───────────────────────────────────────────────
-  const loadRealname = async () => {
+  const loadRealname = async (pageNumber = authPage) => {
     setRnLoading(true);
     try {
       const [stats, page] = await Promise.all([
         adminEndpoints.memberAuthRealnameStats(),
         adminEndpoints.memberAuthRealnameReviews({
-          page: 1,
+          page: pageNumber,
           page_size: 20,
           status: statusApi("realname", rnStatus),
           keyword: rnKeyword || undefined,
@@ -250,6 +253,7 @@ export default function LoveUserAuthPage() {
       ]);
       setRnStats(stats);
       setRnRows(page.items);
+      setAuthTotal(page.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -257,16 +261,17 @@ export default function LoveUserAuthPage() {
     }
   };
 
-  const loadCommitment = async () => {
+  const loadCommitment = async (pageNumber = authPage) => {
     setCmLoading(true);
     try {
       const page = await adminEndpoints.memberAuthCommitmentReviews({
-        page: 1,
+        page: pageNumber,
         page_size: 20,
         status: statusApi("commitment", cmStatus),
         keyword: cmKeyword || undefined,
       });
       setCmRows(page.items);
+      setAuthTotal(page.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -274,13 +279,13 @@ export default function LoveUserAuthPage() {
     }
   };
 
-  const loadMarriage = async () => {
+  const loadMarriage = async (pageNumber = authPage) => {
     setMrLoading(true);
     try {
       const [stats, page] = await Promise.all([
         adminEndpoints.memberAuthMarriageStats(),
         adminEndpoints.memberAuthMarriageReviews({
-          page: 1,
+          page: pageNumber,
           page_size: 20,
           status: statusApi("marriage", mrStatus),
           keyword: mrKeyword || undefined,
@@ -288,6 +293,7 @@ export default function LoveUserAuthPage() {
       ]);
       setMrStats(stats);
       setMrRows(page.items);
+      setAuthTotal(page.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -295,16 +301,17 @@ export default function LoveUserAuthPage() {
     }
   };
 
-  const loadHouse = async () => {
+  const loadHouse = async (pageNumber = authPage) => {
     setHsLoading(true);
     try {
       const page = await adminEndpoints.memberAuthHouseReviews({
-        page: 1,
+        page: pageNumber,
         page_size: 20,
         status: statusApi("house", hsStatus),
         keyword: hsKeyword || undefined,
       });
       setHsRows(page.items);
+      setAuthTotal(page.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -312,16 +319,17 @@ export default function LoveUserAuthPage() {
     }
   };
 
-  const loadEducation = async () => {
+  const loadEducation = async (pageNumber = authPage) => {
     setEdLoading(true);
     try {
       const page = await adminEndpoints.memberAuthEducationReviews({
-        page: 1,
+        page: pageNumber,
         page_size: 20,
         status: statusApi("education", edStatus),
         keyword: edKeyword || undefined,
       });
       setEdRows(page.items);
+      setAuthTotal(page.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -329,17 +337,18 @@ export default function LoveUserAuthPage() {
     }
   };
 
-  const loadOther = async () => {
+  const loadOther = async (pageNumber = authPage) => {
     setOtLoading(true);
     try {
       const page = await adminEndpoints.memberAuthOtherReviews({
-        page: 1,
+        page: pageNumber,
         page_size: 20,
         status: statusApi("other", otStatus),
         keyword: otKeyword || undefined,
         auth_type_id: otType ? Number(otType) : undefined,
       });
       setOtRows(page.items);
+      setAuthTotal(page.total);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -364,7 +373,7 @@ export default function LoveUserAuthPage() {
     else if (tab === "education") void loadEducation();
     else if (tab === "other") void loadOther();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, rnStatus, cmStatus, mrStatus, hsStatus, edStatus, otStatus, otType]);
+  }, [tab, rnStatus, cmStatus, mrStatus, hsStatus, edStatus, otStatus, otType, authPage]);
 
   // 管理认证类型抽屉：进入列表模式时加载类型
   useEffect(() => {
@@ -555,7 +564,7 @@ export default function LoveUserAuthPage() {
               key={item.key}
               type="button"
               className={`uath-tab ${tab === item.key ? "active" : ""}`}
-              onClick={() => setTab(item.key)}
+              onClick={() => { setTab(item.key); setAuthPage(1); }}
             >
               {item.label}
             </button>
@@ -706,6 +715,7 @@ export default function LoveUserAuthPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={authPage} pageSize={20} total={authTotal} onPageChange={setAuthPage} />
           </>
         )}
 
@@ -818,6 +828,7 @@ export default function LoveUserAuthPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={authPage} pageSize={20} total={authTotal} onPageChange={setAuthPage} />
           </>
         )}
 
@@ -919,6 +930,7 @@ export default function LoveUserAuthPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={authPage} pageSize={20} total={authTotal} onPageChange={setAuthPage} />
           </>
         )}
 
@@ -1009,6 +1021,7 @@ export default function LoveUserAuthPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={authPage} pageSize={20} total={authTotal} onPageChange={setAuthPage} />
           </>
         )}
 
@@ -1105,6 +1118,7 @@ export default function LoveUserAuthPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={authPage} pageSize={20} total={authTotal} onPageChange={setAuthPage} />
           </>
         )}
 
@@ -1202,6 +1216,7 @@ export default function LoveUserAuthPage() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={authPage} pageSize={20} total={authTotal} onPageChange={setAuthPage} />
           </>
         )}
       </section>
