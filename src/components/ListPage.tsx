@@ -31,6 +31,7 @@ interface ListPageProps {
   /** 可选：非远程本地表格的关键字过滤受控值（搜索框 key 需为 "keyword"） */
   keywordValue?: string;
   onKeywordChange?: (value: string) => void;
+  bulkAction?: { label: string; onClick: (selectedKeys: string[]) => void };
 }
 
 function resolveEndpoint(endpoint: string) {
@@ -43,6 +44,7 @@ export default function ListPage({
   breadcrumb, pageTitle, tabs, activeTab = "", onTabChange, searchFields = [], actions = [], columns, dataSource,
   rowKey = "id", pagination, onSearch, onReset, loading = false, endpoint,
   refreshKey, keywordValue, onKeywordChange,
+  bulkAction,
 }: ListPageProps) {
   const [currentTab, setCurrentTab] = useState(activeTab);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -116,7 +118,7 @@ export default function ListPage({
     </div></div>}
     <div className="admin-card overflow-x-auto">
       {(loading || remoteLoading) ? <div className="p-8 text-center text-[#999]">加载中...</div> : remoteError ? <div role="alert" className="p-8 text-center text-[#ff4d4f]">{remoteError}</div> : rows.length === 0 ? <div className="p-8 text-center text-[#999]">暂无数据</div> : <table className="w-full"><thead><tr><th className="w-10 border-b border-[#f0f0f0] bg-[#fafafa] p-3"><input aria-label="全选" type="checkbox" checked={allSelected} onChange={() => setSelectedKeys(allSelected ? [] : keys)} /></th>{columns.map((column) => <th key={column.key} className="whitespace-nowrap border-b border-[#f0f0f0] bg-[#fafafa] p-3 text-sm font-medium" style={{ width: column.width, textAlign: column.align || "left" }}>{column.title}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => { const key = String(row[rowKey] ?? rowIndex); return <tr key={key} className="hover:bg-[#fafafa]"><td className="border-b border-[#f0f0f0] p-3"><input aria-label={`选择第 ${rowIndex + 1} 行`} type="checkbox" checked={selectedKeys.includes(key)} onChange={() => setSelectedKeys((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])} /></td>{columns.map((column) => <td key={column.key} className="border-b border-[#f0f0f0] p-3 text-sm" style={{ textAlign: column.align || "left" }}>{column.render ? column.render(row) : String(row[column.key] ?? "")}</td>)}</tr>; })}</tbody></table>}
-      {selectedKeys.length > 0 && <div className="flex h-11 items-center gap-3 border-t px-4 text-xs"><span>已选 {selectedKeys.length} 条</span><button type="button" className="border px-3 py-1.5">批量操作</button><button type="button" className="ml-auto text-[#3658f7]" onClick={() => setSelectedKeys([])}>取消选择</button></div>}
+      {selectedKeys.length > 0 && <div className="flex h-11 items-center gap-3 border-t px-4 text-xs"><span>已选 {selectedKeys.length} 条</span><button type="button" className="border px-3 py-1.5" onClick={() => bulkAction?.onClick(selectedKeys)} disabled={!bulkAction}>{bulkAction?.label ?? "批量操作"}</button><button type="button" className="ml-auto text-[#3658f7]" onClick={() => setSelectedKeys([])}>取消选择</button></div>}
       <div className="flex items-center justify-between px-4 py-4 text-sm text-[#999]"><span>共 {pg.total} 条</span><div className="flex items-center gap-1"><button type="button" aria-label="上一页" disabled={remotePage <= 1} onClick={() => setRemotePage((value) => Math.max(1, value - 1))} className="grid size-7 place-items-center border disabled:text-[#d9d9d9]"><span className="size-1.5 rotate-45 border-b border-l border-current" /></button><span className="px-2">{remotePage} / {Math.max(1, Math.ceil(pg.total / remotePageSize))}</span><button type="button" aria-label="下一页" disabled={remotePage >= Math.max(1, Math.ceil(pg.total / remotePageSize))} onClick={() => setRemotePage((value) => value + 1)} className="grid size-7 place-items-center border disabled:text-[#d9d9d9]"><span className="size-1.5 -rotate-45 border-r border-t border-current" /></button><label className="relative ml-2"><select aria-label="每页条数" value={remotePageSize} onChange={(event) => { setRemotePageSize(Number(event.target.value)); setRemotePage(1); }} className="h-7 appearance-none border bg-white py-0 pl-2 pr-7 text-xs"><option value={20}>20 条/页</option><option value={50}>50 条/页</option><option value={100}>100 条/页</option></select><span className="pointer-events-none absolute right-2 top-2 size-1.5 rotate-45 border-b border-r" /></label></div></div>
     </div>
   </div>;

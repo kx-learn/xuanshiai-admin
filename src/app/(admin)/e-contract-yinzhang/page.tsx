@@ -20,6 +20,7 @@ export default function EContractYinzhangPage() {
   const domain = useConfigDomain<Dict>("econtract_seals", DEFAULTS as Dict);
   const [rows, setRows] = useState<SealRow[]>([]);
   const [editing, setEditing] = useState<SealRow | null>(null);
+  const [keyword, setKeyword] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const apply = useCallback((config: Dict | null) => {
@@ -55,6 +56,12 @@ export default function EContractYinzhangPage() {
   const remove = async (id: number) => {
     if (!window.confirm("确认删除该印章？")) return;
     await persist(rows.filter((r) => r.id !== id), "删除印章");
+  };
+
+  const bulkDisable = async (selectedKeys: string[]) => {
+    const ids = new Set(selectedKeys.map(Number));
+    const next = rows.map((row) => (ids.has(row.id) ? { ...row, enabled: false } : row));
+    await persist(next, `批量停用 ${ids.size} 枚印章`);
   };
 
   const save = async (row: SealRow) => {
@@ -108,7 +115,8 @@ export default function EContractYinzhangPage() {
     },
   ];
 
-  const dataSource = rows.map((r) => ({
+  const visibleRows = rows.filter((r) => !keyword.trim() || `${r.id} ${r.name} ${r.type}`.includes(keyword.trim()));
+  const dataSource = visibleRows.map((r) => ({
     id: r.id,
     sealName: r.name,
     sealType: r.type,
@@ -126,11 +134,15 @@ export default function EContractYinzhangPage() {
         rowKey="id"
         loading={domain.loading}
         pagination={{ current: 1, pageSize: 10, total: rows.length }}
+        searchFields={[{ label: "印章名称", key: "keyword", type: "input", placeholder: "请输入印章名称" }]}
+        keywordValue={keyword}
+        onKeywordChange={setKeyword}
         actions={[
           { label: "添加印章", variant: "primary", onClick: () => setEditing({ id: 0, name: "", image_url: null, type: "公章", enabled: true, create_time: null }) },
         ]}
-        onSearch={() => {}}
-        onReset={() => {}}
+        bulkAction={{ label: "批量停用", onClick: bulkDisable }}
+        onSearch={() => undefined}
+        onReset={() => setKeyword("")}
       />
       <input
         ref={fileRef}
