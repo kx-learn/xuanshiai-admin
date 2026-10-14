@@ -635,8 +635,8 @@ Tab/搜索/日期(原生 type=date)/服务红娘下拉/精确状态下拉/添加
 | 导航配置 | 一键切换(风格1~5) ×25 | 5导航块×5风格 | 零反应，无 handler | ❌死按钮×25 |
 | 导航配置 | 恢复默认 ×20 / 更换颜色 ×5 | "更多图标样式"表格 | 零反应，无 handler | ❌死按钮×25 |
 | 内容配置 /platform-content | 富文本工具栏 cf-tool(15键) ×3编辑器×2Tab | 文案配置/自定义页面 | 已移除无功能工具栏，保留纯文本编辑 | ✅ 已处理 |
-| 收费配置 /platform-payconfig | 图文解说 pay-tut-btn ×11 | 各收费段 | 全部零反应无 handler（同名按钮在 power-config 可用→本页为复用未接线版） | ❌死按钮×11 |
-| 收费配置 | 权益描述 pay-link ×3 | 线上VIP 类型1/2/3 | 零反应，无 handler | ❌死按钮×3 |
+| 收费配置 /platform-payconfig | 图文解说 pay-tut-btn | 各收费段 | 点击打开对应配置说明弹窗 | ✅ 已修复 |
+| 收费配置 | 权益描述 pay-link ×3 | 线上VIP 类型1/2/3 | 点击显示对应 VIP 类型的期限、价格和赠送次数 | ✅ 已修复 |
 | 基本配置 /platform-config-basic | 云端素材 ×2 / 从云端素材选择 ×2 | Logo/缺省头像旁 | 零反应，props 仅 className+children 无 onClick | ❌死按钮×4 |
 | 平台布局 /platform-page | 配置图片 / 配置导航 | 手机端首页Tab | 零反应(无 handler 的 span 假链接) | ❌死按钮×2 |
 | 平台布局 | 点击查看×2 / 效果查看×1 / 点击这里×1 | 会员资料页/红娘团队页 | 零反应，无 handler | ❌死按钮×4 |

@@ -75,9 +75,9 @@ function Tip({ children }: { children: React.ReactNode }) {
 }
 
 /* 图文解说按钮 */
-function TutBtn() {
+function TutBtn({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" className="pay-tut-btn">
+    <button type="button" className="pay-tut-btn" onClick={onClick}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 3v5h5L9 21M14 3l-5 5" />
       </svg>
@@ -90,15 +90,17 @@ function TutBtn() {
 function Board({
   title,
   children,
+  onExplain,
 }: {
   title: string;
   children: React.ReactNode;
+  onExplain?: () => void;
 }) {
   return (
     <div className="admin-card pay-board">
       <div className="pay-board-head">
         <div className="pay-board-title">{title}</div>
-        <TutBtn />
+        <TutBtn onClick={onExplain ?? (() => undefined)} />
       </div>
       <div className="pay-board-body">{children}</div>
     </div>
@@ -167,6 +169,7 @@ export default function PlatformPayconfigPage() {
   const [partnerFees, setPartnerFees] = useState(PARTNER_DEFAULT_FEES);
   const [blowFee, setBlowFee] = useState("9.9");
   const [showFee, setShowFee] = useState("39");
+  const [explain, setExplain] = useState<string | null>(null);
 
   // 初次加载：把服务端配置回填到页面
   useEffect(() => {
@@ -279,7 +282,7 @@ export default function PlatformPayconfigPage() {
         </div>
 
         {/* 资料审核费 */}
-        <Board title="资料审核费">
+        <Board title="资料审核费" onExplain={() => setExplain("配置男女资料审核费用及是否强制收取。")}>
           <div className="pay-row">
             <span className="pay-row-label" style={{ width: 150 }}>男士</span>
             <div className="pay-row-controls">
@@ -309,28 +312,28 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         {/* 实名认证费 */}
-        <Board title="实名认证费">
+        <Board title="实名认证费" onExplain={() => setExplain("配置会员实名认证的单次收费金额。")}>
           <Row label="实名认证费" unit="元/次" num value={realName} onChange={setRealName} labelWidth={150} inputWidth={96}>
             <Tip>指客户在您平台实名认证的时候需要向您支付的费用；不建议设置收费，0元表示免费</Tip>
           </Row>
         </Board>
 
         {/* 婚姻状况查询 */}
-        <Board title="婚姻状况查询">
+        <Board title="婚姻状况查询" onExplain={() => setExplain("配置婚姻状况查询的单次收费金额。")}>
           <Row label="婚姻状况查询" unit="元/次" num value={marry} onChange={setMarry} labelWidth={150} inputWidth={96}>
             <Tip>指客户在您平台授权查询婚姻状态时需要向您支付的费用；可设置2-5元小额收费，0元表示免费</Tip>
           </Row>
         </Board>
 
         {/* 牵线有效期 */}
-        <Board title="牵线有效期">
+        <Board title="牵线有效期" onExplain={() => setExplain("配置牵线服务次数的默认有效天数。")}>
           <Row label="牵线默认有效期" unit="天" num value={matchDays} onChange={setMatchDays} labelWidth={150} inputWidth={96}>
             <Tip>牵线服务次数在此天数后自动清零，全部牵线默认均按此有效期执行</Tip>
           </Row>
         </Board>
 
         {/* 单次线上牵线费 */}
-        <Board title="单次线上牵线费">
+        <Board title="单次线上牵线费" onExplain={() => setExplain("配置单次线上牵线费用及实名认证赠送次数。")}>
           <Row label="单次线上牵线收费" unit="元/次" num value={singleFee} onChange={setSingleFee} labelWidth={150} inputWidth={96}>
             <Tip>建议：99元或199元</Tip>
           </Row>
@@ -348,7 +351,7 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         {/* 线上牵线套餐 */}
-        <Board title="线上牵线套餐">
+        <Board title="线上牵线套餐" onExplain={() => setExplain("配置线上牵线套餐名称、次数、价格和启用状态。")}>
           <div className="pay-bluebox pay-bluebox-flat">
             <span className="pay-dot">!</span>
             套餐中的"牵线"是指会员线上发起牵线的次数，牵线成功则消耗1次，牵线失败则自动退回
@@ -379,7 +382,7 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         {/* 线上VIP会员 */}
-        <Board title="线上VIP会员">
+        <Board title="线上VIP会员" onExplain={() => setExplain("线上VIP会员可配置名称、有效期、价格和赠送牵线次数；关闭开通页后用户不会显示默认购买页。")}>
           <div className="pay-vip">
             {vipTypes.map((t, i) => (
               <div className="pay-tr" key={i}>
@@ -395,7 +398,7 @@ export default function PlatformPayconfigPage() {
                 <span className="pay-td">送</span>
                 <input className="pay-inline pay-center" style={{ width: 60 }} type="number" value={t.times} onChange={(e) => updateVip(i, "times", e.target.value)} />
                 <span className="pay-td">次牵线</span>
-                <button type="button" className="pay-link">权益描述</button>
+                <button type="button" className="pay-link" onClick={() => setExplain(`VIP「${t.name}」权益：有效期 ${t.days} 天，价格 ${t.fee} 元，赠送 ${t.times} 次牵线。`)}>权益描述</button>
               </div>
             ))}
           </div>
@@ -413,7 +416,7 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         {/* 资料置顶 */}
-        <Board title="资料置顶">
+        <Board title="资料置顶" onExplain={() => setExplain("资料置顶套餐用于配置会员资料置顶时长和收费金额。")}>
           <div className="pay-vip">
             {topPackages.map((p, i) => (
               <div className="pay-tr" key={i}>
@@ -430,7 +433,7 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         {/* 推广红娘/合伙红娘入伙费 */}
-        <Board title="推广红娘/合伙红娘入伙费">
+        <Board title="推广红娘/合伙红娘入伙费" onExplain={() => setExplain("配置推广红娘及合伙红娘的自助开通费用。")}>
           <Row label="推广红娘招募收费" unit="元" num value={promoteFee} onChange={setPromoteFee} labelWidth={150} inputWidth={96}>
             <Tip>0元为免费自助开通，大于0则为付费自助开通</Tip>
           </Row>
@@ -453,12 +456,12 @@ export default function PlatformPayconfigPage() {
         </Board>
 
         {/* 会员爆灯 */}
-        <Board title="会员爆灯">
+        <Board title="会员爆灯" onExplain={() => setExplain("配置会员对其他资料发起爆灯时的单次费用。")}>
           <Row label="会员爆灯收费" unit="元/次" num value={blowFee} onChange={setBlowFee} labelWidth={150} inputWidth={96} />
         </Board>
 
         {/* 资料推广 */}
-        <Board title="资料推广">
+        <Board title="资料推广" onExplain={() => setExplain("配置资料推广展示的单次费用。")}>
           <Row label="资料推广展示收费" unit="元/次" num value={showFee} onChange={setShowFee} labelWidth={150} inputWidth={96} />
         </Board>
 
@@ -475,6 +478,15 @@ export default function PlatformPayconfigPage() {
           </button>
         </div>
       </div>
+      {explain && (
+        <div className="ec-modal-mask" onClick={() => setExplain(null)}>
+          <div className="ec-modal" style={{ maxWidth: 460 }} onClick={(event) => event.stopPropagation()}>
+            <div className="ec-modal-header"><span className="ec-modal-title">图文解说</span><button type="button" className="ec-modal-close" onClick={() => setExplain(null)}>×</button></div>
+            <div className="ec-modal-body"><p className="text-sm leading-6 text-[#555]">{explain}</p></div>
+            <div className="ec-modal-footer"><button type="button" className="ec-ok" onClick={() => setExplain(null)}>知道了</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
