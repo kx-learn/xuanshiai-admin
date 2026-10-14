@@ -177,6 +177,8 @@ export default function SystemCashoutHistoryPage() {
               setKeyword("");
               setStartDate("");
               setEndDate("");
+              setStatusTab("");
+              setPage(1);
             }}
           >
             🗑 清空筛选

@@ -53,11 +53,13 @@ const SEED_ROWS: Omit<TemplateRow, "id">[] = [
   },
 ];
 
-function TplModal({ tplList, onAddNew, onClose, onPick }: {
+function TplModal({ tplList, onAddNew, onClose, onPick, onClear, hasCurrent }: {
   tplList: TplItem[];
   onAddNew: (no: string) => void;
   onClose: () => void;
   onPick: (no: string) => void;
+  onClear: () => void;
+  hasCurrent: boolean;
 }) {
   const [newNo, setNewNo] = useState("");
   return (
@@ -108,6 +110,13 @@ function TplModal({ tplList, onAddNew, onClose, onPick }: {
               ))
             )}
           </div>
+          {hasCurrent && (
+            <div className="mt-4 flex justify-end">
+              <button type="button" className="tm-link" onClick={onClear}>
+                清除当前模板
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -307,6 +316,14 @@ export default function WechatTemplatePage() {
     setModalOpen(false);
   };
 
+  const clearTpl = () => {
+    if (activeRowId !== null) {
+      const next = data.map((r) => (r.id === activeRowId ? { ...r, platformTpl: "" } : r));
+      persist(next, "清除公众号平台模板");
+    }
+    setModalOpen(false);
+  };
+
   const addPlatformTpl = async (no: string) => {
     const next = [...platformTpls, { no }];
     setPlatformTpls(next);
@@ -382,13 +399,14 @@ export default function WechatTemplatePage() {
                     <td className="tm-td">{r.event}</td>
                     <td className="tm-td">{r.receiver}</td>
                     <td className="tm-td">
-                      {r.platformTpl ? (
-                        <span className="tm-tpl-picked">{r.platformTpl}</span>
-                      ) : (
-                        <button type="button" className="tm-link" onClick={() => { setActiveRowId(r.id); setModalOpen(true); }}>
-                          选择模板
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className={r.platformTpl ? "tm-tpl-picked tm-tpl-picked-btn" : "tm-link"}
+                        onClick={() => { setActiveRowId(r.id); setModalOpen(true); }}
+                        title={r.platformTpl ? "点击更换模板" : undefined}
+                      >
+                        {r.platformTpl || "选择模板"}
+                      </button>
                     </td>
                     <td className="tm-td">
                       <button
@@ -420,6 +438,8 @@ export default function WechatTemplatePage() {
           onAddNew={addPlatformTpl}
           onClose={() => setModalOpen(false)}
           onPick={pickTpl}
+          onClear={clearTpl}
+          hasCurrent={Boolean(activeRow?.platformTpl)}
         />
       )}
 

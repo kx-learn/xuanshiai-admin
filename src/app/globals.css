@@ -955,6 +955,8 @@
 
 /* 已选模板编号 */
 .tm-tpl-picked { color: #333; font-size: 14px; }
+.tm-tpl-picked-btn { border: 0; background: transparent; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.tm-tpl-picked-btn:hover { color: #3658f7; }
 
 /* 开关 */
 .tm-switch { position: relative; display: inline-flex; width: 56px; height: 26px; align-items: center; justify-content: flex-end; padding: 0 4px; border: 1px solid #ddd; border-radius: 999px; background: #e8e8e8; color: #999; font-size: 12px; line-height: 1; box-sizing: border-box; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
