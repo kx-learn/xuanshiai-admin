@@ -70,16 +70,13 @@ export default function XixunListPage() {
 
   const load = async (page = pageIdx) => {
     try {
-      const filters = [
-        filterStatus && `status\\":\\"${filterStatus}`,
-        filterMatchmaker && `matchmaker_name\\":\\"${filterMatchmaker}`,
-      ].filter(Boolean);
       const resp = await adminApi<XixunPage>("admin/content/good_news", {
         method: "GET",
         query: {
           page,
           page_size: 20,
-          keyword: filters.length > 0 ? filters.join(" OR ") : undefined,
+          good_news_status: filterStatus || undefined,
+          matchmaker_id: filterMatchmaker || undefined,
         },
       });
       setRows(resp.items);
@@ -98,7 +95,7 @@ export default function XixunListPage() {
 
   useEffect(() => {
     adminEndpoints
-      .matchmakers({ page: 1, page_size: 100 })
+      .matchmakers({ page: 1, page_size: 50 })
       .then((res) => {
         const data = (res ?? {}) as { items?: Array<{ id: number; nickname?: string; real_name?: string }> };
         const items = data.items ?? [];

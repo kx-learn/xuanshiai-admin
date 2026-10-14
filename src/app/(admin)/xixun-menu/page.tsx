@@ -163,7 +163,14 @@ export default function XixunMenuPage() {
             <span className="xm-inline">网址路径:</span>
             <span className="xm-link">{cfg.view_url || "未配置"}</span>
             <span className="xm-inline">二维码:</span>
-            <a className="xm-blue" href="#" onClick={(e) => e.preventDefault()}>查看</a>
+            <button
+              type="button"
+              className="xm-blue"
+              onClick={() => {
+                void navigator.clipboard?.writeText(cfg.view_url || "");
+                showConfigToast("栏目链接已复制", "ok");
+              }}
+            >复制链接</button>
             <span className="xm-inline">在线预览:</span>
             <a className="xm-blue" href={cfg.view_url || "#"} target="_blank" rel="noreferrer">点击这里</a>
           </div>
