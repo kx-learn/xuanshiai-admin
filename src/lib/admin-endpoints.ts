@@ -3220,6 +3220,8 @@ export const adminEndpoints = {
       service_status?: "active" | "expired" | "no_refund_risk";
       /** 统计排序维度 */
       sort_by?: "member_last_paid" | "member_history_paid" | "monthly_sales" | "yearly_sales" | "monthly_champion";
+      /** 表头列排序，优先于 sort_by */
+      column_sort?: "sign_date" | "package" | "progress" | "last_follow" | "amount" | "matchmaker" | "id";
     } = {},
   ) => adminApi<OfflineVipPage>("admin/offline-vips", { method: "GET", query }),
   offlineVipStatistics: () =>

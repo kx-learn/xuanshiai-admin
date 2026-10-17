@@ -95,7 +95,12 @@ export default function Page() {
       <section className="cdd-card">
         <div className="cdd-head">
           <h2 className="cdd-title">红娘线上分成明细</h2>
-          <button type="button" className="cdd-btn primary" onClick={() => setOpen(true)}>
+          <button
+            type="button"
+            className="cdd-btn primary"
+            disabled
+            title="后端没有手动录入分成的写接口（只有查询与结算），弹窗表单无提交目标"
+          >
             <Plus size={14} />
             录入一笔分成
           </button>

@@ -69,6 +69,8 @@ export default function ContentVerifyPage() {
   const [mediaKeyword, setMediaKeyword] = useState("");
   const [mediaRows, setMediaRows] = useState<MemberMediaItem[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [deletingMediaId, setDeletingMediaId] = useState<number | null>(null);
+  const [mediaError, setMediaError] = useState("");
 
   // ─── 查看资料抽屉 ──────────────────────────────────────────
   const [profile, setProfile] = useState<{ memberId: number; nickname?: string | null; memberCode?: string | null } | null>(null);
@@ -140,6 +142,7 @@ export default function ContentVerifyPage() {
       if (mediaKeyword.trim()) q.keyword = mediaKeyword.trim();
       const page = await adminEndpoints.memberMediaList(q);
       setMediaRows(page.items);
+      setMediaError("");
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载失败", "error");
     } finally {
@@ -663,6 +666,32 @@ export default function ContentVerifyPage() {
               ) : (
                 <span className="text-sm text-[#999]">暂无媒体资源</span>
               )}
+            </div>
+            {/* 须知承诺「可对不合规的照片及时删除」，此前整页没有删除入口 */}
+            <div className="flex items-center justify-between gap-3 border-t border-[#f0f0f0] px-4 py-3 text-xs">
+              <span className="text-[#8c8c8c]">
+                {mediaError || `删除后该${mediaPreview.type === "video" ? "视频" : "照片"}不再对外展示`}
+              </span>
+              <button
+                type="button"
+                className="border border-[#ffa39e] px-3 py-1.5 text-[#d4380d] disabled:opacity-50"
+                disabled={deletingMediaId === mediaPreview.item.id}
+                onClick={async () => {
+                  if (!window.confirm(`确定删除这条${mediaPreview.type === "video" ? "视频" : "照片"}吗？`)) return;
+                  setDeletingMediaId(mediaPreview.item.id);
+                  try {
+                    await adminEndpoints.deleteMemberMedia(mediaPreview.item.id);
+                    setMediaPreview(null);
+                    await loadMedia(mediaPreview.type);
+                  } catch (error) {
+                    setMediaError(error instanceof Error ? error.message : "删除失败");
+                  } finally {
+                    setDeletingMediaId(null);
+                  }
+                }}
+              >
+                {deletingMediaId === mediaPreview.item.id ? "删除中…" : "删除"}
+              </button>
             </div>
           </div>
         </div>

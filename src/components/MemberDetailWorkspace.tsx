@@ -443,6 +443,12 @@ export default function MemberDetailWorkspace({
   const [behaviorTab, setBehaviorTab] = useState("viewed");
   const [topRecommend, setTopRecommend] = useState(false);
   const [newRecommend, setNewRecommend] = useState(false);
+  // 两个推荐位的真实状态来自会员详情（users.promoted / users.newcomer），
+  // 早期固定 false，界面显示与库里不一致。
+  useEffect(() => {
+    setTopRecommend(Number(member.promoted ?? 0) === 1);
+    setNewRecommend(Number(member.newcomer ?? 0) === 1);
+  }, [member.id, member.promoted, member.newcomer]);
   const [guestCardOpen, setGuestCardOpen] = useState(false);
   const [posterOpen, setPosterOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -887,8 +893,27 @@ export default function MemberDetailWorkspace({
               realnameReview={realnameReview}
               topRecommend={topRecommend}
               newRecommend={newRecommend}
-              onTopRecommend={setTopRecommend}
-              onNewRecommend={setNewRecommend}
+              onTopRecommend={(value) => {
+                setTopRecommend(value);
+                void adminEndpoints
+                  .updateMember(member.id!, { promoted: value })
+                  .then(() => setSectionError(""))
+                  .catch((error: unknown) => {
+                    // 写入失败要把开关拨回去，否则界面显示的是一份没落库的状态
+                    setTopRecommend(!value);
+                    setSectionError(error instanceof Error ? error.message : "置顶推荐保存失败");
+                  });
+              }}
+              onNewRecommend={(value) => {
+                setNewRecommend(value);
+                void adminEndpoints
+                  .updateMember(member.id!, { newcomer: value })
+                  .then(() => setSectionError(""))
+                  .catch((error: unknown) => {
+                    setNewRecommend(!value);
+                    setSectionError(error instanceof Error ? error.message : "新人推荐保存失败");
+                  });
+              }}
             />
           )}
           {tab === "source" && <SourceTab data={sectionData} loading={sectionLoading} error={sectionError} />}
