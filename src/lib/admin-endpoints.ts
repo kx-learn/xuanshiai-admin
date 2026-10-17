@@ -1557,6 +1557,29 @@ export interface MemberFollowUpListPage {
   has_more: boolean;
 }
 
+export interface MemberCallRecordRow {
+  id: number;
+  user_id: number;
+  member_code: string;
+  nickname: string | null;
+  matchmaker_name: string;
+  direction: string;
+  direction_label: string;
+  status: string;
+  status_label: string;
+  duration_seconds: number | null;
+  remark: string | null;
+  created_at: string | null;
+}
+
+export interface MemberCallRecordListPage {
+  items: MemberCallRecordRow[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
 /** 单条会员跟进记录：POST /admin/members/{member_id}/follow-ups/media 的返回体 */
 export interface MemberFollowUpRecord {
   id: number;
@@ -2625,6 +2648,14 @@ export const adminEndpoints = {
    */
   memberMedia: (id: number | string) => adminApi<Record<string, unknown>>(`admin/members/${id}/media-records`),
   /**
+   * 后台为会员新增媒体：POST /admin/members/{user_id}/media（matchmaker.member.manage）
+   * 新记录 review_status=0 待审；media_type=avatar 时同时回写 users.avatar。
+   */
+  createMemberMedia: (
+    id: number | string,
+    body: { media_type?: "avatar" | "photo" | "video"; file_url: string; thumbnail_url?: string; mime_type?: string; file_size?: number; duration_seconds?: number },
+  ) => adminApi(`admin/members/${id}/media`, { method: "POST", body }),
+  /**
    * 资料扩展字段（性格标签/爱好/MBTI/自我介绍/红娘说）：
    * GET /admin/members/profile-ext/{user_id}（matchmaker.member.read）
    * 静态前缀 `profile-ext` 在前，不受 `/{member_id}/...` 形态的同名路由影响。
@@ -2659,6 +2690,12 @@ export const adminEndpoints = {
   createMemberFollowUpMedia: (id: number | string, form: FormData) =>
     adminApi<MemberFollowUpRecord>(`admin/members/${id}/follow-ups/media`, { method: "POST", body: form }),
   memberCallRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/call-records`, query),
+  /** 补录通话记录：POST /admin/members/{member_id}/call-records（matchmaker.member.manage） */
+  createMemberCallRecord: (id: number | string, body: { direction?: "INBOUND" | "OUTBOUND"; status?: "COMPLETED" | "MISSED" | "FAILED"; duration_seconds?: number; remark?: string }) =>
+    adminApi(`admin/members/${id}/call-records`, { method: "POST", body }),
+  /** 牵线次数变更历史：GET /admin/members/{member_id}/match-quota/history（matchmaker.member.read） */
+  memberMatchQuotaHistory: (id: number | string, query: AdminListQuery = {}) =>
+    list(`admin/members/${id}/match-quota/history`, query),
   memberMatchRecords: (id: number | string, query: AdminListQuery = {}) => list(`admin/members/${id}/match-records`, query),
   /**
    * 会员剩余牵线次数：GET /admin/members/{member_id}/match-quota（matchmaker.member.read）
@@ -3145,10 +3182,22 @@ export const adminEndpoints = {
 
   // ─── 会员跟进全览与导入（M3-5） ──────────────────────────────
   memberFollowUpList: (
-    query: { page?: number; page_size?: number; keyword?: string; intention_level?: number; start_date?: string; end_date?: string } = {},
+    query: {
+      page?: number;
+      page_size?: number;
+      keyword?: string;
+      intention_level?: number;
+      /** 加微信结果 0 未添加 / 1 已加上 / 2 没加上 */
+      wechat_added?: number;
+      start_date?: string;
+      end_date?: string;
+    } = {},
   ) => adminApi<MemberFollowUpListPage>("admin/members/follow-ups", { method: "GET", query }),
   memberFollowUpSummary: () =>
     adminApi<MemberFollowUpSummary>("admin/members/follow-ups/summary", { method: "GET" }),
+  memberCallRecordsOverview: (
+    query: { page?: number; page_size?: number; keyword?: string; start_date?: string; end_date?: string } = {},
+  ) => adminApi<MemberCallRecordListPage>("admin/members/call-records", { method: "GET", query }),
   memberFollowUpImport: (file: File) => {
     const form = new FormData();
     form.append("file", file);

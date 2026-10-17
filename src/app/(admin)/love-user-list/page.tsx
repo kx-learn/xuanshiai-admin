@@ -23,18 +23,37 @@ import Link from "next/link";
 import { PackageOpen } from "lucide-react";
 
 import {
+  AGE_RANGE,
+  AGE_RANGE_VALUE,
   BEHAVIOR_SORT,
   BEHAVIOR_TYPE,
   BEHAVIOR_TYPE_VALUE,
+  BOOLEAN_FILTER_VALUE,
   CERT_STATUS,
   CERT_STATUS_VALUE,
+  EDUCATION,
+  HEIGHT_RANGE,
+  HEIGHT_RANGE_VALUE,
+  INCOME_RANGE,
+  INCOME_RANGE_VALUE,
+  INTENTION_LEVEL,
+  INTENTION_LEVEL_VALUE,
+  MARRIAGE_STATUS,
+  MARRIAGE_STATUS_VALUE,
+  MEMBER_SOURCE,
+  REALNAME_STATUS,
+  REALNAME_STATUS_VALUE,
   RECORD_ORDER_VALUE,
   REGION_TYPE,
   REGION_TYPE_VALUE,
+  SEARCH_TYPE,
+  SEARCH_TYPE_VALUE,
   WECHAT_ADDED_STATUS,
   WECHAT_ADDED_VALUE,
   XIANGQIN_STATUS_CLOSE,
   XIANGQIN_STATUS_VALUE,
+  ZODIAC,
+  CONSTELLATION,
 } from "@/lib/filter-options";
 
 type Member = {
@@ -85,6 +104,7 @@ type Statistics = {
 };
 type Filters = {
   search: string;
+  search_type: string;
   gender: string;
   status: string;
   vip: string;
@@ -106,9 +126,37 @@ type Filters = {
   behavior_type: string;
   order: string;
   xiangqin_status: string;
+  /** 2026-10-17：筛选区原本设值后不发参的控件，全部按接口参数接线 */
+  source: string;
+  organization_id: string;
+  promoter_id: string;
+  intention_level: string;
+  realname: string;
+  age_range: string;
+  marriage: string;
+  height_range: string;
+  education: string;
+  occupation: string;
+  income_range: string;
+  residence: string;
+  hometown: string;
+  hukou: string;
+  offline_vip: string;
+  promoted: string;
+  newcomer: string;
+  activity_signup: string;
+  religion: string;
+  car: string;
+  level: string;
+  tags: string;
+  house: string;
+  ethnicity: string;
+  constellation: string;
+  zodiac: string;
 };
 const initialFilters: Filters = {
   search: "",
+  search_type: "智能搜索",
   gender: "",
   status: "",
   vip: "",
@@ -121,6 +169,32 @@ const initialFilters: Filters = {
   behavior_type: "",
   order: "",
   xiangqin_status: "",
+  source: "",
+  organization_id: "",
+  promoter_id: "",
+  intention_level: "",
+  realname: "",
+  age_range: "",
+  marriage: "",
+  height_range: "",
+  education: "",
+  occupation: "",
+  income_range: "",
+  residence: "",
+  hometown: "",
+  hukou: "",
+  offline_vip: "",
+  promoted: "",
+  newcomer: "",
+  activity_signup: "",
+  religion: "",
+  car: "",
+  level: "",
+  tags: "",
+  house: "",
+  ethnicity: "",
+  constellation: "",
+  zodiac: "",
   feedbackDay: "",
   whetherCurrentDayFollow: "",
   whetherCurrentDayCall: "",
@@ -135,6 +209,24 @@ const emptyStats: Statistics = {
   unassigned: 0,
   never_followed: 0,
   follow_due_today: 0,
+};
+type FilterOption = { value: string; label: string };
+/** GET /admin/matchmaker/members/options 的返回：门店按账号数据范围收口 */
+type FilterOptions = { organizations: FilterOption[]; promoters: FilterOption[] };
+/** 职业 / 房子 / 车子 / 民族 / 级别：取值列是自由文本，这里给常用选项，
+ *  真正的可用值仍以库里已填写的为准（后端按原值精确匹配）。 */
+const OCCUPATION_OPTIONS = [
+  "企业职员", "个体经营", "教师", "公务员", "医生", "工程师", "金融从业", "自由职业", "学生", "其他",
+];
+const HOUSE_OPTIONS = ["有房", "有房有贷", "无房", "与父母同住"];
+const CAR_OPTIONS = ["有车", "无车", "有车有贷"];
+const ETHNICITY_OPTIONS = ["汉族", "回族", "满族", "壮族", "维吾尔族", "其他"];
+const MEMBER_LEVEL_OPTIONS = ["普通会员", "VIP"];
+/** 表头文案 → 后端 sort_by 白名单键；未列出的列不可排序。 */
+const COLUMN_SORT_KEY: Record<string, string> = {
+  ID: "id",
+  跟进: "last_follow_at",
+  "来源/注册/登录/分派时间": "created_at",
 };
 const selectClass =
   "h-8 min-w-[108px] border border-[#d9d9d9] bg-white px-2 text-xs text-[#555] outline-none focus:border-[#3658f7]";
@@ -161,6 +253,7 @@ export default function LoveUserListPage() {
   const [abandonCount, setAbandonCount] = useState(0);
   const [activeQuickFilter, setActiveQuickFilter] = useState("all");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({ organizations: [], promoters: [] });
   const [followMember, setFollowMember] = useState<Member | null>(null);
   const [detailMember, setDetailMember] = useState<Member | null>(null);
   const [detailTab, setDetailTab] = useState("基本资料");
@@ -192,28 +285,85 @@ export default function LoveUserListPage() {
     birthday: "",
     is_married: "",
     status: "1",
-    source: "1",
+    source: "后台添加",
     account_mode: "auto",
     remark: "",
   });
   const importInput = useRef<HTMLInputElement>(null);
   const load = useCallback(async () => {
     setLoading(true);
-    const query: Record<string, string | number | undefined> = {
+    // filters 里存的是界面文案（「高意向」「26-35岁」），必须逐项翻译成接口值再发；
+    // 早期直接展开 `...filters`，导致界面选中的中文原样作为参数发出，后端一律不认，
+    // 表现就是「设了筛选点搜索，行数不变」。
+    const query: Record<string, string | number | boolean | undefined> = {
       page,
       page_size: pageSize,
       sort_by: sortBy,
-      ...filters,
+      search: filters.search,
+      search_type: filters.search_type ? SEARCH_TYPE_VALUE[filters.search_type] : undefined,
+      gender: filters.gender,
+      status: filters.status,
+      vip: filters.vip,
+      auth_status: filters.auth_status,
+      assigned: filters.assigned,
+      follow_state: filters.follow_state,
+      source: filters.source,
+      organization_id: filters.organization_id,
+      promoter_id: filters.promoter_id,
+      matchmaker_id: filters.matchmakerId,
+      residence: filters.residence,
+      hometown: filters.hometown,
+      hukou: filters.hukou,
+      religion: filters.religion,
+      occupation: filters.occupation,
+      tags: filters.tags,
+      ethnicity: filters.ethnicity,
+      constellation: filters.constellation,
+      zodiac: filters.zodiac,
+      house: filters.house,
+      car: filters.car,
+      level: filters.level,
+      education: filters.education,
+      marriage: filters.marriage,
     };
     // 界面值是中文文案，这里按 filter-options 的映射表换成接口枚举值后再发请求。
     if (filters.region) query.region = REGION_TYPE_VALUE[filters.region];
     if (filters.cert_status) query.cert_status = CERT_STATUS_VALUE[filters.cert_status];
     if (filters.wechat_added) query.wechat_added = WECHAT_ADDED_VALUE[filters.wechat_added];
     if (filters.behavior_type) query.behavior_type = BEHAVIOR_TYPE_VALUE[filters.behavior_type];
-    if (filters.order) query.order = RECORD_ORDER_VALUE[filters.order];
+    if (filters.order) {
+      query.order = RECORD_ORDER_VALUE[filters.order];
+      // 后端约定 order 与 sort_by 互斥且 order 优先，同时传会让排序档位失效；
+      // 这里显式去掉 sort_by，避免两套排序控件互相覆盖却看不出是哪套生效。
+      delete query.sort_by;
+    }
     if (filters.xiangqin_status) query.xiangqin_status = XIANGQIN_STATUS_VALUE[filters.xiangqin_status];
+    if (filters.intention_level) query.intention_level = INTENTION_LEVEL_VALUE[filters.intention_level];
+    if (filters.realname) query.realname = REALNAME_STATUS_VALUE[filters.realname];
+    // 四类「XX：不限」布尔筛选：文案「是/不是/已报名/未报名」映射回 Boolean。
+    if (filters.offline_vip) query.offline_vip = BOOLEAN_FILTER_VALUE[filters.offline_vip];
+    if (filters.promoted) query.promoted = BOOLEAN_FILTER_VALUE[filters.promoted];
+    if (filters.newcomer) query.newcomer = BOOLEAN_FILTER_VALUE[filters.newcomer];
+    if (filters.activity_signup) query.activity_signup = BOOLEAN_FILTER_VALUE[filters.activity_signup];
+    // 三个区间筛选在界面上是单个下拉，接口侧却是上下限两个参数。
+    const age = AGE_RANGE_VALUE[filters.age_range];
+    if (age) {
+      query.age_min = age[0];
+      if (age[1] !== null) query.age_max = age[1];
+    }
+    const height = HEIGHT_RANGE_VALUE[filters.height_range];
+    if (height) {
+      query.height_min = height[0];
+      if (height[1] !== null) query.height_max = height[1];
+    }
+    const income = INCOME_RANGE_VALUE[filters.income_range];
+    if (income) {
+      if (income[0] !== null) query.income_min = income[0];
+      if (income[1] !== null) query.income_max = income[1];
+    }
     Object.keys(query).forEach((key) => {
-      if (query[key] === "" || query[key] === undefined) delete query[key];
+      const value = query[key];
+      if (value === "" || value === undefined || value === null) delete query[key];
     });
     try {
       const [result, summary] = await Promise.all([
@@ -236,6 +386,21 @@ export default function LoveUserListPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  // 门店 / 推广红娘的候选来自接口（门店还按账号数据范围收口），界面不再写死空下拉。
+  useEffect(() => {
+    void (async () => {
+      try {
+        const options = await adminApi<FilterOptions>("admin/matchmaker/members/options");
+        setFilterOptions({
+          organizations: Array.isArray(options?.organizations) ? options.organizations : [],
+          promoters: Array.isArray(options?.promoters) ? options.promoters : [],
+        });
+      } catch {
+        // 拿不到候选时保留空列表：下拉仍可点开，只是没有可选项，不影响其它筛选。
+        setFilterOptions({ organizations: [], promoters: [] });
+      }
+    })();
+  }, []);
   // 顶部「弃海会员」Tab 的计数：弃海数据在客源侧，后端只有 /admin/customer-leads/abandoned
   useEffect(() => {
     void (async () => {
@@ -348,20 +513,19 @@ export default function LoveUserListPage() {
     if (!memberForm.nickname || !memberForm.phone) return;
     setCreating(true);
     try {
+      // 后端 MatchmakerMemberCreate 只接受 phone/nickname/gender/birthday/is_married/avatar/source/remark；
+      // 早期这里还多发 real_name / wechat / status 且 source 传数字，都会被 schema 忽略或校验失败。
       await adminApi("admin/matchmaker/members", {
         method: "POST",
         body: {
           nickname: memberForm.nickname,
-          real_name: memberForm.real_name || null,
           phone: memberForm.phone,
-          wechat: memberForm.wechat || null,
           gender: Number(memberForm.gender),
           birthday: memberForm.birthday || null,
           is_married: memberForm.is_married
             ? Number(memberForm.is_married)
             : null,
-          status: memberForm.status ? Number(memberForm.status) : 1,
-          source: memberForm.source ? Number(memberForm.source) : 1,
+          source: memberForm.source || "后台添加",
           remark: memberForm.remark || null,
         },
       });
@@ -377,7 +541,7 @@ export default function LoveUserListPage() {
         birthday: "",
         is_married: "",
         status: "1",
-        source: "1",
+        source: "后台添加",
         account_mode: "auto",
         remark: "",
       });
@@ -593,7 +757,17 @@ export default function LoveUserListPage() {
             value={draft.xiangqin_status}
             onChange={(xiangqin_status) => setDraft({ ...draft, xiangqin_status })}
           />
-          <StaticSelect label="门店：不限" />
+          <StaticSelect
+            label="门店：不限"
+            options={filterOptions.organizations.map((option) => option.label)}
+            value={filterOptions.organizations.find((option) => option.value === draft.organization_id)?.label ?? ""}
+            onChange={(label) =>
+              setDraft({
+                ...draft,
+                organization_id: filterOptions.organizations.find((option) => option.label === label)?.value ?? "",
+              })
+            }
+          />
           <Select
             value={draft.assigned}
             onChange={(assigned) => setDraft({ ...draft, assigned })}
@@ -626,17 +800,27 @@ export default function LoveUserListPage() {
           />
           <StaticSelect
             label="客户意向：不限"
-            options={["高意向", "中意向", "低意向"]}
+            options={[...INTENTION_LEVEL]}
+            value={draft.intention_level}
+            onChange={(intention_level) => setDraft({ ...draft, intention_level })}
           />
           <StaticSelect
             label="登记：不限"
-            options={["后台添加", "红娘录入", "批量导入", "自己注册", "落地页", "父母登记", "线索入库", "活动入库", "找搭子"]}
+            options={[...MEMBER_SOURCE]}
+            value={draft.source}
+            onChange={(source) => setDraft({ ...draft, source })}
           />
           <StaticSelect
-            label="门店：不限"
-            options={["总店"]}
+            label="推广红娘"
+            options={filterOptions.promoters.map((option) => option.label)}
+            value={filterOptions.promoters.find((option) => option.value === draft.promoter_id)?.label ?? ""}
+            onChange={(label) =>
+              setDraft({
+                ...draft,
+                promoter_id: filterOptions.promoters.find((option) => option.label === label)?.value ?? "",
+              })
+            }
           />
-          <StaticSelect label="推广红娘" />
           <Select
             value={draft.gender}
             onChange={(gender) => setDraft({ ...draft, gender })}
@@ -648,34 +832,141 @@ export default function LoveUserListPage() {
           />
           {showMoreFilters && (
             <>
-              <StaticSelect label="年龄：不限" />
-              <StaticSelect label="婚况：不限（多选）" />
-              <StaticSelect label="身高：不限" />
-              <StaticSelect label="学历：不限（多选）" />
-              <StaticSelect label="职业：不限（多选）" />
-              <StaticSelect label="收入：不限（多选）" />
-              <StaticSelect label="现居：不限" />
+              <StaticSelect
+                label="年龄：不限"
+                options={[...AGE_RANGE]}
+                value={draft.age_range}
+                onChange={(age_range) => setDraft({ ...draft, age_range })}
+              />
+              <MultiSelect
+                label="婚况：不限（多选）"
+                options={[...MARRIAGE_STATUS]}
+                value={draft.marriage}
+                onChange={(marriage) => setDraft({ ...draft, marriage })}
+                toParam={(picked) => picked.map((item) => MARRIAGE_STATUS_VALUE[item]).join(",")}
+              />
+              <StaticSelect
+                label="身高：不限"
+                options={[...HEIGHT_RANGE]}
+                value={draft.height_range}
+                onChange={(height_range) => setDraft({ ...draft, height_range })}
+              />
+              <MultiSelect
+                label="学历：不限（多选）"
+                options={[...EDUCATION]}
+                value={draft.education}
+                onChange={(education) => setDraft({ ...draft, education })}
+              />
+              <MultiSelect
+                label="职业：不限（多选）"
+                options={OCCUPATION_OPTIONS}
+                value={draft.occupation}
+                onChange={(occupation) => setDraft({ ...draft, occupation })}
+              />
+              <StaticSelect
+                label="收入：不限"
+                options={[...INCOME_RANGE]}
+                value={draft.income_range}
+                onChange={(income_range) => setDraft({ ...draft, income_range })}
+              />
+              <TextFilter
+                label="现居：不限"
+                value={draft.residence}
+                onChange={(residence) => setDraft({ ...draft, residence })}
+              />
               <Select
                 value={draft.vip}
                 onChange={(vip) => setDraft({ ...draft, vip })}
                 label="会员级别：不限"
                 options={[["true", "VIP"], ["false", "普通会员"]]}
               />
-              <StaticSelect label="实名：不限" options={["已实名", "未实名"]} />
-              <StaticSelect label="线下VIP：不限" options={["线下VIP：是", "线下VIP：不是"]} />
-              <StaticSelect label="置顶推广：不限" options={["置顶中", "未置顶"]} />
-              <StaticSelect label="新人推荐：不限" options={["推荐中"]} />
-              <StaticSelect label="活动报名：不限" options={["已报名", "未报名"]} />
-              <StaticSelect label="宗教：不限" />
-              <StaticSelect label="车子：不限（多选）" />
-              <StaticSelect label="级别：不限（多选）" options={["普通会员", "VIP-", "VIP-", "VIP-"]} />
-              <StaticSelect label="标签：不限（多选）" />
-              <StaticSelect label="户口：不限" />
-              <StaticSelect label="家乡：不限" />
-              <StaticSelect label="房子：不限（多选）" />
-              <StaticSelect label="民族：不限（多选）" />
-              <StaticSelect label="星座：不限" />
-              <StaticSelect label="属相：不限" />
+              <Select
+                value={draft.realname}
+                onChange={(realname) => setDraft({ ...draft, realname })}
+                label="实名：不限"
+                options={[...REALNAME_STATUS].map((item) => [item, item])}
+              />
+              <Select
+                value={draft.offline_vip}
+                onChange={(offline_vip) => setDraft({ ...draft, offline_vip })}
+                label="线下VIP：不限"
+                options={[["是", "线下VIP：是"], ["不是", "线下VIP：不是"]]}
+              />
+              <Select
+                value={draft.promoted}
+                onChange={(promoted) => setDraft({ ...draft, promoted })}
+                label="置顶推广：不限"
+                options={[["置顶中", "置顶中"], ["未置顶", "未置顶"]]}
+              />
+              <Select
+                value={draft.newcomer}
+                onChange={(newcomer) => setDraft({ ...draft, newcomer })}
+                label="新人推荐：不限"
+                options={[["推荐中", "推荐中"]]}
+              />
+              <Select
+                value={draft.activity_signup}
+                onChange={(activity_signup) => setDraft({ ...draft, activity_signup })}
+                label="活动报名：不限"
+                options={[["已报名", "已报名"], ["未报名", "未报名"]]}
+              />
+              <TextFilter
+                label="宗教：不限"
+                value={draft.religion}
+                onChange={(religion) => setDraft({ ...draft, religion })}
+              />
+              <MultiSelect
+                label="车子：不限（多选）"
+                options={CAR_OPTIONS}
+                value={draft.car}
+                onChange={(car) => setDraft({ ...draft, car })}
+              />
+              <MultiSelect
+                label="级别：不限（多选）"
+                options={MEMBER_LEVEL_OPTIONS}
+                value={draft.level}
+                onChange={(level) => setDraft({ ...draft, level })}
+              />
+              <TextFilter
+                label="标签：不限（多选）"
+                value={draft.tags}
+                onChange={(tags) => setDraft({ ...draft, tags })}
+                placeholder="多个标签用英文逗号分隔"
+              />
+              <TextFilter
+                label="户口：不限"
+                value={draft.hukou}
+                onChange={(hukou) => setDraft({ ...draft, hukou })}
+              />
+              <TextFilter
+                label="家乡：不限"
+                value={draft.hometown}
+                onChange={(hometown) => setDraft({ ...draft, hometown })}
+              />
+              <MultiSelect
+                label="房子：不限（多选）"
+                options={HOUSE_OPTIONS}
+                value={draft.house}
+                onChange={(house) => setDraft({ ...draft, house })}
+              />
+              <MultiSelect
+                label="民族：不限（多选）"
+                options={ETHNICITY_OPTIONS}
+                value={draft.ethnicity}
+                onChange={(ethnicity) => setDraft({ ...draft, ethnicity })}
+              />
+              <StaticSelect
+                label="星座：不限"
+                options={[...CONSTELLATION]}
+                value={draft.constellation}
+                onChange={(constellation) => setDraft({ ...draft, constellation })}
+              />
+              <StaticSelect
+                label="属相：不限"
+                options={[...ZODIAC]}
+                value={draft.zodiac}
+                onChange={(zodiac) => setDraft({ ...draft, zodiac })}
+              />
             </>
           )}
         </div>
@@ -692,14 +983,17 @@ export default function LoveUserListPage() {
         <div className="flex flex-wrap items-center justify-between gap-3" style={memberTab === "abandon-log" ? { display: "none" } : undefined}>
           <div className="flex h-8">
             <label className="relative flex h-8 items-center border border-r-0 border-[#d9d9d9] bg-white text-xs text-[#595959]">
-              <select className="h-full appearance-none bg-transparent py-0 pl-3 pr-7 outline-none">
-                <option>智能搜索</option>
-                <option>按手机搜</option>
-                <option>按微信搜</option>
-                <option>按编号搜</option>
-                <option>按ID搜</option>
-                <option>按昵称搜</option>
-                <option>按姓名搜</option>
+              <select
+                value={draft.search_type}
+                onChange={(e) => setDraft({ ...draft, search_type: e.target.value })}
+                className="h-full appearance-none bg-transparent py-0 pl-3 pr-7 outline-none"
+                aria-label="搜索方式"
+              >
+                {SEARCH_TYPE.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
               <span className="pointer-events-none absolute right-3 top-3 size-1.5 rotate-45 border-b border-r border-[#8c8c8c]" />
             </label>
@@ -854,11 +1148,35 @@ export default function LoveUserListPage() {
                   "跟进",
                   "客户意向",
                   "来源/注册/登录/分派时间",
-                ]).map((name) => (
-                  <th key={name as string} className="whitespace-nowrap p-3 text-left font-medium">
-                    {name === "" ? <input type="checkbox" aria-label="全选会员" checked={allSelected} onChange={toggleAll} /> : name}
-                  </th>
-                ))}
+                ]).map((name) => {
+                  // 表头排序只对后端 SORT_SQL 白名单里真实存在的列开放；
+                  // 其余列保持纯文案，避免点出一片没有实际效果的箭头。
+                  const sortKey = COLUMN_SORT_KEY[name as string];
+                  if (!sortKey) {
+                    return (
+                      <th key={name as string} className="whitespace-nowrap p-3 text-left font-medium">
+                        {name === "" ? <input type="checkbox" aria-label="全选会员" checked={allSelected} onChange={toggleAll} /> : name}
+                      </th>
+                    );
+                  }
+                  const active = sortBy === sortKey;
+                  return (
+                    <th key={name as string} className="whitespace-nowrap p-0 text-left font-medium">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortBy(sortKey);
+                          setPage(1);
+                        }}
+                        className={`flex w-full items-center gap-1 p-3 text-left hover:text-[#3658f7] ${active ? "text-[#3658f7]" : ""}`}
+                        title={`按${name}排序`}
+                      >
+                        {name}
+                        <span className="text-[10px] text-[#bfbfbf]">{active ? "▼" : "↕"}</span>
+                      </button>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -957,6 +1275,14 @@ export default function LoveUserListPage() {
                       </>
                     ) : (
                     <>
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`选择会员 ${m.id}`}
+                        checked={selectedIds.includes(m.id)}
+                        onChange={() => toggleRow(m.id)}
+                      />
+                    </td>
                     <td className="p-3 text-[#595959]">{m.id}</td>
                     <td className="p-3">
                       <div className="w-[54px]">
@@ -1096,12 +1422,6 @@ export default function LoveUserListPage() {
                           ? `下次：${formatTime(m.next_follow_at)}`
                           : "暂未预约"}
                       </div>
-                      <button
-                        onClick={() => setFollowMember(m)}
-                        className="mt-2 text-[#3658f7]"
-                      >
-                        放入弃海
-                      </button>
                     </td>
                     <td className="p-3">
                       <select
@@ -1305,8 +1625,8 @@ export default function LoveUserListPage() {
                 <div className="member-add-label">来源</div>
                 <div className="member-add-field-wrap">
                   <div className="member-add-radio-group">
-                    <label className="member-add-radio"><input type="radio" name="member-add-source" checked={memberForm.source === "1"} onChange={() => setMemberForm({ ...memberForm, source: "1" })} />后台添加</label>
-                    <label className="member-add-radio"><input type="radio" name="member-add-source" checked={memberForm.source === "2"} onChange={() => setMemberForm({ ...memberForm, source: "2" })} />父母登记</label>
+                    <label className="member-add-radio"><input type="radio" name="member-add-source" checked={memberForm.source === "后台添加"} onChange={() => setMemberForm({ ...memberForm, source: "后台添加" })} />后台添加</label>
+                    <label className="member-add-radio"><input type="radio" name="member-add-source" checked={memberForm.source === "父母登记"} onChange={() => setMemberForm({ ...memberForm, source: "父母登记" })} />父母登记</label>
                   </div>
                 </div>
               </div>
@@ -1507,6 +1827,76 @@ function StaticSelect({
       </select>
       <span className="pointer-events-none absolute right-3 top-3 size-1.5 rotate-45 border-b border-r border-[#bfbfbf]" />
     </label>
+  );
+}
+/**
+ * 真正的多选下拉。
+ *
+ * 原先标着「（多选）」的控件其实是单个 <select>，选第二个值时前一个就被挤掉了。
+ * 这里用原生 multiple 列表框承载多值：按住 Ctrl/⌘ 多选，选中项以英文逗号拼成
+ * 一个参数传给后端（服务端按逗号拆分，见 member_crm_filter.split_values）。
+ */
+function MultiSelect({
+  label,
+  options,
+  value,
+  onChange,
+  toParam,
+}: {
+  label: string;
+  options: string[];
+  /** 英文逗号拼接的已选文案；空串表示不限 */
+  value: string;
+  onChange: (value: string) => void;
+  /** 文案 → 接口值；不传则原样使用文案本身 */
+  toParam?: (picked: string[]) => string;
+}) {
+  const picked = value ? value.split(",").filter(Boolean) : [];
+  return (
+    <label className="relative block min-w-[108px]">
+      <select
+        multiple
+        value={picked}
+        onChange={(e) => {
+          const next = Array.from(e.target.selectedOptions).map((option) => option.value);
+          onChange(toParam ? toParam(next) : next.join(","));
+        }}
+        className="h-[42px] w-full border border-[#d9d9d9] bg-white px-2 py-1 text-xs text-[#555] outline-none focus:border-[#3658f7]"
+        aria-label={label}
+        title={picked.length ? picked.join("、") : label}
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      <span className="pointer-events-none absolute -top-4 left-0 text-[10px] text-[#bfbfbf]">
+        {picked.length ? `已选 ${picked.length} 项` : label}
+      </span>
+    </label>
+  );
+}
+/** 文本类筛选（现居 / 家乡 / 户口 / 宗教 / 标签）：后端按 LIKE 或原值匹配。 */
+function TextFilter({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder ?? label}
+      className="h-8 min-w-[108px] border border-[#d9d9d9] bg-white px-2 text-xs text-[#555] outline-none focus:border-[#3658f7]"
+      aria-label={label}
+    />
   );
 }
 function ToolButton({

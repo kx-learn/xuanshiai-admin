@@ -171,6 +171,8 @@ export function useConfigDomain<T extends Dict>(namespace: string, defaults: T):
   // 始终指向最新快照/版本，避免自动保存定时器与手动提交之间读到过期版本
   const snapshotRef = useRef<ConfigSnapshot<T> | null>(null);
   const inFlightRef = useRef(false);
+  // 并发去重：挂载自动加载与页面自身的 reload() 合并成一次请求
+  const loadPromiseRef = useRef<Promise<void> | null>(null);
 
   const applySnapshot = useCallback((data: ConfigSnapshot<T>) => {
     snapshotRef.current = data;
@@ -178,18 +180,29 @@ export function useConfigDomain<T extends Dict>(namespace: string, defaults: T):
   }, []);
 
   const reload = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await readPlatformConfig<T>(namespace);
-      applySnapshot(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "配置加载失败");
-    } finally {
-      setLoading(false);
-      setReady(true);
-    }
+    if (loadPromiseRef.current) return loadPromiseRef.current;
+    const run = (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await readPlatformConfig<T>(namespace);
+        applySnapshot(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "配置加载失败");
+      } finally {
+        setLoading(false);
+        setReady(true);
+        loadPromiseRef.current = null;
+      }
+    })();
+    loadPromiseRef.current = run;
+    return run;
   }, [namespace, applySnapshot]);
+
+  // 挂载即加载：ready/loading 由 hook 自身驱动，页面无需再手写 reload()
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const save = useCallback(
     async (patch: Partial<T>, summary: string) => {

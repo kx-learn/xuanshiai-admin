@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints, type AdminAccountItem, type AdminListQuery, type JsonBody, type MemberBehaviorItem, type MemberBehaviorPage, type MemberDatingRecordItem, type MemberMatchQuota, type MemberProfileUpdatePayload, type RealnameReviewItem } from "@/lib/admin-endpoints";
+import { pickAndUploadImage, uploadAdminImage } from "@/lib/platform-config";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
 
 type Member = {
@@ -446,6 +447,7 @@ export default function MemberDetailWorkspace({
   const [posterOpen, setPosterOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [detail, setDetail] = useState<DetailData>({});
+  const avatarInput = useRef<HTMLInputElement>(null);
   const [sectionData, setSectionData] = useState<DetailData[] | DetailData>({});
   const [sectionLoading, setSectionLoading] = useState(false);
   const [sectionError, setSectionError] = useState("");
@@ -565,6 +567,27 @@ export default function MemberDetailWorkspace({
   const realnameStatus = profile.realname_status ?? profile.auth_status;
   const showFooter = ["basic", "intro", "requirement", "follow", "private", "super"].includes(tab);
 
+  /** 复制资料摘要到剪贴板：原按钮没有任何行为，红娘要手抄手机号/微信号。 */
+  const copyProfile = async () => {
+    const lines = [
+      `昵称：${nickname}`,
+      `编号：${dataValue(profile.member_code ?? profile.code)}`,
+      `手机：${dataValue(phone)}`,
+      `微信：${dataValue(wechat)}`,
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+    } catch {
+      // 非 HTTPS 或浏览器拒绝剪贴板权限时退回到 textarea + execCommand
+      const area = document.createElement("textarea");
+      area.value = lines.join("\n");
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      document.body.removeChild(area);
+    }
+  };
+
   return (
     <div className="mdt-mask">
       <div className="mdt-panel">
@@ -577,11 +600,11 @@ export default function MemberDetailWorkspace({
             <h2 className="mdt-head-title">会员管理</h2>
           </div>
           <div className="mdt-head-actions">
-            <button type="button" className="mdt-btn mdt-btn-ai">
+            <button type="button" className="mdt-btn mdt-btn-ai" disabled title="AI 智能红娘需要后端 AI 接口，后台暂未提供">
               <Sparkles className="size-3.5" />
               AI智能红娘
             </button>
-            <button type="button" className="mdt-btn mdt-btn-outline">
+            <button type="button" className="mdt-btn mdt-btn-outline" onClick={() => void copyProfile()}>
               <Clipboard className="size-3.5" />
               复制资料
             </button>
@@ -606,7 +629,39 @@ export default function MemberDetailWorkspace({
                   <UserRound className="size-14" strokeWidth={1.2} />
                 </span>
               )}
-              <button type="button" className="mdt-avatar-btn">
+              <input
+                ref={avatarInput}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  pickAndUploadImage(
+                    file,
+                    async (url) => {
+                      try {
+                        await adminEndpoints.updateMemberProfile(member.id!, {
+                          avatar: url,
+                          reason: "后台修改会员头像",
+                        });
+                        setDetail((current) => ({ ...current, avatar: url }));
+                        setSectionVersion((v) => v + 1);
+                      } catch (error) {
+                        setSectionError(error instanceof Error ? error.message : "头像保存失败");
+                      }
+                    },
+                    (message) => setSectionError(message),
+                  );
+                }}
+              />
+              <button
+                type="button"
+                className="mdt-avatar-btn"
+                onClick={() => avatarInput.current?.click()}
+                title="上传新头像"
+              >
                 修改头像
               </button>
             </div>
@@ -631,9 +686,68 @@ export default function MemberDetailWorkspace({
                     <Eye className="mr-1 inline size-3.5" />
                     {showContact ? "隐藏手机" : "查看手机"}
                   </button>
-                  <button type="button" className="mdt-chip-btn">发短信</button>
-                  <button type="button" className="mdt-chip-btn">一键呼叫</button>
-                  <button type="button" className="mdt-link ml-auto">修改</button>
+                  <button
+                    type="button"
+                    className="mdt-chip-btn"
+                    disabled={!phone}
+                    title={phone ? "唤起本机短信" : "该会员未填写手机号"}
+                    onClick={() => {
+                      if (!phone) return;
+                      window.location.href = `sms:${phone}`;
+                    }}
+                  >
+                    发短信
+                  </button>
+                  <button
+                    type="button"
+                    className="mdt-chip-btn"
+                    disabled={!phone}
+                    title={phone ? "拨号并在通话记录留痕" : "该会员未填写手机号"}
+                    onClick={async () => {
+                      if (!phone) return;
+                      // 后台没有外呼网关，这里唤起拨号器，同时补一条外呼记录，
+                      // 保证「通话记录」里能查到这次联系（原按钮无任何行为）。
+                      window.location.href = `tel:${phone}`;
+                      try {
+                        await adminEndpoints.createMemberCallRecord(member.id!, {
+                          direction: "OUTBOUND",
+                          remark: "后台一键呼叫",
+                        });
+                        setSectionVersion((v) => v + 1);
+                      } catch {
+                        // 拨号已经发出，记录失败不打断用户。
+                      }
+                    }}
+                  >
+                    一键呼叫
+                  </button>
+                  <button
+                    type="button"
+                    className="mdt-link ml-auto"
+                    onClick={() => {
+                      const raw = phone ? String(phone) : "";
+                      const next = window.prompt("修改手机号（11 位）", raw);
+                      if (next === null) return;
+                      const trimmed = next.trim();
+                      if (!/^1\d{10}$/.test(trimmed)) {
+                        setSectionError("手机号需为 11 位且以 1 开头");
+                        return;
+                      }
+                      if (trimmed === raw) return;
+                      void adminEndpoints
+                        .updateMember(member.id!, { phone: trimmed })
+                        .then(() => {
+                          setDetail((current) => ({ ...current, phone: trimmed }));
+                          setSectionVersion((v) => v + 1);
+                          setSectionError("");
+                        })
+                        .catch((error: unknown) =>
+                          setSectionError(error instanceof Error ? error.message : "手机号修改失败"),
+                        );
+                    }}
+                  >
+                    修改
+                  </button>
                 </div>
                 <div className="mdt-contact">
                   <MessageCircle className="size-5 text-[#22bf61]" />
@@ -644,12 +758,53 @@ export default function MemberDetailWorkspace({
                   </button>
                   <span className="ml-auto flex items-center gap-1">
                     <span className="mdt-select-wrap" style={{ width: 96, flex: "none" }}>
-                      <select className="mdt-select" style={{ height: 28 }} defaultValue="yes">
-                        <option value="yes">加上了？</option>
-                        <option value="no">未通过</option>
+                      <select
+                        className="mdt-select"
+                        style={{ height: 28 }}
+                        value={String(profile.wechat_added ?? 0)}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          void adminEndpoints
+                            .updateMember(member.id!, { wechat_added: value })
+                            .then(() => {
+                              setDetail((current) => ({ ...current, wechat_added: value }));
+                              setSectionVersion((v) => v + 1);
+                              setSectionError("");
+                            })
+                            .catch((error: unknown) =>
+                              setSectionError(error instanceof Error ? error.message : "加微信状态保存失败"),
+                            );
+                        }}
+                        aria-label="加微信结果"
+                      >
+                        <option value="0">加上了？</option>
+                        <option value="1">已加上</option>
+                        <option value="2">没加上</option>
                       </select>
                     </span>
-                    <button type="button" className="mdt-link">修改</button>
+                    <button
+                      type="button"
+                      className="mdt-link"
+                      onClick={() => {
+                        const raw = wechat ? String(wechat) : "";
+                        const next = window.prompt("修改微信号", raw);
+                        if (next === null) return;
+                        const trimmed = next.trim();
+                        if (!trimmed || trimmed === raw) return;
+                        void adminEndpoints
+                          .updateMember(member.id!, { wechat: trimmed })
+                          .then(() => {
+                            setDetail((current) => ({ ...current, wechat: trimmed }));
+                            setSectionVersion((v) => v + 1);
+                            setSectionError("");
+                          })
+                          .catch((error: unknown) =>
+                            setSectionError(error instanceof Error ? error.message : "微信号修改失败"),
+                          );
+                      }}
+                    >
+                      修改
+                    </button>
                   </span>
                 </div>
               </div>
@@ -686,7 +841,7 @@ export default function MemberDetailWorkspace({
         <main className="mdt-body">
           {tab === "basic" && <BasicTab member={profile} draft={basicDraft} onDraftChange={setBasicDraft} onSave={() => void saveBasic()} saving={savingBasic} error={basicSaveError} />}
           {tab === "auth" && <AuthTab member={profile} realnameReview={realnameReview} data={sectionData} loading={sectionLoading} error={sectionError} />}
-          {tab === "media" && <MediaTab data={sectionData} loading={sectionLoading} error={sectionError} />}
+          {tab === "media" && <MediaTab member={profile} data={sectionData} loading={sectionLoading} error={sectionError} onChanged={() => setSectionVersion((v) => v + 1)} />}
           {tab === "intro" && <IntroTab userId={member.id} />}
           {tab === "requirement" && <RequirementTab userId={member.id} />}
           {tab === "follow" && (
@@ -934,7 +1089,7 @@ function AuthTab({ member, realnameReview, data, loading, error }: { member: Det
       <div className="mdt-auth-item">
         <div className="mdt-auth-title">证件留档</div>
         <Notice>仅后台和红娘可见，不会对外公开展示</Notice>
-        <button type="button" className="mdt-upload" style={{ marginTop: 14 }}>
+        <button type="button" className="mdt-upload" style={{ marginTop: 14 }} disabled title="证件留档暂未提供存储能力，后端补齐前不可上传">
           <Plus className="size-5" />
           上传图片
         </button>
@@ -947,7 +1102,7 @@ function AuthTab({ member, realnameReview, data, loading, error }: { member: Det
 /* 照片视频                                                            */
 /* ------------------------------------------------------------------ */
 
-function MediaTab({ data, loading, error }: { data: DetailData | DetailData[]; loading: boolean; error: string }) {
+function MediaTab({ member, data, loading, error, onChanged }: { member: DetailData; data: DetailData | DetailData[]; loading: boolean; error: string; onChanged: () => void }) {
   const media = dataItems(data);
   const isVideoItem = (item: DetailData) => {
     const metaType = String(item.meta_type ?? "").toLowerCase();
@@ -960,6 +1115,33 @@ function MediaTab({ data, loading, error }: { data: DetailData | DetailData[]; l
   };
   const photos = media.filter((item) => !isVideoItem(item) && mediaCover(item));
   const videos = media.filter((item) => isVideoItem(item));
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  /** 逐张上传后落库，最后统一刷新列表；单张失败不影响其余图片。 */
+  const uploadMedia = async (files: File[], mediaType: "photo" | "video") => {
+    const userId = typeof member.id === "number" ? member.id : undefined;
+    if (!userId) return;
+    setUploading(true);
+    setUploadError("");
+    const failures: string[] = [];
+    for (const file of files) {
+      try {
+        const url = await uploadAdminImage(file);
+        await adminEndpoints.createMemberMedia(userId, {
+          media_type: mediaType,
+          file_url: url,
+          mime_type: file.type || undefined,
+          file_size: file.size,
+        });
+      } catch (error) {
+        failures.push(`${file.name}：${error instanceof Error ? error.message : "上传失败"}`);
+      }
+    }
+    setUploading(false);
+    if (failures.length) setUploadError(failures.join("；"));
+    onChanged();
+  };
   const coverStyle: CSSProperties = { width: 96, height: 96, objectFit: "cover", borderRadius: 6, border: "1px solid #e5e7eb", display: "block" };
   return (
     <>
@@ -968,16 +1150,32 @@ function MediaTab({ data, loading, error }: { data: DetailData | DetailData[]; l
           <Camera className="size-3.5" />
           手机上传
         </button>
-        <button type="button" className="mdt-btn mdt-btn-plain">
+        <button type="button" className="mdt-btn mdt-btn-plain" onClick={onChanged}>
           <RefreshCw className="size-3.5" />
           刷新列表
         </button>
       </div>
 
+      {uploading ? <Notice>正在上传...</Notice> : null}
+      {uploadError ? <Notice>{uploadError}</Notice> : null}
+
       <Notice>设置为“私密”后，仅后台和红娘可见，线上平台的相册中不展示、会员自己在会员中心的相册中也看不到</Notice>
 
       <div className="mdt-section-title">照片</div>
-      <button type="button" className="mdt-upload">
+      <input
+        ref={photoInput}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (!files.length) return;
+          void uploadMedia(files, "photo");
+        }}
+      />
+      <button type="button" className="mdt-upload" onClick={() => photoInput.current?.click()}>
         <Plus className="size-5" />
         上传图片
       </button>
@@ -1371,7 +1569,7 @@ function IntroTab({ userId }: { userId?: number }) {
         />
       </div>
 
-      <button type="button" className="mdt-upload">
+      <button type="button" className="mdt-upload" disabled title="红娘说配图暂未提供存储字段，后端补齐前不可上传">
         <Plus className="size-5" />
         上传图片
       </button>
@@ -1685,7 +1883,28 @@ const FOLLOW_METHODS = [
 ];
 /** 后端 method 枚举 -> 中文，与后端 method_label（电话/微信/面谈/其他）一致 */
 const FOLLOW_METHOD_LABEL: Record<string, string> = { PHONE: "电话", WECHAT: "微信", VISIT: "面谈", OTHER: "其他" };
-const FOLLOW_TEMPLATES = ["核实资料", "邀约到店", "到店面谈", "服务交接"];
+const FOLLOW_TEMPLATES_DEFAULT = ["核实资料", "邀约到店", "到店面谈", "服务交接"];
+/** 跟进快捷语模板存在本机（后台无配置接口），「管理模板」改的就是这份列表。 */
+const FOLLOW_TEMPLATES_KEY = "xuanshiai_follow_templates";
+const loadFollowTemplates = (): string[] => {
+  try {
+    const raw = window.localStorage.getItem(FOLLOW_TEMPLATES_KEY);
+    if (!raw) return FOLLOW_TEMPLATES_DEFAULT;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return FOLLOW_TEMPLATES_DEFAULT;
+    const clean = parsed.filter((item): item is string => typeof item === "string" && item.trim() !== "");
+    return clean.length ? clean : FOLLOW_TEMPLATES_DEFAULT;
+  } catch {
+    return FOLLOW_TEMPLATES_DEFAULT;
+  }
+};
+const saveFollowTemplates = (items: string[]) => {
+  try {
+    window.localStorage.setItem(FOLLOW_TEMPLATES_KEY, JSON.stringify(items));
+  } catch {
+    // 隐私模式下 localStorage 可能抛错，模板退回默认值即可，不影响提交跟进。
+  }
+};
 const FOLLOW_MAX_IMAGES = 9;
 const FOLLOW_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const FOLLOW_VOICE_MAX_BYTES = 20 * 1024 * 1024;
@@ -1732,6 +1951,9 @@ function FollowTab({
   const [message, setMessage] = useState("");
   const [saveError, setSaveError] = useState("");
   const [sort, setSort] = useState<"new" | "old">("new");
+  const [templates, setTemplates] = useState<string[]>(FOLLOW_TEMPLATES_DEFAULT);
+  const [templateDraft, setTemplateDraft] = useState("");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const imageInput = useRef<HTMLInputElement>(null);
   const voiceInput = useRef<HTMLInputElement>(null);
   const nextInput = useRef<HTMLInputElement>(null);
@@ -1748,6 +1970,8 @@ function FollowTab({
   }, []);
 
   useEffect(() => () => { images.forEach((item) => URL.revokeObjectURL(item.url)); }, [images]);
+
+  useEffect(() => { setTemplates(loadFollowTemplates()); }, []);
 
   const pickImages = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -1955,16 +2179,83 @@ function FollowTab({
         <div className="mdt-template-row">
           <span className="mdt-label">从模板选择:</span>
           <span className="mdt-chips">
-            {FOLLOW_TEMPLATES.map((item) => (
+            {templates.map((item) => (
               <button key={item} type="button" className="mdt-chip" onClick={() => setContent((current) => (current ? `${current}\n${item}` : item))}>
                 {item}
               </button>
             ))}
           </span>
-          <button type="button" className="mdt-link" style={{ marginLeft: "auto" }}>
+          <button type="button" className="mdt-link" style={{ marginLeft: "auto" }} onClick={() => setTemplatesOpen((v) => !v)}>
             管理模板
           </button>
         </div>
+
+        {templatesOpen && (
+          <div className="mt-2 border border-[#e5e7eb] bg-[#fafafa] p-3">
+            <div className="mb-2 text-xs text-[#8c8c8c]">快捷语模板保存在本机浏览器，仅影响当前账号的快捷按钮。</div>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {templates.map((item) => (
+                <span key={item} className="inline-flex items-center gap-1 border border-[#d9d9d9] bg-white px-2 py-1 text-xs">
+                  {item}
+                  <button
+                    type="button"
+                    className="text-[#d4380d]"
+                    aria-label={`删除模板 ${item}`}
+                    onClick={() => {
+                      const next = templates.filter((t) => t !== item);
+                      setTemplates(next);
+                      saveFollowTemplates(next);
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={templateDraft}
+                onChange={(e) => setTemplateDraft(e.target.value)}
+                placeholder="新增快捷语，回车添加"
+                maxLength={30}
+                className="h-8 flex-1 border border-[#d9d9d9] bg-white px-2 text-xs outline-none focus:border-[#3658f7]"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const value = templateDraft.trim();
+                  if (!value || templates.includes(value)) return;
+                  const next = [...templates, value];
+                  setTemplates(next);
+                  saveFollowTemplates(next);
+                  setTemplateDraft("");
+                }}
+              />
+              <button
+                type="button"
+                className="h-8 border border-[#d9d9d9] bg-white px-3 text-xs"
+                onClick={() => {
+                  const value = templateDraft.trim();
+                  if (!value || templates.includes(value)) return;
+                  const next = [...templates, value];
+                  setTemplates(next);
+                  saveFollowTemplates(next);
+                  setTemplateDraft("");
+                }}
+              >
+                添加
+              </button>
+              <button
+                type="button"
+                className="h-8 border border-[#d9d9d9] bg-white px-3 text-xs"
+                onClick={() => {
+                  setTemplates(FOLLOW_TEMPLATES_DEFAULT);
+                  saveFollowTemplates(FOLLOW_TEMPLATES_DEFAULT);
+                }}
+              >
+                恢复默认
+              </button>
+            </div>
+          </div>
+        )}
 
         {saveError && <Notice>提交失败：{saveError}</Notice>}
         {message && <Notice>{message}</Notice>}
@@ -3451,6 +3742,9 @@ function SuperTab({
   const [quotaLoading, setQuotaLoading] = useState(true);
   const [quotaCount, setQuotaCount] = useState("");
   const [quotaReason, setQuotaReason] = useState("");
+  const [quotaHistory, setQuotaHistory] = useState<DetailData[]>([]);
+  const [quotaHistoryOpen, setQuotaHistoryOpen] = useState(false);
+  const [quotaHistoryError, setQuotaHistoryError] = useState("");
   const [savingQuota, setSavingQuota] = useState(false);
   const [quotaMessage, setQuotaMessage] = useState("");
   const [quotaError, setQuotaError] = useState("");
@@ -3656,9 +3950,9 @@ function SuperTab({
         <span className="mdt-label">牵线剩余</span>
         <span className="mdt-control" style={{ flexWrap: "wrap", gap: 12 }}>
           <span className="mdt-none">{quotaLoading ? "加载中…" : quota ? `当前 ${quota.available_count} 次` : "—"}</span>
-          {/* 有效期这两个接口未覆盖，保持占位展示 */}
-          <span className="mdt-inline-label">有效期至:</span>
-          <Inp value="2026-09-02" type="date" />
+          {/* 次数账户没有有效期字段，这里显示最近一次变更时间，不再写死一个假日期 */}
+          <span className="mdt-inline-label">最近更新:</span>
+          <span className="mdt-none">{quota?.updated_at ? formatDateTime(quota.updated_at) : "—"}</span>
           {/* 接口语义是「直接设置剩余次数」，因此用「设为」而不是「增加」 */}
           <span className="mdt-inline-label">设为</span>
           <Inp value={quotaCount} onChange={setQuotaCount} placeholder="0" />
@@ -3673,11 +3967,40 @@ function SuperTab({
           >
             {savingQuota ? "保存中…" : "保存次数"}
           </button>
-          <button type="button" className="mdt-link">
+          <button
+            type="button"
+            className="mdt-link"
+            onClick={() => {
+              const next = !quotaHistoryOpen;
+              setQuotaHistoryOpen(next);
+              if (!next || !memberId) return;
+              setQuotaHistoryError("");
+              void adminEndpoints
+                .memberMatchQuotaHistory(memberId, { page: 1, page_size: 50 })
+                .then((result) => setQuotaHistory(dataItems(result as DetailData)))
+                .catch((error: unknown) =>
+                  setQuotaHistoryError(error instanceof Error ? error.message : "历史明细加载失败"),
+                );
+            }}
+          >
             历史明细
           </button>
         </span>
       </div>
+      {quotaHistoryOpen ? (
+        <div className="mt-2 border border-[#e5e7eb] bg-[#fafafa] p-3 text-xs">
+          {quotaHistoryError ? <Notice>{quotaHistoryError}</Notice> : null}
+          {!quotaHistoryError && quotaHistory.length === 0 ? <div className="text-[#8c8c8c]">暂无变更记录</div> : null}
+          {quotaHistory.map((item) => (
+            <div key={String(item.id)} className="flex flex-wrap gap-x-4 gap-y-1 border-b border-[#f0f0f0] py-1.5 last:border-b-0">
+              <span className="text-[#8c8c8c]">{formatDateTime(item.created_at)}</span>
+              <span>{dataValue(item.reason)}</span>
+              <span className="text-[#8c8c8c]">变更前：{dataValue(item.before_json)}</span>
+              <span className="text-[#8c8c8c]">变更后：{dataValue(item.after_json)}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {quotaError ? <Notice>次数保存失败：{quotaError}</Notice> : null}
       {quotaMessage ? <Notice>{quotaMessage}</Notice> : null}
 
@@ -3743,6 +4066,9 @@ function SourceTab({ data, loading, error }: { data: DetailData | DetailData[]; 
 /* ------------------------------------------------------------------ */
 
 function GuestCardSheet({ onClose, nickname }: { onClose: () => void; nickname: string }) {
+  // 嘉宾卡配图只是制作卡片时的本地选图，不写会员相册，因此保存在组件状态里。
+  const [cardPhoto, setCardPhoto] = useState("");
+  const cardInput = useRef<HTMLInputElement>(null);
   const fields = [
     "编号",
     "性别",
@@ -3794,11 +4120,25 @@ function GuestCardSheet({ onClose, nickname }: { onClose: () => void; nickname: 
         <div className="mdt-gc-body">
           <div className="mdt-gc-left">
             <div className="mdt-gc-photo">
+              {cardPhoto ? (
+                <img src={cardPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : null}
               <span>请在下面的相册选择或上传一张照片</span>
               <span className="mdt-gc-photo-sub">宽度大于1140px</span>
               <span className="mdt-gc-photo-sub">高度大于1584px</span>
             </div>
-            <button type="button" className="mdt-upload" style={{ marginTop: 14 }}>
+            <input
+              ref={cardInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) pickAndUploadImage(file, setCardPhoto);
+              }}
+            />
+            <button type="button" className="mdt-upload" style={{ marginTop: 14 }} onClick={() => cardInput.current?.click()}>
               <Plus className="size-5" />
               上传图片
             </button>

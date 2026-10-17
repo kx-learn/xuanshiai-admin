@@ -30,10 +30,10 @@
 1. **富文本工具栏复用死组件** — ✅ 已处理 active-config、love-partner-config、merchant-management、platform-content：移除无功能工具栏并明确纯文本编辑；其他页面仍待处理。
 2. **编辑弹窗/列表列不回填** — 喜讯/锦旗、会员跟进、部分配置页：打开弹窗字段全空但库里有值，直接提交会**覆盖清空**真实数据（高危）。
 3. **导出EXCEL 名不副实** — ✅ 已修复 `love-user-follow-up`、线上 VIP、线下 VIP；其他报表仍需逐页核验。
-4. **`matchmakers?page_size=200` → 422** — 总店分派、xixun 服务红娘下拉因此恒空。
-5. **多个 `content` 域接口后端 404** — free_pay_item / point_gift / point_exchange / econtract_record / econtract_template → 对应页整片瘫痪。
+4. **`matchmakers?page_size=200` → 422** — ✅ 已修复：根因是 `/api/v1/admin/matchmaker/matchmakers` 后端 `page_size` 上限 `le=50`，而前端 `adminApi()` 统一把 >100 夹到 100、`love-user-list` 直传 100，故恒 422。后端上限放宽到 `le=100`（`app/api/routes/matchmaker_admin.py`），并同步更新 `docs/红娘后台接口.md` §3.1 参数表。实测 `page_size=100` → 200，`page_size=101` → 422。
+5. **多个 `content` 域接口后端 404** — ✅ 已复核（2026-10-16）：`free_pay_item` / `point_gift` / `point_exchange` / `econtract_record` / `econtract_template` 五个域均已在 `app/services/admin_content.py:ALLOWED_DOMAINS` 白名单内，实测 `GET /api/v1/admin/content/{domain}` 全部 200。原记录已过期。
 6. **后端错误 / Python traceback 原文裸渲染进 UI** — partner 编辑、绑定冲突 409、红娘平台、miniprogram 409 等。
-7. **恒 disabled 的"确定提交"** — love-customer-config、love-partner-config 等，配置根本存不下去。
+7. **恒 disabled 的"确定提交"** — ✅ 已修复（2026-10-16）。根因不是按钮绑定错误，而是 `useConfigDomain` 的 `ready` 只在 `reload()` 内部置真，而 hook 自身从不调用 `reload()`；页面若用 `disabled={!ready || …}` 且自己没写 `reload()`，就永远卡在 `ready===false`。已在 `src/lib/platform-config.ts` 中央修复：hook 挂载即自动加载，并用 `loadPromiseRef` 把「挂载自动加载」与「页面自身 reload()」去重成一次请求。实测（Chrome + CDP 真实点击）：love-customer-config、active-config、branch-config、love-partner-config、group-menu 五页均发出 `GET /api/backend/admin/configs/{ns}` 且返回 200，`确定提交`/`确定切换` 由恒 disabled 变为 **disabled=false**；group-menu 端到端保存往返实测通过（v2 → PATCH 200 → 重新加载取回新值）。顺带关闭一个静默覆盖漏洞：原先只读 `snapshot` 的页面（如 group-menu）会以 `DEFAULTS` 渲染，保存时把默认值写回服务端；自动加载后已在保存前拿到真实值。
 8. **顶栏抽屉分页 ‹ › 恒 disabled** — ✅ 已修复更新报告、用好系统、红娘课堂的本地分页。
 
 **测试库写副作用 · 无法复原项（汇总，详见各节）**：
@@ -121,37 +121,38 @@
 死按钮 / 伪功能
 | 按钮/控件 | 位置 | 现象（点击后） | 结论 |
 |---|---|---|---|
-| 表头各列（ID/头像/资料/审核…共14列） | 表头 | 无任何 handler，不能排序，零反应 | ❌死按钮（列头排序未实现） |
-| 行内单选复选框 | 每行首列 | **控件根本不存在**（只能全选，无法勾选部分行做批量） | ❌功能缺失 |
-| 放入弃海 | 行内跟进列 | 有 onClick 但对多行反复点击：0 请求/0 确认/0 弹窗/行不移除 | ❌死功能(空 handler) |
-| 加入弃海（批量栏） | 批量栏 | 恒 disabled、无 handler，勾选后仍置灰不可点 | ❌死按钮 |
-| 行内红娘下拉 | 红娘列 | 有 onChange 且会发 PATCH，但下拉只有"未分派"一个选项 | ⚠️伪功能(选项未填充) |
-| AI智能红娘 | 抽屉头部 | 无 handler，0 反应 | ❌死按钮 |
-| 复制资料 | 抽屉头部 | 无 handler，clipboard/execCommand 均未触发 | ❌死按钮 |
-| 修改头像 | 头像上 | 无 handler，不触发文件选择 | ❌死按钮 |
-| 发短信 | 联系行 | 无 handler，0 反应 | ❌死按钮 |
-| 一键呼叫 | 联系行 | 无 handler，0 反应 | ❌死按钮 |
-| 修改（手机号行 / 微信号行 ×2） | 联系行 | 无 handler，0 反应 | ❌死按钮 ×2 |
-| 资料海报：风格1 / 确认选择 | 海报浮层 | 点击无变化/不下载/浮层不关 | ❌死按钮 ×2 |
-| 照片视频：手机上传/刷新列表/上传图片/上传视频 | 抽屉Tab | 4 个全无 handler，不触发文件/请求/二维码 | ❌死按钮 ×4 |
-| 认证信息：上传图片（证件留档） | 抽屉Tab | 无 handler，0 反应 | ❌死按钮 |
-| 服务跟进：管理模板 | 抽屉Tab | 无 handler，0 反应 | ❌死按钮 |
-| 服务跟进：设置预约跟进时间 > | 抽屉Tab | 有 onClick 但 0 请求/0 新增文本 | ⚠️伪功能 |
-| 私密信息：修改设置 > | 抽屉Tab | 无 handler，0 反应 | ❌死按钮 |
-| 超级管理：历史明细 / 编辑 / 置顶推荐·新人推荐「开启」 / 对非相亲会员显示头像 checkbox | 抽屉Tab | 全无 handler，点击 0 反应 | ❌死按钮 ×4 |
-| 确定提交（抽屉 footer） | 抽屉底部 | 无 handler | ❌死按钮 |
-| 筛选：门店/客户意向/登记/推广红娘/实名 + 年龄/婚况/身高/学历/职业/收入/现居 + 智能搜索字段切换 | 筛选区 | 设值后点搜索不发对应参数、行数不变（"多选"实为单选） | ⚠️伪功能（约13项） |
+| 表头各列（ID/头像/资料/审核…共14列） | 表头 | 无任何 handler，不能排序，零反应 | ✅已修复（2026-10-17）：ID / 跟进 / 来源·注册·登录·分派时间 三列可按 `sort_by` 排序；其余列后端无对应排序键，保持纯展示 |
+| 行内单选复选框 | 每行首列 | **控件根本不存在**（只能全选，无法勾选部分行做批量） | ✅已修复（2026-10-17）：专业视图补齐行内复选框，表头/行内 10 列对齐 |
+| 放入弃海 | 行内跟进列 | 有 onClick 但对多行反复点击：0 请求/0 确认/0 弹窗/行不移除 | ✅已移除（2026-10-17）：原按钮绑的是跟进弹窗，且后端无会员级弃海接口，删掉误导性按钮 |
+| 加入弃海（批量栏） | 批量栏 | 恒 disabled、无 handler，勾选后仍置灰不可点 | ⚠️保持禁用：后端弃海只针对客源线索（`customer_lead_abandonment`），无会员级表 |
+| 行内红娘下拉 | 红娘列 | 有 onChange 且会发 PATCH，但下拉只有"未分派"一个选项 | ✅已修复：选项由 `admin/matchmaker/matchmakers` 填充 |
+| AI智能红娘 | 抽屉头部 | 无 handler，0 反应 | ⚠️标记禁用：后端无 AI 生成接口，按钮改为 disabled 并给出原因 |
+| 复制资料 | 抽屉头部 | 无 handler，clipboard/execCommand 均未触发 | ✅已修复（2026-10-17）：写入昵称/编号/手机/微信四行，剪贴板不可用时回落 execCommand |
+| 修改头像 | 头像上 | 无 handler，不触发文件选择 | ✅已修复（2026-10-17）：选图 → `/admin/common/upload` → `PATCH /admin/members/{id}/profile` |
+| 发短信 | 联系行 | 无 handler，0 反应 | ✅已修复（2026-10-17）：唤起本机 `sms:`，未填手机号时禁用 |
+| 一键呼叫 | 联系行 | 无 handler，0 反应 | ✅已修复（2026-10-17）：唤起 `tel:` 并补一条外呼记录（`POST .../call-records`） |
+| 修改（手机号行 / 微信号行 ×2） | 联系行 | 无 handler，0 反应 | ✅已修复（2026-10-17）：`PATCH /admin/matchmaker/members/{id}`，手机号 11 位校验 + 撞号 409 |
+| 加上了？（微信号行下拉） | 联系行 | 写死 yes/no，不发请求 | ✅已修复（2026-10-17）：映射 `users.wechat_added` 0/1/2 |
+| 资料海报：风格1 / 确认选择 | 海报浮层 | 点击无变化/不下载/浮层不关 | 未改动（本轮未覆盖） |
+| 照片视频：手机上传/刷新列表/上传图片/上传视频 | 抽屉Tab | 4 个全无 handler，不触发文件/请求/二维码 | ✅部分修复（2026-10-17）：上传图片 + 刷新列表已接（`POST /admin/members/{id}/media`）；手机上传（二维码）后端无接口 |
+| 认证信息：上传图片（证件留档） | 抽屉Tab | 无 handler，0 反应 | ⚠️标记禁用：证件留档无存储表，后端补齐前不可上传 |
+| 服务跟进：管理模板 | 抽屉Tab | 无 handler，0 反应 | ✅已修复（2026-10-17）：快捷语模板可增删/恢复默认，存本机 localStorage |
+| 服务跟进：设置预约跟进时间 > | 抽屉Tab | 有 onClick 但 0 请求/0 新增文本 | ✅已确认有功能：点击聚焦"预约跟进时间"输入框 |
+| 私密信息：修改设置 > | 抽屉Tab | 无 handler，0 反应 | 未改动（本轮未覆盖） |
+| 超级管理：历史明细 / 编辑 / 置顶推荐·新人推荐「开启」 / 对非相亲会员显示头像 checkbox | 抽屉Tab | 全无 handler，点击 0 反应 | ✅部分修复：历史明细已接 `GET .../match-quota/history`；写死的「有效期至 2026-09-02」改为真实「最近更新」 |
+| 确定提交（抽屉 footer） | 抽屉底部 | 无 handler | ⚠️保持：抽屉各 Tab 内已有可用保存按钮，footer 汇总按钮未改动 |
+| 筛选：门店/客户意向/登记/推广红娘/实名 + 年龄/婚况/身高/学历/职业/收入/现居 + 智能搜索字段切换 | 筛选区 | 设值后点搜索不发对应参数、行数不变（"多选"实为单选） | ✅已修复（2026-10-17）：全部接线并实测发参；门店/推广红娘由 `GET /members/options` 供值；婚况等标「多选」的控件换成真多选，发出 `marriage=1,2` |
 
-> 已确认有功能：页内Tab(会员资料/弃海会员/弃海记录，本轮复核为正常切换并发请求，修正上轮误判)、添加资料、智能录入、批量导入资料、导出EXCEL(触发blob下载)、更多选项展开、服务红娘/审核/状态/性别/会员级别筛选、关键字搜索、重置、排序、简洁/专业、快捷筛选卡片组、详细资料/服务跟进/牵线记录/更多(均开抽屉)、行内审核下拉、免审核、编辑审核状态、行内客户意向下拉、全选→批量设为公开/批量冻结/取消选择、分页1/2、20条/页选择、抽屉15个Tab、查看手机/隐藏微信、资料海报/制作嘉宾卡生成、服务跟进上传图片/录音/模板、基本资料radio/checkbox、超级管理"保存次数"。
+> 已确认有功能：页内Tab(会员资料/弃海会员/弃海记录，本轮复核为正常切换并发请求，修正上轮误判)、添加资料、智能录入、批量导入资料、导出EXCEL(触发blob下载)、更多选项展开、服务红娘/审核/状态/性别/会员级别筛选、关键字搜索、重置、排序、简洁/专业、快捷筛选卡片组、详细资料/服务跟进/牵线记录/更多(均开抽屉)、行内审核下拉、免审核、编辑审核状态、行内客户意向下拉、全选→批量设为公开/批量冻结/取消选择、分页1/2、20条/页选择、抽屉15个Tab、查看手机/隐藏微信、资料海报/制作嘉宾卡生成、服务跟进上传图片/录音/模板、基本资料radio/checkbox、超级管理"保存次数"、表头排序(ID/跟进/时间)。
 > 说明：抽屉/弹窗内"确定提交"保存按钮按要求未真点（避免写库），标 ⚠️已接线未验证。
 
 ### 线上VIP /love-user-vip — 已核查
 | 按钮/控件 | 位置 | 现象 | 结论 |
 |---|---|---|---|
-| 发起合同 | 行内操作（4 行） | 全无 handler，点击 0 请求/0 弹窗/0 路由 | ❌死按钮 ×4 |
-| 批量操作 | 批量栏 | 无 handler，0 反应 | ❌死按钮 |
+| 发起合同 | 行内操作（4 行） | 全无 handler，点击 0 请求/0 弹窗/0 路由 | ⚠️标记禁用（2026-10-17）：后端无线上VIP合同创建接口，按钮保持 disabled 并注明原因 |
+| 批量操作 | 批量栏 | 无 handler，0 反应 | 未改动（后端无批量操作接口） |
 | 20 条/页 select | 分页 | 已接入统一分页组件，可切换每页条数并重新请求 | ✅ 已修复 |
-| 表头各列（12 列） | 表头 | 全无 handler | ❌死按钮（列头排序未实现） |
+| 表头各列（12 列） | 表头 | 全无 handler | ✅已修复（2026-10-17）：会员 / 开通时间 / 有效期 / 支付金额 四列可排序，走 `GET /admin/members/vip?sort_by=` 白名单；其余列后端无排序键 |
 
 > 有功能：级别/VIP状态/开通性质/昵称 筛选、搜索、重置、导出EXCEL、全选、行复选框、查看资料、取消选择、分页1。
 
@@ -223,30 +224,45 @@
 
 ## 2B. 客源线索（love-customer* / customer-follow-up）— 已核查
 
-### 跟进全览 /customer-follow-up
+### 跟进全览 /customer-follow-up — 已修复（2026-10-16）
 | 按钮 | 位置 | 现象（点击后） | 结论 |
 |---|---|---|---|
-| 导入历史跟进 | 工具栏 | 完全无反应：无文件框/无弹窗/无请求/DOM 零变化 | ❌死按钮 |
-| 导出EXCEL | 工具栏 | 无请求/无下载/无 blob/DOM 零变化 | ❌死按钮 |
-| 详情 | 行内（操作列） | 多次点击均无反应：无弹窗/无跳转/无请求 | ❌死按钮 |
+| 导入历史跟进 | 工具栏 | 原为死按钮；现改为 `router.push("/love-user-follow-up-import")` | ✅已修复 |
+| 导出EXCEL | 工具栏 | 原为死按钮；现按当前 Tab 导出 CSV（带 BOM，Excel 可直接打开），无数据时提示「当前没有可导出的记录」 | ✅已修复 |
+| 详情 | 行内（操作列） | 原为死按钮；现打开 `MemberQuickProfileDrawer` 会员快捷资料抽屉（实测弹窗含 G000003 / 13812345678 / 加入时间） | ✅已修复 |
+
+> 同页一并修复的两处**伪功能**：
+> - **客户意向 / 加上了吗? 两个下拉**原为纯受控摆设（选了不发请求）。现分别对接后端 `intention_level`、`wechat_added`（`wechat_added` 为本批新增参数，过滤的是会员身上的 `users.wechat_added`）。
+> - **通话记录 Tab** 原来切了状态却仍渲染同一张跟进表。本批**新增后端聚合端点** `GET /api/v1/admin/members/call-records`（此前只有单会员的 `/{member_id}/call-records`），现渲染 7 列真实通话数据（方向/状态/时长）。
+>
+> 顶部 8 张时间统计卡也由「前端本地过滤」改为**后端 `follow-ups/summary` 驱动**，点击卡片即改写 `start_date`/`end_date` 重新查询。
+> 后端改动：`app/api/routes/member_follow_up_admin.py`、`app/services/member_follow_up_admin.py`、`app/schemas/member_follow_up_admin.py`；文档 `docs/api/member-follow-up.md` 新增 §2.3。前端改动：`src/app/(admin)/customer-follow-up/page.tsx`、`src/lib/admin-endpoints.ts`、`src/app/globals.css`。
 
 ### 功能配置 /love-customer-config
 | 按钮 | 位置 | 现象 | 结论 |
 |---|---|---|---|
-| 确定提交 | 表单底部 | 恒为 disabled，改任何项后仍禁用，点击无请求无提示 → 配置无法保存 | ❌死按钮/无法提交 |
+| 确定提交 | 表单底部 | ✅ 已修复（2026-10-16）：根因是 `useConfigDomain` 不自动加载导致 `ready` 恒 false；已在 `src/lib/platform-config.ts` 挂载即加载。浏览器实测该按钮 **disabled=false**，且页面发出 `GET /admin/configs/tools_customer_leads` 200。 | ✅已修复 |
 
-### 弃海客源 /love-customer-abandon
+### 弃海客源 /love-customer-abandon — 已修复（2026-10-16）
+> **路由更正**：`src/app/(admin)/love-customer-abandon/page.tsx` 只有 12 行，是 `window.location.replace("/love-customer-list?tab=abandon")` 的重定向；弃海客源界面实体在线索管理页的「弃海客源」Tab 内。原表三行「现象」都是在线索管理页的弃海 Tab 上复现的，此前被错记到重定向路由名下，现更正归属并逐条复核。
+
 | 按钮 | 位置 | 现象 | 结论 |
 |---|---|---|---|
-| 添加客源 | 工具栏 | 零反应：无弹窗/DOM 变化/请求（与线索管理页同名按钮行为不一致） | ❌死按钮 |
-| 导出EXCEL | 工具栏 | 无请求/无下载/DOM 零变化 | ❌死按钮 |
-| 搜索 | 筛选区 | 输入关键词点击后行数不变、无请求、不做客户端过滤 | ❌死按钮 |
+| 添加客源 | 工具栏 | **复核为可用**：点击打开「添加客源」弹窗（含称呼输入框），关闭正常。CDP 实测 `beforeAdd:false → afterAdd:{present:true,title:"添加客源",hasNameInput:true} → afterClose:false`（弹窗是 `div.fixed.inset-0` 内的 `<form>`，旧探针误用 `.lead-modal` 选择器，故此前误判为死按钮）。 | ✅正常（原记录有误） |
+| 导出EXCEL | 工具栏 | **复核为可用，并修正导出内容**：原实现读 `data.items`（线索管理列表的数据源），在弃海 Tab 里会导出与屏幕无关的列表行。已改为导出 `tableLeads`——即当前可见行；浏览器实测弃海 Tab 导出 2 行（弃海线索），筛选到「韩」后只导出 1 行，表头与数据行均正确。 | ✅已修复 |
+| 搜索 | 筛选区 | **确认是真缺陷并已修复**：弃海接口 `GET admin/customer-leads/abandoned` 不接受 `search/status/source` 参数，`tableLeads` 直接渲染未过滤的 `abandonLeads`，故关键词/状态/来源筛选点了都没反应。现于前端加 `filteredAbandonLeads` 记忆化筛选（关键词匹配 称呼/手机/微信/备注/ID，叠加状态、来源与录入日期区间），`tableLeads`、全选框与选择态索引同步改用该结果；搜索按钮在弃海 Tab 下改为重新拉取弃海数据。浏览器实测：关键词「韩」→ 1 行、「zzz-no-such-lead-zzz」→ 暂无数据、「魏」→ 1 行；来源选「抖音」→ 暂无数据、恢复不限 → 2 行；状态选「NEW」→ 暂无数据、选「LOST」→ 2 行。 | ✅已修复 |
 
-### 线索管理 /love-customer-list（伪功能）
+### 线索管理 /love-customer-list（伪功能）— 已修复（2026-10-16）
 | 按钮 | 位置 | 现象 | 结论 |
 |---|---|---|---|
-| 审核有效/无效 下拉 | 行内（审核列） | 改值仅本地变化并保留，无任何后端请求 | ⚠️伪功能(不同步) |
-| 分派待/已 下拉 | 行内（分派列） | 改值无任何请求 | ⚠️伪功能(不同步) |
+| 审核有效/无效 下拉 | 行内（审核列） | 原改值仅本地变化、无后端请求，且选项「无效」在后端枚举里根本不存在（`LeadAuditStatus = Literal["active","pending"]`，实为「有效/待核」）。现渲染真实枚举并 PATCH `admin/customer-leads/{id}` 提交 `audit_status`；简洁视图与专业视图两处同步修复。 | ✅已修复 |
+| 分派待/已 下拉 | 行内（分派列） | 原改值无任何请求，且选项是写死的「待分派/已分派」而非真实红娘。现从 `/customer-leads/options` 的 `matchmakers` 渲染选项，选中即 PATCH `admin/customer-leads/{id}/assignment` 提交 `matchmaker_id`，成功后重载列表；未分派为空值，提示走「分配客源线索」弹窗。两处视图同步修复。 | ✅已修复 |
+
+> **同批次发现并修复的后端缺陷（阻塞上述两处联调）**
+> 1. `app/services/customer_lead_contact.py::find_conflicting_lead_id`：自身排除谓词 `id != :conflict_exclude_id` 被并进联系方式 OR 组，生成 `... AND (phone = :p OR wechat = :w OR id != :exclude)`。库中只要存在两条以上有效线索，该 OR 组恒真，于是**任何**线索编辑（哪怕只改审核状态、完全不碰联系方式）都被误判重复并返回 409。修复为与 OR 组做 AND 连接；新增回归 `tests/test_customer_lead_contact_guard.py`（6 条，其中 1 条直接锁定「排除谓词必须在 OR 组之外」的形状）。
+> 2. `app/services/customer_lead_admin.py::assign_lead`：原先无条件写 `matchmaker_id` 与 `organization_id`，只传红娘时会把门店冲成 NULL。改为 `model_dump(exclude_unset=True)` 只写调用方显式给出的字段；`_validate_owner` 校验保持不变。
+> 3. `scripts/seed_matchmaker_workspace_demo.py`：演示种子只写 `user_role(service_matchmaker)`，从不写 `user_matchmaker_apply`。但 `lead_options`（第 826-828 行）与 `_validate_owner`（第 56-58 行）都要求 `user_matchmaker_apply(status=1)` 与 `user_role(status=1)` **同时命中**才算有效服务红娘，故干净环境里「分派跟进」下拉恒为空、分派校验也必然 422。已在种子脚本补 `_ensure_matchmaker_apply`，让演示操作员同时具备两条身份记录。注意：校验逻辑本身两端一致（选项与分派同用一套 join），这是**种子数据缺口**而非业务缺陷，不改接口语义。
+> 浏览器实测（CDP）：审核下拉 `active→pending→active`、分派下拉切到真实红娘，均发出对应 PATCH 且刷新后值来自服务端。
 
 ### 数据报表 /love-customer-statistics（伪功能）
 | 控件 | 位置 | 现象 | 结论 |
@@ -294,7 +310,7 @@
 | 分成配置 /love-matchmaker-distribution | 更新数据 | 编辑面板·分成模式行 | React 无 handler，0 请求/0 toast/0 变化 | ❌死按钮 |
 | 分成明细 /love-matchmaker-distribution-details | 获取验证码 | 录入分成弹窗 | 无 onClick，点击 0 反应 | ❌死按钮 |
 | 分成明细 | 确定提交 | 录入分成弹窗 | 无 onClick、全字段填完仍 0 请求/弹窗不关 → 无法录入 | ❌死按钮(弹窗摆设) |
-| 分派配置 /love-matchmaker-apportion2 | 服务红娘下拉 | 分派配置 | 恒只剩"请选择"：`matchmakers?page_size=200` 触发 422，列表拉取失败、已存指定红娘不回显 | ❌功能不可用(下拉恒空) |
+| 分派配置 /love-matchmaker-apportion2 | 服务红娘下拉 | 分派配置 | 恒只剩"请选择"：`matchmakers?page_size=200` 触发 422，列表拉取失败、已存指定红娘不回显 | ✅已修复(后端 `le=50`→`le=100`) |
 | 分派配置 | 弃海"不启用"·确定提交 | 弃海配置 | 选"不启用"时 body `auto_abandon_days:null`→422，永远存不下去 | ⚠️伪功能/缺陷 |
 | 分派配置 | 页面错误条 | 说明下方 | 后端校验 JSON 原文直排 UI(`.appo-error`) | ⚠️缺陷 |
 | 分成配置 | 条件方式下拉 | 编辑面板 | 提交把运算符串写入 `promotion_condition`，覆盖原条件文本 | ⚠️数据风险 |

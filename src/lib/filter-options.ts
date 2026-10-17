@@ -65,6 +65,27 @@ export const SEARCH_TYPE = [
   "按姓名搜",
 ] as const;
 
+/** 客户意向（user_profile.intention_level：1低 2中 3高） */
+export const INTENTION_LEVEL = ["低意向", "中意向", "高意向"] as const;
+
+/** 婚况（users.is_married：0未知 1未婚 2离异 3丧偶） */
+export const MARRIAGE_STATUS = ["未婚", "离异", "丧偶"] as const;
+
+/** 学历（user_auth.education 原值） */
+export const EDUCATION = ["高中", "大专", "本科", "硕士", "博士"] as const;
+
+/** 年龄区间（映射到 age_min / age_max） */
+export const AGE_RANGE = ["18-25岁", "26-35岁", "36-45岁", "46-55岁", "55岁以上"] as const;
+
+/** 身高区间（映射到 height_min / height_max） */
+export const HEIGHT_RANGE = ["150-160cm", "160-170cm", "170-180cm", "180-190cm", "190cm以上"] as const;
+
+/** 收入区间（映射到 income_min / income_max） */
+export const INCOME_RANGE = ["3000以下", "3000-8000", "8000-15000", "15000以上"] as const;
+
+/** 会员级别（users.level 原值） */
+export const MEMBER_LEVEL = ["普通会员", "VIP"] as const;
+
 /** 超 N 天未跟进（分派配置） */
 export const OVERDUE_FOLLOW_DAYS = [
   "超3天未跟进",
@@ -278,6 +299,74 @@ export const RECORD_ORDER_VALUE: Record<string, string> = {
   最新记录显示在前面: "latest",
   最早记录显示在前面: "earliest",
   智能匹配: "smart",
+};
+
+/** 客户意向 → user_profile.intention_level（列注释：1低 2中 3高） */
+export const INTENTION_LEVEL_VALUE: Record<string, number> = {
+  低意向: 1,
+  中意向: 2,
+  高意向: 3,
+};
+
+/** 婚况 → users.is_married（列注释：0未知 1未婚 2离异 3丧偶） */
+export const MARRIAGE_STATUS_VALUE: Record<string, number> = {
+  未婚: 1,
+  离异: 2,
+  丧偶: 3,
+};
+
+/** 实名状态 → realname（后端 Boolean：true 已实名 / false 未实名） */
+export const REALNAME_STATUS_VALUE: Record<string, boolean> = {
+  已实名: true,
+  未实名: false,
+};
+
+/** 线下VIP / 置顶推广 / 新人推荐 / 活动报名 → 同名 Boolean 参数 */
+export const BOOLEAN_FILTER_VALUE: Record<string, boolean> = {
+  是: true,
+  不是: false,
+  已报名: true,
+  未报名: false,
+  推荐中: true,
+  置顶中: true,
+  未置顶: false,
+};
+
+/** 搜索方式 → search_type（与后端 SEARCH_TYPE_SQL 的键一一对应） */
+export const SEARCH_TYPE_VALUE: Record<string, string> = {
+  智能搜索: "smart",
+  按手机搜: "phone",
+  按微信搜: "wechat",
+  按编号搜: "code",
+  按ID搜: "id",
+  按昵称搜: "nickname",
+  按姓名搜: "realname",
+};
+
+/** 年龄区间文案 → [age_min, age_max] */
+export const AGE_RANGE_VALUE: Record<string, [number, number | null]> = {
+  "18-25岁": [18, 25],
+  "26-35岁": [26, 35],
+  "36-45岁": [36, 45],
+  "46-55岁": [46, 55],
+  "55岁以上": [56, null],
+};
+
+/** 身高区间文案 → [height_min, height_max] */
+export const HEIGHT_RANGE_VALUE: Record<string, [number, number | null]> = {
+  "150-160cm": [150, 160],
+  "160-170cm": [160, 170],
+  "170-180cm": [170, 180],
+  "180-190cm": [180, 190],
+  "190cm以上": [191, null],
+};
+
+/** 收入区间文案 → [income_min, income_max] */
+export const INCOME_RANGE_VALUE: Record<string, [number | null, number | null]> = {
+  "3000以下": [null, 3000],
+  "3000-8000": [3000, 8000],
+  "8000-15000": [8000, 15000],
+  "15000以上": [15000, null],
 };
 
 /** 线索落户方式 → bind_mode */
