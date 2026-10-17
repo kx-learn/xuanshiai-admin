@@ -13,7 +13,7 @@ import { showConfigToast } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("合伙红娘", "合伙人管理");
 
-const columns = ["ID", "合伙人", "合伙级别", "创建时间", "团队成员", "团队业绩", "团队有效会员", "累积分成", "操作"];
+const columns = ["ID", "合伙人", "合伙级别", "状态", "创建时间", "团队成员", "团队业绩", "团队有效会员", "累积分成", "操作"];
 
 const LEVEL_OPTIONS: { id: PartnerLevelId; label: string }[] = [
   { id: 1, label: "初级合伙人" },
@@ -115,6 +115,12 @@ export default function LovePartnerListPage() {
                     </div>
                   </td>
                   <td><span className="lpl-level">{p.level_name || `级别${p.level_id}`}</span></td>
+                  <td>
+                    {/* 删除是「关闭」软删而非物理删除，必须让状态可见，否则用户会重复点删 */}
+                    <span className={p.status === 1 ? "text-[#52c41a]" : "text-[#999]"}>
+                      {p.status_label || (p.status === 1 ? "正常" : p.status === 2 ? "已关闭" : "已停用")}
+                    </span>
+                  </td>
                   <td className="lpl-time">{fmt(p.created_at)}</td>
                   <td>
                     {p.member_count}人{" "}
@@ -136,7 +142,12 @@ export default function LovePartnerListPage() {
                         合伙人中心
                       </a>
                       <a className="finord-link" role="button" onClick={() => { setEditing(p); setAddOpen(true); }}>编辑</a>
-                      <a className="finord-link lpl-op-del" role="button" onClick={() => void removeRow(p)}>删除</a>
+                      {p.status === 1 ? (
+                        <a className="finord-link lpl-op-del" role="button" onClick={() => void removeRow(p)}>删除</a>
+                      ) : (
+                        // 关闭是软删，行会留在列表里；已关闭的行不再提供删除，避免重复操作
+                        <span className="finord-link text-[#bfbfbf]" title="该合伙人已关闭">已删除</span>
+                      )}
                     </div>
                   </td>
                 </tr>

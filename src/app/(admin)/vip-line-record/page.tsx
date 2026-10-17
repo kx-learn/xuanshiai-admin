@@ -89,6 +89,8 @@ function LineMember({
 export default function Page() {
   const [operator, setOperator] = useState("");
   const [server, setServer] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [searchBy, setSearchBy] = useState("nick");
   const [keyword, setKeyword] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -100,12 +102,31 @@ export default function Page() {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
+  /** 服务红娘候选：`/admin/matchmaker/matchmakers` 返回 user_id，可直接作为筛选值 */
+  const [matchmakers, setMatchmakers] = useState<Array<{ user_id: number; nickname?: string | null }>>([]);
+
+  useEffect(() => {
+    void adminEndpoints
+      .matchmakers({ page: 1, page_size: 100 })
+      .then((result) => {
+        const items = (result as { items?: Array<{ user_id: number; nickname?: string | null }> }).items;
+        setMatchmakers(Array.isArray(items) ? items : []);
+      })
+      .catch(() => setMatchmakers([]));
+  }, []);
 
   /* ---------- 加载 ---------- */
   const loadData = async () => {
     setLoading(true);
     try {
-      const result = await adminEndpoints.matchRecords({ page, page_size: pageSize, search: keyword.trim() || undefined });
+      const result = await adminEndpoints.matchRecords({
+        page,
+        page_size: pageSize,
+        search: keyword.trim() || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        matchmaker_id: server ? Number(server) : undefined,
+      });
       const items = (result as { items: LineRow[]; total: number }).items;
       setRows(items);
       setTotal((result as { total: number }).total);
@@ -212,8 +233,14 @@ export default function Page() {
         <div className="vlr-head">
           <h2 className="vlr-title">红娘牵线</h2>
           <div className="vlr-tools">
-            <span className="vlr-auto-tip">超时自动·牵线失败【已开启】</span>
-            <button type="button" className="vlr-icon-btn" aria-label="超时自动牵线失败设置">
+            <span className="vlr-auto-tip">超时自动·牵线失败【已开启】（48 小时）</span>
+            <button
+              type="button"
+              className="vlr-icon-btn"
+              aria-label="超时自动牵线失败设置"
+              disabled
+              title="超时时长在后端固定为 48 小时，暂无配置接口"
+            >
               <Settings size={16} />
             </button>
             <button type="button" className="vlr-btn primary" onClick={() => setAddOpen(true)}>
@@ -237,12 +264,24 @@ export default function Page() {
             <ChevronDown className="vlr-caret" />
           </label>
           <label className="vlr-select">
-            <select value={server} onChange={(e) => setServer(e.target.value)}>
+            <select value={server} onChange={(e) => setServer(e.target.value)} aria-label="按服务红娘筛选">
               <option value="">全部服务红娘</option>
+              {matchmakers.map((item) => (
+                <option key={item.user_id} value={item.user_id}>
+                  {item.nickname || `红娘#${item.user_id}`}
+                </option>
+              ))}
             </select>
             <ChevronDown className="vlr-caret" />
           </label>
-          <DateRangePicker startValue="" endValue="" onStartChange={() => {}} onEndChange={() => {}} className="w-[260px]" />
+          {/* 用共用 DateRangePicker，并真正接上状态——远端版本传的是空回调，等于死控件 */}
+          <DateRangePicker
+            startValue={dateFrom}
+            endValue={dateTo}
+            onStartChange={setDateFrom}
+            onEndChange={setDateTo}
+            className="w-[260px]"
+          />
           <label className="vlr-select">
             <select value={searchBy} onChange={(e) => setSearchBy(e.target.value)}>
               <option value="nick">按申请人昵称搜</option>

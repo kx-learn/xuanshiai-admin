@@ -384,6 +384,16 @@ export default function LoveUserListPage() {
       setLoading(false);
     }
   }, [filters, page, pageSize, sortBy]);
+  // 从推广红娘等页面跳转时可能带 ?promoter_id=，作为初始筛选条件。
+  // 用 window.location 而非 useSearchParams，避免 App Router 的 Suspense 边界要求。
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const promoterId = params.get("promoter_id");
+    if (!promoterId) return;
+    const next = { ...initialFilters, promoter_id: promoterId };
+    setDraft(next);
+    setFilters(next);
+  }, []);
   useEffect(() => {
     void load();
   }, [load]);

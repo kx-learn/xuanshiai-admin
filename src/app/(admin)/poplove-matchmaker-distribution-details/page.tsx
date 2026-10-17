@@ -343,7 +343,12 @@ function AddCommissionDrawer({ onClose }: { onClose: () => void }) {
             <div className="pdd-field-body">
               <div className="pdd-inline">
                 <input className="pdd-input" placeholder="请输入短信验证码" />
-                <button type="button" className="pdd-code-btn">
+                <button
+                  type="button"
+                  className="pdd-code-btn"
+                  disabled
+                  title="后端未提供短信验证码下发接口"
+                >
                   获取验证码
                 </button>
               </div>
@@ -357,7 +362,8 @@ function AddCommissionDrawer({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             className="pdd-submit"
-            onClick={() => showConfigToast("该功能后端暂未开放，请联系开发", "error")}
+            disabled
+            title="后端未提供手动录入推广红娘分成的写接口"
           >
             确定提交
           </button>

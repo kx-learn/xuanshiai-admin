@@ -158,6 +158,8 @@ export default function Page() {
   const [logWaitOnly, setLogWaitOnly] = useState(false);
   const [logPage, setLogPage] = useState(1);
   const [logPageSize, setLogPageSize] = useState(20);
+  /** 推广红娘筛选：从推广红娘列表的「明细」跳转时由 ?promoter_id= 预填 */
+  const [promoterId, setPromoterId] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickRows, setQuickRows] = useState<QuickRow[]>([emptyQuickRow()]);
@@ -275,6 +277,7 @@ export default function Page() {
             xiangqin_status: moreFilters.xiangqin_status ? XIANGQIN_STATUS_VALUE[moreFilters.xiangqin_status] : undefined,
             bind_mode: moreFilters.bind_mode ? ACCOUNT_BIND_MODE_VALUE[moreFilters.bind_mode] : undefined,
             order: moreFilters.order ? RECORD_ORDER_VALUE[moreFilters.order] : undefined,
+            promoter_id: promoterId ? Number(promoterId) : undefined,
           }),
           adminEndpoints.customerLeadStatistics(),
           adminEndpoints.abandonedCustomerLeads().catch(() => []),
@@ -290,7 +293,7 @@ export default function Page() {
         setLoading(false);
       }
     },
-    [keyword, status, source, moreFilters, filterAssign],
+    [keyword, status, source, moreFilters, filterAssign, promoterId],
   );
   useEffect(() => {
     void load();
@@ -307,6 +310,11 @@ export default function Page() {
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
     if (tab === "abandon" || tab === "log") setLeadTab(tab);
+  }, []);
+  /* 推广红娘列表的「明细」跳转带 ?promoter_id=，作为初始筛选 */
+  useEffect(() => {
+    const promoter = new URLSearchParams(window.location.search).get("promoter_id");
+    if (promoter) setPromoterId(promoter);
   }, []);
   const loadAbandon = useCallback(async () => {
     setAbandonLoading(true);
@@ -756,13 +764,24 @@ export default function Page() {
                 setKeyword("");
                 setStatus("");
                 setSource("");
+                setPromoterId("");
               }}
               className="h-10 rounded border px-4 text-sm"
             >
               重置
             </button>
           </div>
-          <select defaultValue="" className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"><option value="">排序：录入时间</option><option>排序：分派时间</option><option>排序：捞取时间</option></select>
+          <select
+            value={moreFilters.order ?? ""}
+            onChange={(e) => setMoreFilters((current) => ({ ...current, order: e.target.value }))}
+            className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"
+            aria-label="记录排序"
+          >
+            <option value="">排序：不限</option>
+            <option value="最新记录显示在前面">排序：最新记录</option>
+            <option value="最早记录显示在前面">排序：最早记录</option>
+            <option value="智能匹配">排序：智能匹配</option>
+          </select>
           <div className="lead-mode-switch">{viewMode === "simple" && <button className="lead-settings" aria-label="简洁模式设置" onClick={() => setSimpleSetOpen(true)}>⚙</button>}<button className={viewMode === "simple" ? "active" : ""} onClick={() => setViewMode("simple")}>简洁</button><button className={viewMode === "professional" ? "active" : ""} onClick={() => setViewMode("professional")}>专业</button></div>
         </div>
         <div className="lead-metrics-grid grid grid-cols-2 gap-3 md:grid-cols-6" style={leadTab === "list" ? undefined : { display: "none" }}>

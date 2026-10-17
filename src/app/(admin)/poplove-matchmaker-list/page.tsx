@@ -13,11 +13,13 @@ import {
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import TutorialDialog from "@/components/TutorialDialog";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints, PROMOTER_LEVELS } from "@/lib/admin-endpoints";
 import type {
+  MatchmakerTutorial,
   PromoterCreatePayload,
   PromoterStaffItem,
   PromoterStatistics,
@@ -79,6 +81,8 @@ export default function PoploveMatchmakerListPage() {
   const [delRow, setDelRow] = useState<PromoterStaffItem | null>(null);
 
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorial, setTutorial] = useState<MatchmakerTutorial | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -254,7 +258,14 @@ export default function PoploveMatchmakerListPage() {
             <p>推广红娘与服务红娘身份互斥，状态为展示的推广红娘会按有效会员数前10位进行排序显示在红娘列表中。</p>
             <p>
               推广红娘分为兼职和全职两种类型，全职类型推广红娘为婚恋公司内部专职招客引流人员，全职推广红娘请注意使用PC版进行办公，登录入口：
-              <button type="button" className="pml-notice-link">点击打开</button>
+              <button
+                type="button"
+                className="pml-notice-link"
+                disabled
+                title="推广红娘后台是独立系统，当前后台未配置其入口地址"
+              >
+                点击打开
+              </button>
             </p>
           </div>
         </div>
@@ -286,7 +297,18 @@ export default function PoploveMatchmakerListPage() {
               <FileSpreadsheet size={14} />
               导出EXCEL
             </button>
-            <button type="button" className="pml-tutorial">
+            <button
+              type="button"
+              className="pml-tutorial"
+              onClick={async () => {
+                try {
+                  setTutorial(await adminEndpoints.matchmakerTutorial());
+                  setTutorialOpen(true);
+                } catch (e) {
+                  showConfigToast(e instanceof Error ? e.message : "加载教程失败", "error");
+                }
+              }}
+            >
               <Images size={14} />
               图文解说推广红娘
             </button>
@@ -426,8 +448,22 @@ export default function PoploveMatchmakerListPage() {
                           <span className="pml-k">本月{row.member_month}人</span>
                         </div>
                         <div className="pml-cell-links">
-                          <button type="button" className="pml-mini-btn">明细</button>
-                          <button type="button" className="pml-mini-btn">报表</button>
+                          <button
+                            type="button"
+                            className="pml-mini-btn"
+                            onClick={() => router.push(`/love-user-list?promoter_id=${row.user_id}`)}
+                            title="查看该推广红娘名下的会员"
+                          >
+                            明细
+                          </button>
+                          <button
+                            type="button"
+                            className="pml-mini-btn"
+                            onClick={() => router.push("/love-user-statistics")}
+                            title="会员数据报表"
+                          >
+                            报表
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -438,8 +474,22 @@ export default function PoploveMatchmakerListPage() {
                           <span className="pml-k">本月{row.lead_month}条</span>
                         </div>
                         <div className="pml-cell-links">
-                          <button type="button" className="pml-mini-btn">明细</button>
-                          <button type="button" className="pml-mini-btn">报表</button>
+                          <button
+                            type="button"
+                            className="pml-mini-btn"
+                            onClick={() => router.push(`/love-customer-list?promoter_id=${row.user_id}`)}
+                            title="查看该推广红娘录入的客源线索"
+                          >
+                            明细
+                          </button>
+                          <button
+                            type="button"
+                            className="pml-mini-btn"
+                            onClick={() => router.push("/love-customer-statistics")}
+                            title="客源数据报表"
+                          >
+                            报表
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -515,6 +565,10 @@ export default function PoploveMatchmakerListPage() {
         onConfirm={() => void onConfirmDelete()}
         onCancel={() => setDelRow(null)}
       />
+
+      {tutorialOpen && tutorial && (
+        <TutorialDialog tutorial={tutorial} onClose={() => setTutorialOpen(false)} />
+      )}
 
       {posterUrl && (
         <>

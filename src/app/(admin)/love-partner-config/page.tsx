@@ -25,11 +25,18 @@ export default function LovePartnerConfigPage() {
 
   // 配置域回填（不改动 DOM 结构，仅同步受控值）
   useEffect(() => {
-    if (!domain.ready) return;
+    if (!domain.ready || !editorRef.current) return;
     const config = domain.snapshot?.config ?? {};
     setShareBonus(asBool(config.share_bonus, true) ? "享有" : "不享有");
+    // 服务端存了内容就以服务端为准；没存过才回落到模板文案。
+    // 之前只在 stored 非空时赋值，没存过时编辑器靠 dangerouslySetInnerHTML 显示模板，
+    // 看着有内容但库里是空的——用户不改直接提交会把模板顶上去，语义是错的。
     const stored = asStr(config.content_html, "");
-    if (stored && editorRef.current) editorRef.current.innerHTML = stored;
+    if (stored) {
+      editorRef.current.innerHTML = stored;
+    } else if (!editorRef.current.innerHTML.trim()) {
+      editorRef.current.innerHTML = DEFAULT_EDITOR_HTML;
+    }
   }, [domain.ready, domain.snapshot]);
 
   const submit = useCallback(async () => {
@@ -77,13 +84,16 @@ export default function LovePartnerConfigPage() {
           <span className="lp-label">＊合伙人介绍文案</span>
           <div className="lp-content">
             <div className="lp-editor">
-              <div className="lp-editor-toolbar"><span className="lp-editor-tool-hint">支持纯文本编辑</span></div>
+              <div className="lp-editor-toolbar">
+                <span className="lp-editor-tool-hint">
+                  支持纯文本编辑{domain.ready && !asStr(domain.snapshot?.config?.content_html, "") ? "（当前显示的是模板示例，尚未保存）" : ""}
+                </span>
+              </div>
               <div
                 ref={editorRef}
                 className="lp-editor-body"
                 contentEditable
                 suppressContentEditableWarning
-                dangerouslySetInnerHTML={{ __html: DEFAULT_EDITOR_HTML }}
               />
             </div>
           </div>
