@@ -210,7 +210,7 @@ export default function XixunListPage() {
         </div>
       </div>
 
-      <div className="finord-card">
+      <div className="finord-card xl-card">
         <div className="finord-filters xl-filters">
           <select className="finord-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="">按状态分类</option>
@@ -293,6 +293,7 @@ export default function XixunListPage() {
           </table>
         </div>
 
+        {selected.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selected.length}</b> 项</span><button type="button" onClick={() => setSelected([])}>取消选择</button></div>}
         <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 

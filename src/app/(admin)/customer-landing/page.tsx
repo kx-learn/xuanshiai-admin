@@ -238,7 +238,7 @@ export default function CustomerLandingPage() {
             <div className="ecl-notice-title">须知</div>
             <p>获客落地页能够灵活用于各个运营场景中用于快捷完成"用户资料填写"之用途，也可以用于在第三方平台投放使用，并能统计浏览量和获客数据。</p>
             <p>通过获客落地页获取的资料可显示在"客源线索-线索管理"或"会员CRM-资料管理"中，并会在来源中标注来自"落地页"。用户通过落地页登记资料免费审核通过。</p>
-            <p>内置表单模式下，只要手机号已经存在库中，均无法再次提交。<a className="cl-inline-link" href="#">效果预览</a></p>
+            <p>内置表单模式下，只要手机号已经存在库中，均无法再次提交。<span className="cl-inline-link cl-disabled" title="后台没有落地页的公开访问地址，无法预览">效果预览</span></p>
             <p>自由表单模式下，同一个表单项目，同一手机号只允许提交一次，不判断是否是平台会员，可在多个项目之间重复提交。</p>
           </div>
         </div>
@@ -296,10 +296,10 @@ export default function CustomerLandingPage() {
                     <td>{typeof extra.views === "number" ? extra.views : 0}</td>
                     <td>{typeof extra.leads === "string" ? extra.leads : "总数：0 男：0 女：0"}</td>
                     <td>{typeof extra.promoter === "string" ? extra.promoter : "-"}</td>
-                    <td><a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("请前往预览页复制链接", "ok"); }}>查看</a></td>
+                    <td><span className="finord-link cl-disabled" title="后台没有落地页的公开访问地址，暂无法查看链接">查看</span></td>
                     <td>
                       <div className="cl-ops">
-                        <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); showConfigToast("请前往预览", "ok"); }}>预览</a>
+                        <span className="finord-link cl-disabled" title="后台没有落地页的公开访问地址，无法预览">预览</span>
                         <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void duplicate(row); }}>复制</a>
                         <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); openEdit(row); }}>编辑</a>
                         <a className="finord-link cl-op-del" href="#" onClick={(e) => { e.preventDefault(); void remove(row.id); }}>删除</a>
@@ -378,7 +378,7 @@ function AddLandingDrawer(props: {
                   <span>{o}</span>
                 </label>
               ))}
-              {draft.form_type === "自由表单" && <a className="cll-link">效果预览</a>}
+              {draft.form_type === "自由表单" && <span className="cll-link cl-disabled" title="后台没有落地页的公开访问地址，无法预览">效果预览</span>}
             </div>
           </div>
 
@@ -391,7 +391,7 @@ function AddLandingDrawer(props: {
                   <span>{o}</span>
                 </label>
               ))}
-              <a className="cll-link">预览</a>
+              <span className="cll-link cl-disabled" title="后台没有落地页的公开访问地址，无法预览">预览</span>
             </div>
           </div>
 

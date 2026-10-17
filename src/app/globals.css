@@ -356,6 +356,9 @@
 .au-card > .lead-bulk-toolbar { position: fixed; right: 0; bottom: 0; left: 224px; z-index: 45; display: flex; align-items: center; gap: 10px; min-height: 54px; margin: 0; padding: 8px 18px; border-top: 1px solid #e3e7ef; background: #fff; box-shadow: 0 -2px 10px rgba(24,40,80,.12); }
 .au-card > .lead-bulk-toolbar button { height: 36px; border: 1px solid #3658f7; border-radius: 4px; background: #3658f7; padding: 0 16px; color: #fff; font-size: 13px; white-space: nowrap; }
 .au-card > .lead-bulk-toolbar { color: #46516b; font-size: 13px; }
+.xl-card > .lead-bulk-toolbar { position: fixed; right: 0; bottom: 0; left: 224px; z-index: 45; display: flex; align-items: center; gap: 10px; min-height: 54px; margin: 0; padding: 8px 18px; border-top: 1px solid #e3e7ef; background: #fff; box-shadow: 0 -2px 10px rgba(24,40,80,.12); color: #46516b; font-size: 13px; }
+.cl-disabled { color: #bfbfbf !important; cursor: not-allowed; text-decoration: none !important; }
+.xl-card > .lead-bulk-toolbar button { height: 36px; border: 1px solid #3658f7; border-radius: 4px; background: #3658f7; padding: 0 16px; color: #fff; font-size: 13px; white-space: nowrap; }
 .customer-lead-page .lead-metric-card { min-height: 86px; padding: 14px 16px; border-radius: 4px; background: #f7f8fa; }
 .customer-lead-page .lead-metric-card.selected { background: #eef2ff; }
 .customer-lead-page .lead-metric-card > div:first-child { color: #9299a5; font-size: 14px; }

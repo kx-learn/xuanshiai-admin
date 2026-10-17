@@ -181,16 +181,12 @@ export default function InteractContentPage() {
                         编辑
                       </button>
                       <span className="cs-op-sep">|</span>
-                      <a
-                        className="finord-link"
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          showConfigToast(`已查看回复内容管理（${r.reply_count} 条）`, "ok");
-                        }}
+                      <span
+                        className="finord-link cl-disabled"
+                        title="后端没有互动内容回复的列表接口，无法进入回复管理"
                       >
                         回复内容管理 ({r.reply_count})
-                      </a>
+                      </span>
                       <span className="cs-op-sep">|</span>
                       <button
                         type="button"
