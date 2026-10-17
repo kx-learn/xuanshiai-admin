@@ -12,6 +12,23 @@ const breadcrumb = getBreadcrumb("总店红娘", "分成配置");
 
 const CONDITION_TYPES = ["累积>", "累积>=", "等于"];
 
+/**
+ * 把库里存的完整条件文本拆回「运算符 + 数值」。
+ *
+ * 保存时是把两者拼成一个字符串写进 promotion_condition（如「累积>5000」），
+ * 载入时若整串塞进数值框，再点保存就会拼成「累积>累积>5000」——条件文本被逐次污染。
+ * 这里按最长前缀优先匹配，匹配不上就原样当作数值。
+ */
+function splitCondition(raw: string): { type: string; value: string } {
+  const text = raw.trim();
+  if (!text) return { type: CONDITION_TYPES[0], value: "" };
+  const matched = [...CONDITION_TYPES]
+    .sort((a, b) => b.length - a.length)
+    .find((type) => text.startsWith(type));
+  if (!matched) return { type: CONDITION_TYPES[0], value: text };
+  return { type: matched, value: text.slice(matched.length).trim() };
+}
+
 export default function Page() {
   const [levels, setLevels] = useState<CommissionLevel[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,8 +70,9 @@ export default function Page() {
     setMode(row.mode);
     setRatePercent(row.rate_percent ?? "");
     setFixedAmount(row.fixed_amount ?? "");
-    setConditionType("累积>");
-    setConditionValue(row.promotion_condition ?? "");
+    const rowCondition = splitCondition(row.promotion_condition ?? "");
+    setConditionType(rowCondition.type);
+    setConditionValue(rowCondition.value);
     setPayMethod(row.platform_extra_pay_mode ?? "manual");
     try {
       const detail = await adminEndpoints.commissionLevel(row.id);
@@ -63,7 +81,9 @@ export default function Page() {
       setMode(detail.mode);
       setRatePercent(detail.rate_percent ?? "");
       setFixedAmount(detail.fixed_amount ?? "");
-      setConditionValue(detail.promotion_condition ?? "");
+      const detailCondition = splitCondition(detail.promotion_condition ?? "");
+      setConditionType(detailCondition.type);
+      setConditionValue(detailCondition.value);
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "加载详情失败", "error");
     }
@@ -327,7 +347,12 @@ export default function Page() {
                       />
                       <span>按照比例自动计算</span>
                     </label>
-                    <button type="button" className="cd-update-btn">
+                    <button
+                      type="button"
+                      className="cd-update-btn"
+                      disabled
+                      title="平台收费配置属于系统设置页，后端未提供供本页读取收费基准的接口，无法据此推算金额"
+                    >
                       更新数据
                     </button>
                   </div>

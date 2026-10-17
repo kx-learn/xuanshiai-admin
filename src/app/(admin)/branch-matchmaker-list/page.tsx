@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
@@ -234,6 +234,8 @@ function AddMatchmakerDrawer({
   const [contactScope, setContactScope] = useState("仅显示自己名下会员的联系方式");
   const [dispatchPerm, setDispatchPerm] = useState("不允许分派会员、客源给其他红娘");
   const [timedLock, setTimedLock] = useState(false);
+  // datetime-local 要的是 "YYYY-MM-DDTHH:mm"，后端 lock_at 是 ISO 串，回填时截到分钟
+  const [lockAt, setLockAt] = useState("");
 
   const [avatar, setAvatar] = useState<string | null>(row?.avatar ?? null);
   const [wechatQr, setWechatQr] = useState<string | null>(row?.wechat_qr ?? null);
@@ -255,6 +257,7 @@ function AddMatchmakerDrawer({
     if (row) {
       setEditContact(row.contact_editable === false ? "不允许" : "允许");
       setTimedLock(!!row.lock_at);
+      setLockAt(row.lock_at ? String(row.lock_at).slice(0, 16) : "");
     }
   }, [row]);
 
@@ -274,6 +277,8 @@ function AddMatchmakerDrawer({
     if (!phone.trim() || !/^\d{11,20}$/.test(phone.trim())) { setError("请填写正确的手机号"); return; }
     if (!editing && !lookup.trim()) { setError("请填写要绑定的用户昵称或手机号"); return; }
     if (!storeSel) { setError("请先选择隶属门店（可在上方筛选区选择后再添加）"); return; }
+    // 开了定时锁定就必须给时间，否则这个开关等于没开（后端 lock_at 为空不会触发自动锁定）
+    if (timedLock && !lockAt) { setError("已开启定时锁定，请选择自动锁定时间"); return; }
     setError("");
     setSaving(true);
     try {
@@ -290,6 +295,7 @@ function AddMatchmakerDrawer({
           slogan: slogan.trim() || null,
           sort: Number(sort) || 0,
           contact_editable: editContact === "允许",
+          lock_at: timedLock && lockAt ? lockAt : null,
         });
       } else {
         await adminEndpoints.createMatchmakerStaff({
@@ -306,6 +312,7 @@ function AddMatchmakerDrawer({
           slogan: slogan.trim() || null,
           sort: Number(sort) || 0,
           contact_editable: editContact === "允许",
+          lock_at: timedLock && lockAt ? lockAt : null,
           visible: true,
         });
       }
@@ -369,11 +376,21 @@ function AddMatchmakerDrawer({
                   <span>红娘头像</span>
                   {avatar && <img src={resolveMediaUrl(avatar) ?? avatar} alt="头像" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />}
                   <button type="button" className="bm-pick-btn" onClick={() => avatarRef.current?.click()}><Plus size={14} /> 上传图片</button>
+                  {avatar ? (
+                    <button type="button" className="bm-pick-btn" onClick={() => setAvatar(null)} title="清除已选头像">
+                      <Trash2 size={14} /> 移除
+                    </button>
+                  ) : null}
                 </div>
                 <div className="bm-pick">
                   <span>微信二维码</span>
                   {wechatQr && <img src={resolveMediaUrl(wechatQr) ?? wechatQr} alt="二维码" style={{ width: 40, height: 40, objectFit: "cover" }} />}
                   <button type="button" className="bm-pick-btn" onClick={() => qrRef.current?.click()}><Plus size={14} /> 上传图片</button>
+                  {wechatQr ? (
+                    <button type="button" className="bm-pick-btn" onClick={() => setWechatQr(null)} title="清除已选二维码">
+                      <Trash2 size={14} /> 移除
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -514,17 +531,35 @@ function AddMatchmakerDrawer({
             </div>
           </div>
 
-          {/* 定时锁定 */}
+          {/* 定时锁定：lock_at 就是到点自动锁定时间，后端早就有该字段 */}
           <div className="bm-row">
             <span className="bm-label">定时锁定</span>
             <div className="bm-content">
               <div className="bm-switch-row">
                 <span>{timedLock ? "开启" : "关闭"}</span>
-                <button type="button" className={`mp-switch ${timedLock ? "on" : ""}`} onClick={() => setTimedLock(!timedLock)}>
+                <button
+                  type="button"
+                  className={`mp-switch ${timedLock ? "on" : ""}`}
+                  onClick={() => setTimedLock(!timedLock)}
+                  aria-pressed={timedLock}
+                >
                   <span className="mp-switch-knob"></span>
                 </button>
+                {timedLock ? (
+                  <input
+                    type="datetime-local"
+                    className="bm-input-num"
+                    style={{ width: 200 }}
+                    value={lockAt}
+                    onChange={(e) => setLockAt(e.target.value)}
+                    aria-label="自动锁定时间"
+                  />
+                ) : null}
               </div>
-              <div className="bm-info">① 开启定时锁定后，到了时间后该账号自动锁定</div>
+              <div className="bm-info">
+                ① 开启定时锁定后，到了时间后该账号自动锁定
+                {timedLock && !lockAt ? "（请先选择锁定时间）" : ""}
+              </div>
             </div>
           </div>
 

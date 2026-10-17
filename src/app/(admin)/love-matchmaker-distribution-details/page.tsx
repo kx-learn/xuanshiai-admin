@@ -108,9 +108,10 @@ export default function Page() {
 
         {/* 筛选 */}
         <div className="cdd-filters">
-          <div className="cdd-select">
-            <select defaultValue="">
-              <option value="">所有门店</option>
+          {/* 本页数据源是「平台↔服务红娘」分成，本身只有总店口径；
+              分店分成是另一套接口（store-commission-entries），不能在这里混筛 */}
+          <div className="cdd-select" title="本页只统计总店红娘分成；分店分成请到分店管理-分成明细查看">
+            <select value="total" disabled aria-label="门店（固定为总店）">
               <option value="total">总店</option>
             </select>
             <ChevronDown className="cdd-caret" size={14} />
@@ -127,8 +128,8 @@ export default function Page() {
             <ChevronDown className="cdd-caret" size={14} />
           </div>
           <div className="cdd-select">
-            <select value={ruleId} onChange={(e) => setRuleId(e.target.value)}>
-              <option value="">请选择消费事件</option>
+            <select value={ruleId} onChange={(e) => setRuleId(e.target.value)} aria-label="按分成规则筛选">
+              <option value="">全部消费事件</option>
               {options.events.map((ev) => (
                 <option key={ev.id} value={ev.id}>
                   {ev.name}
@@ -272,23 +273,6 @@ export default function Page() {
               <div className="cdd-field">
                 <label className="cdd-field-label">
                   <span className="req">*</span>分成事件
-                </label>
-                <div className="cdd-select block">
-                  <select defaultValue="">
-                    <option value="">请选择消费事件</option>
-                    {EVENT_OPTIONS.slice(1).map((event) => (
-                      <option key={event} value={event}>
-                        {event}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="cdd-caret" size={14} />
-                </div>
-              </div>
-
-              <div className="cdd-field">
-                <label className="cdd-field-label">
-                  <span className="req">*</span>消费事件
                 </label>
                 <div className="cdd-select block">
                   <select defaultValue="">

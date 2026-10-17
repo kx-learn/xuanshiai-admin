@@ -59,6 +59,27 @@ function Hint({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** 把后端校验原始 JSON 收敛成人话：`.appo-error` 曾直接展示 `{"detail":[...]}`。 */
+function friendlyApportionError(error: unknown): string {
+  if (!(error instanceof Error)) return "加载失败";
+  const message = error.message.trim();
+  if (!message.startsWith("{") && !message.startsWith("[")) return message;
+  try {
+    const parsed = JSON.parse(message);
+    const detail = (parsed as { detail?: unknown }).detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      const first = detail[0] as { msg?: string; loc?: unknown[] } | undefined;
+      const field = Array.isArray(first?.loc) ? String(first.loc[first.loc.length - 1] ?? "") : "";
+      const msg = first?.msg ?? "参数校验失败";
+      return field ? `${field}：${msg}` : msg;
+    }
+  } catch {
+    // 不是 JSON 就走下面的通用文案
+  }
+  return "加载失败，请稍后重试";
+}
+
 export default function Page() {
   const [activeScopeKey, setActiveScopeKey] = useState("member-crm");
   const activeScope = SCOPES.find((s) => s.key === activeScopeKey)?.scope ?? "member_crm";
@@ -90,7 +111,7 @@ export default function Page() {
       setConfigs(cfg ?? []);
       setServiceMatchmakers(staff.items ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(friendlyApportionError(e));
     } finally {
       setLoading(false);
     }
