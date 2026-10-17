@@ -274,7 +274,7 @@ export default function ActiveListPage() {
           <h2 className="al-title">活动管理</h2>
           <div className="al-head-actions">
             <button className="finord-btn finord-btn-primary al-publish-btn" onClick={openAdd}>＋ 发布活动</button>
-            <button className="finord-btn finord-btn-primary al-preview-btn"><Eye size={14} /> 预览活动栏目</button>
+            <button className="finord-btn finord-btn-primary al-preview-btn" disabled title="后端只提供单个活动的链接，没有活动栏目的预览地址"><Eye size={14} /> 预览活动栏目</button>
           </div>
         </div>
 

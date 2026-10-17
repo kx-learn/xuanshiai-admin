@@ -143,7 +143,7 @@ export default function ActiveSignupmanagerPage() {
         <div className="sm-head">
           <h2 className="sm-title">报名管理</h2>
           <div className="sm-head-actions">
-            <button className="finord-btn finord-btn-primary sm-export-card-btn">📇 导出报名资料卡片</button>
+            <button className="finord-btn finord-btn-primary sm-export-card-btn" disabled title="后端没有报名资料卡片的生成接口">📇 导出报名资料卡片</button>
             <button className="finord-btn finord-btn-primary sm-export-btn" onClick={exportExcel}><Download size={14} /> 导出EXCEL</button>
           </div>
         </div>

@@ -263,7 +263,24 @@ export default function MerchantAllianceConfigPage() {
                 <div className="mac-cat-row" key={c.id}>
                   <div className="mac-cat-input">{c.name}</div>
                   <div className="mac-cat-icons">
-                    <button type="button" className="mac-icon-btn"><ImagePlus size={14} /> 上传图标</button>
+                    <label className="mac-icon-btn" style={{ cursor: "pointer" }}>
+                      <ImagePlus size={14} /> 上传图标
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          pickAndUploadImage(file, (url) => {
+                            adminEndpoints
+                              .updateMerchantCategory(c.id, { icon_url: url })
+                              .then(loadCategories)
+                              .catch((err) => showConfigToast(err instanceof Error ? err.message : "图标保存失败", "error"));
+                          }, (msg) => showConfigToast(msg, "error"));
+                        }}
+                      />
+                    </label>
                     <button
                       type="button"
                       className="mac-icon-btn"
