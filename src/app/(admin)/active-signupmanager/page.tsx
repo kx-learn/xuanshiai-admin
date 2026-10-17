@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { X, Download, Camera } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type ActivityOption, type ActivitySignupItem, type ActivitySignupStatistics } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -165,10 +166,7 @@ export default function ActiveSignupmanagerPage() {
               <input type="radio" name="signupTab" value="首次报名" checked={signupTab === "首次报名"} onChange={() => setSignupTab("首次报名")} />
               <span>首次报名</span>
             </label>
-            <span className="sm-text-muted">开始日期</span>
-            <input className="sm-date" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            <span className="sm-text-muted">结束日期</span>
-            <input className="sm-date" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <DateRangePicker startValue={dateFrom} endValue={dateTo} onStartChange={setDateFrom} onEndChange={setDateTo} className="w-[260px]" />
             <select className="sm-select" value={searchBy} onChange={(e) => setSearchBy(e.target.value)}><option>按昵称搜</option><option>按手机搜</option><option>按姓名搜</option></select>
             <input className="sm-input" placeholder="请输入" value={search} onChange={(e) => setSearch(e.target.value)} />
             <button className="finord-btn finord-btn-primary sm-search-btn" onClick={() => loadRows(activityId ? Number(activityId) : undefined)}>搜索</button>

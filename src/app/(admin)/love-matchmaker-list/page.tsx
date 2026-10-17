@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BarChart3,
   BookOpen,
-  CalendarDays,
   ChevronDown,
   MessageSquare,
   Phone,
@@ -15,6 +14,7 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -524,20 +524,13 @@ function ReportDrawer({ row, onClose }: { row: MatchmakerStaffItem; onClose: () 
               </select>
               <ChevronDown className="hm-caret" size={14} />
             </div>
-            <div className="hm-report-date">
-              <input
-                type="date"
-                value={range.from}
-                onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
-              />
-              <span className="hm-report-arrow">→</span>
-              <input
-                type="date"
-                value={range.to}
-                onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
-              />
-              <CalendarDays size={14} />
-            </div>
+            <DateRangePicker
+              startValue={range.from}
+              endValue={range.to}
+              onStartChange={(value) => setRange((r) => ({ ...r, from: value }))}
+              onEndChange={(value) => setRange((r) => ({ ...r, to: value }))}
+              className="w-[260px]"
+            />
             <div className="hm-select">
               <select defaultValue="">
                 <option value="">默认排序</option>

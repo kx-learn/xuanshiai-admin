@@ -16,6 +16,7 @@ import {
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import AdminPagination from "@/components/AdminPagination";
 import { Button } from "@/components/ui/button";
 import MemberDetailWorkspace from "@/components/MemberDetailWorkspace";
@@ -1480,11 +1481,7 @@ export default function LoveUserListPage() {
             <select className="h-10 w-56 rounded border px-3 text-sm" defaultValue="">
               <option value="">放弃红娘：不限</option>
             </select>
-            <div className="flex h-10 items-center gap-2 rounded border px-3 text-sm text-[#999]">
-              <input aria-label="开始日期" type="date" className="w-32 text-sm outline-none" />
-              <span aria-hidden>→</span>
-              <input aria-label="结束日期" type="date" className="w-32 text-sm outline-none" />
-            </div>
+            <DateRangePicker startValue="" endValue="" onStartChange={() => {}} onEndChange={() => {}} className="w-[260px]" />
             <div className="flex h-10 min-w-[280px] flex-1">
               <input placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l border border-r-0 px-3 text-sm" />
               <button type="button" className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { StoreCommissionEntryItem, StoreCommissionOptions, StoreCommissionSummary } from "@/lib/admin-endpoints";
@@ -155,13 +156,7 @@ export default function BranchDistributionListPage() {
               <option key={ev.id} value={String(ev.id)}>{ev.name}</option>
             ))}
           </select>
-          <div className="bd-daterange">
-            <span className="bd-text-muted">开始日期</span>
-            <input className="bd-date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-            <span className="bd-text-muted">→</span>
-            <span className="bd-text-muted">结束日期</span>
-            <input className="bd-date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </div>
+          <DateRangePicker startValue={fromDate} endValue={toDate} onStartChange={setFromDate} onEndChange={setToDate} className="w-[260px]" />
           <button className="finord-btn finord-btn-primary bd-search-btn" onClick={search}>搜索</button>
         </div>
 

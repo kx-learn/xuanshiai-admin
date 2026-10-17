@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type MutualActivityItem, type MutualParticipant } from "@/lib/admin-endpoints";
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
@@ -343,13 +344,7 @@ function CreateMutualDrawer({ form, set, saving, submit, onClose }: {
           <div className="ms-row">
             <span className="ms-label">＊活动时间</span>
             <div className="ms-content">
-              <div className="ms-daterange">
-                <span>开始日期</span>
-                <input className="ms-date" type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
-                <span className="ms-text-muted">→</span>
-                <span>结束日期</span>
-                <input className="ms-date" type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
-              </div>
+              <DateRangePicker startValue={form.startDate} endValue={form.endDate} onStartChange={(value) => set("startDate", value)} onEndChange={(value) => set("endDate", value)} className="w-[300px]" />
               <div className="ms-info">① 在开始日期之前,活动状态为"报名中",可报名;开始时间之后为"进行中",不可再报名,所有已报名会员在活动结束时间之前可以查看对方已加心意嘉宾;在结束时间之后,活动状态自动变更为"已结束"。</div>
             </div>
           </div>

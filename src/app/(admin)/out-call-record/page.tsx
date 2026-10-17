@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import { Inbox } from "lucide-react";
 import { asObject, asStr, useConfigDomain, type Dict } from "@/lib/platform-config";
 
@@ -154,11 +155,7 @@ export default function Page() {
 
             <button type="button" className="rec-search-btn" onClick={() => setSubmittedKeyword(keyword.trim())}>搜索</button>
 
-            <div className="rec-range">
-              <input type="date" className="rec-input rec-date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} placeholder="开始日期" />
-              <span className="rec-range-arrow">→</span>
-              <input type="date" className="rec-input rec-date" value={toDate} onChange={(e) => setToDate(e.target.value)} placeholder="结束日期" />
-            </div>
+            <DateRangePicker startValue={fromDate} endValue={toDate} onStartChange={setFromDate} onEndChange={setToDate} className="w-[260px]" />
           </div>
         </div>
 

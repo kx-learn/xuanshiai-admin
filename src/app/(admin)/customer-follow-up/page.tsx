@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Download, PackageOpen, Upload } from "lucide-react";
+import { Download, PackageOpen, Upload } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import AdminPagination from "@/components/AdminPagination";
 import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
@@ -248,18 +249,12 @@ export default function CustomerFollowUpPage() {
             placeholder="请输入会员昵称/姓名/手机"
           />
           <button type="button" className="search-btn" onClick={search}>搜索</button>
-          <label className="date-filter date-range-picker">
-            <span className="dr-field">
-              {!from && <span className="dr-placeholder">开始日期</span>}
-              <input aria-label="开始日期" type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
-            </span>
-            <span aria-hidden className="dr-arrow">→</span>
-            <span className="dr-field">
-              {!to && <span className="dr-placeholder">结束日期</span>}
-              <input aria-label="结束日期" type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
-            </span>
-            <CalendarDays size={16} />
-          </label>
+          <DateRangePicker
+            startValue={from}
+            endValue={to}
+            onStartChange={(value) => { setFrom(value); setPage(1); }}
+            onEndChange={(value) => { setTo(value); setPage(1); }}
+          />
         </div>
         <div className="overflow-x-auto">
           {followTab === "call" ? (

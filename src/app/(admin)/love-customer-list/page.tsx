@@ -2,18 +2,31 @@
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, CalendarDays, FileDown, PackageOpen, Plus, Search } from "lucide-react";
+import { BarChart3, FileDown, PackageOpen, Plus, Search } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { CustomerLeadOptions } from "@/lib/admin-endpoints";
 import AdminPagination from "@/components/AdminPagination";
 import DateRangePicker from "@/components/DateRangePicker";
+import {
+  FilterSelect,
+  FilterMultiSelect,
+  RangeSliderFilter,
+  RegionCascaderFilter,
+} from "@/components/LeadFilterControls";
 import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 
 import {
   ACCOUNT_BIND_MODE,
   ACCOUNT_BIND_MODE_VALUE,
+  LEAD_AUDIT_STATUS,
+  LEAD_EDUCATION,
+  LEAD_INTENT_LEVEL,
+  LEAD_MARRIAGE,
+  LEAD_OCCUPATION,
+  LEAD_SOURCE,
+  LEAD_TAGS,
   RECORD_ORDER,
   RECORD_ORDER_VALUE,
   WECHAT_ADDED_VALUE,
@@ -61,6 +74,18 @@ const statuses: Record<string, string> = {
   CLOSED: "已关闭",
 };
 const intent = (n: number) => ["", "低", "中", "高"][n] || "-";
+/** 原站「客源状态」文案（截图口径）。后端 /customer-leads 目前只认 NEW/CONTACTED/... 枚举，
+ *  暂按语义近似映射，待后端补原站枚举后替换 LEAD_STATUS_BY_TEXT 即可。 */
+const LEAD_STATUS_BY_TEXT: Record<string, string> = {
+  未设置: "NEW",
+  找对象中: "CONTACTED",
+  接触中: "INTENDED",
+  已到门店: "CONVERTED",
+  恋爱中: "CONVERTED",
+  已结婚: "CLOSED",
+};
+const leadStatusText = (enumValue: string) =>
+  Object.keys(LEAD_STATUS_BY_TEXT).find((key) => LEAD_STATUS_BY_TEXT[key] === enumValue) ?? "";
 type QuickRow = { name: string; gender: "男" | "女"; phone: string; wechat: string; desc: string; source: string };
 const emptyQuickRow = (): QuickRow => ({ name: "", gender: "男", phone: "", wechat: "", desc: "", source: "" });
 const NICK_A = ["爱笑", "温柔", "阳光", "元气", "暖心", "文艺", "俏皮", "知性", "浪漫", "安静"];
@@ -93,6 +118,24 @@ export default function Page() {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   /** 「更多选项」里有后端参数的 4 项；key 与接口 query 参数同名，界面存中文文案 */
   const [moreFilters, setMoreFilters] = useState<Record<string, string>>({});
+  /** 顶部筛选（原站同款自定义下拉） */
+  const [filterAudit, setFilterAudit] = useState("");
+  const [filterAssign, setFilterAssign] = useState("");
+  const [filterGender, setFilterGender] = useState("");
+  const [filterStored, setFilterStored] = useState("");
+  const [filterPromoter, setFilterPromoter] = useState("");
+  /** 更多选项筛选 */
+  const [filterIntent, setFilterIntent] = useState("");
+  const [filterAge, setFilterAge] = useState<[number, number] | null>(null);
+  const [filterHeight, setFilterHeight] = useState<[number, number] | null>(null);
+  const [filterOccupation, setFilterOccupation] = useState("");
+  const [filterEducation, setFilterEducation] = useState("");
+  const [filterHometown, setFilterHometown] = useState("");
+  const [filterResidence, setFilterResidence] = useState("");
+  const [filterMarriage, setFilterMarriage] = useState("");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  /** 录入管理员（admin/matchmaker/accounts 实际数据） */
+  const [adminNames, setAdminNames] = useState<string[]>([]);
   /** 下拉字典（/customer-leads/options），行内「分派跟进」用它的 matchmakers */
   const [leadOptions, setLeadOptions] = useState<CustomerLeadOptions | null>(null);
   const [viewMode, setViewMode] = useState<"professional" | "simple">("professional");
@@ -225,6 +268,8 @@ export default function Page() {
             search: keyword || undefined,
             status: status || undefined,
             source: source || undefined,
+            // 「分派跟进」选中具体红娘时按 matchmaker_id 过滤（「待分派」后端暂无参数，不传）
+            matchmaker_id: filterAssign && /^\d+$/.test(filterAssign) ? filterAssign : undefined,
             // 「更多选项」里已接线的 4 项：中文文案 → 接口枚举，未选则不传该参数
             wechat_added: moreFilters.wechat_added ? WECHAT_ADDED_VALUE[moreFilters.wechat_added] : undefined,
             xiangqin_status: moreFilters.xiangqin_status ? XIANGQIN_STATUS_VALUE[moreFilters.xiangqin_status] : undefined,
@@ -245,13 +290,18 @@ export default function Page() {
         setLoading(false);
       }
     },
-    [keyword, status, source, moreFilters],
+    [keyword, status, source, moreFilters, filterAssign],
   );
   useEffect(() => {
     void load();
   }, [load]);
   useEffect(() => {
     void adminEndpoints.customerLeadOptions().then(setLeadOptions).catch(() => setLeadOptions(null));
+    // 录入管理员下拉 = 后台账号实际数据
+    adminEndpoints
+      .adminAccounts({ page: 1, page_size: 100 })
+      .then((result) => setAdminNames((result.items ?? []).map((item) => item.display_name || item.username)))
+      .catch(() => setAdminNames([]));
   }, []);
   /* 支持 /love-customer-abandon、/love-customer-abandon-log 重定向带来的 tab 参数 */
   useEffect(() => {
@@ -559,7 +609,7 @@ export default function Page() {
   return (
     <div className="customer-lead-page">
       <AdminBreadcrumb items={getBreadcrumb("客源线索", leadTab === "list" ? "线索管理" : leadTab === "abandon" ? "弃海客源" : "弃海记录")} />
-      <section className="customer-notice mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b]" style={leadTab === "list" ? undefined : { display: "none" }}>
+      <section className="customer-notice mb-5 rounded border border-[#cdd8ff] bg-[#f4f6ff] px-5 py-4 text-sm leading-6 text-[#46516b]">
         <h2 className="mb-1 font-semibold text-[#26324a]">💡 须知</h2>
         <span>
           客源线索（简称“线索库”）是指您广泛通过各种渠道获取到的单身潜在客户简单信息以快速便捷的形式收集汇总到“线索管理”中，分派给红娘进行销售跟进，并丰富完善更多信息。
@@ -608,74 +658,74 @@ export default function Page() {
             <button onClick={exportCsv} className="flex items-center gap-1 rounded bg-[#3658f7] px-3 py-1.5 text-sm text-white"><FileDown size={15} />导出EXCEL</button>
           </div>
         </div>
-        <div className="lead-filter-grid grid gap-3 pt-4 md:grid-cols-4 xl:grid-cols-8" style={leadTab === "log" ? { display: "none" } : undefined}>
-          {([
-            ["审核状态：不限", ["不限", "待核", "无效", "有效"]],
-            ["分派跟进：不限", ["不限", "待分派"]],
-            ["录入红娘：不限", ["不限"]],
-            ["录入管理员：不限", ["不限"]],
-            ["客户性别：不限", ["不限", "男", "女"]],
-            ["入库情况：不限", ["不限", "已入库", "未入库"]],
-          ] as const).map(([label, options]) => (
-            <select
-              key={label}
-              defaultValue=""
-              className="h-10 rounded border border-[#ddd] bg-white px-3 text-left text-sm text-[#9aa1ad]"
-            >
-              <option value="">{label}</option>
-              {options.map((option) => <option key={option}>{option}</option>)}
-            </select>
-          ))}
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"><option value="">客源状态：不限</option>{Object.entries(statuses).map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
-          <select
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="h-10 rounded border border-[#ddd] bg-white px-3 text-sm text-[#9aa1ad]"
-          >
-            <option value="">客户来源：不限</option>
-            {["抖音", "微信群", "本地群", "身边朋友", "同行群", "朋友圈", "朋友介绍", "QQ", "其他渠道", "落地页"].map((option) => <option key={option} value={option}>{option}</option>)}
-          </select>
-          <input placeholder="推广红娘" className="h-10 rounded border border-[#ddd] px-3 text-sm placeholder:text-[#9aa1ad]" />
+        <div className="lead-filter-grid grid gap-2.5 pt-4 md:grid-cols-4" style={leadTab === "log" ? { display: "none" } : undefined}>
+          <FilterSelect label="审核状态" options={[...LEAD_AUDIT_STATUS]} value={filterAudit} onChange={setFilterAudit} />
+          <FilterSelect
+            label="分派跟进"
+            options={["待分派", ...(leadOptions?.matchmakers ?? []).map((item) => ({ value: item.value, label: item.label }))]}
+            value={filterAssign}
+            onChange={setFilterAssign}
+          />
+          <FilterSelect label="客源状态" options={Object.keys(LEAD_STATUS_BY_TEXT)} value={leadStatusText(status)} onChange={(text) => setStatus(LEAD_STATUS_BY_TEXT[text] ?? "")} />
+          <FilterSelect
+            label="录入红娘"
+            options={(leadOptions?.matchmakers ?? []).map((item) => ({ value: item.value, label: item.label }))}
+          />
+          <FilterSelect
+            label="推广红娘"
+            options={(leadOptions?.promoters ?? []).map((item) => ({ value: item.value, label: item.label }))}
+            value={filterPromoter}
+            onChange={setFilterPromoter}
+          />
+          <FilterSelect label="录入管理员" options={adminNames} />
+          <FilterSelect label="客户来源" options={[...LEAD_SOURCE]} value={source} onChange={setSource} />
+          <FilterSelect label="客户意向" options={[...LEAD_INTENT_LEVEL]} value={filterIntent} onChange={setFilterIntent} />
+          <button className="lead-more-filters" onClick={() => setShowMoreFilters((value) => !value)}>{showMoreFilters ? "收起选项" : "更多选项"}<span className="lead-chevron" /></button>
         </div>
-        <button className="lead-more-filters" style={leadTab === "log" ? { display: "none" } : undefined} onClick={() => setShowMoreFilters((value) => !value)}>{showMoreFilters ? "收起选项" : "更多选项"}<span className="lead-chevron" /></button>
         {showMoreFilters && leadTab !== "log" && <div className="lead-extra-filters">
-          {([
-            { label: "客户意向：不限", options: ["不限"] },
-            { label: "年龄：不限", options: ["不限"] },
-            { label: "身高：不限", options: ["不限"] },
-            { label: "职业：不限", options: ["不限"] },
-            { label: "学历：不限", options: ["不限"] },
-            { label: "家乡：不限", options: ["不限"] },
-            { label: "现居：不限", options: ["不限"] },
-            { label: "婚况：不限", options: ["不限"] },
-            { label: "加上了吗?", options: ["不限", "未添加", "已加上", "没加上"], key: "wechat_added" },
-            { label: "相亲状态：不限", options: XIANGQIN_STATUS_CLOSE, key: "xiangqin_status" },
-            { label: "落户方式：不限", options: ACCOUNT_BIND_MODE, key: "bind_mode" },
-            { label: "记录排序：最新记录显示在前面", options: RECORD_ORDER, key: "order" },
-          ] as { label: string; options: readonly string[]; key?: string }[]).map((item) => (
-            <select
-              key={item.label}
-              {...(item.key
-                ? {
-                    value: moreFilters[item.key] ?? "",
-                    onChange: (e: ChangeEvent<HTMLSelectElement>) =>
-                      setMoreFilters((current) => ({ ...current, [item.key as string]: e.target.value })),
-                  }
-                : { defaultValue: "" })}
-              className="lead-filter-select"
-            >
-              <option value="">{item.label}</option>
-              {item.options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          ))}
-          <input placeholder="标签：不限（多选）" />
+          <FilterSelect label="客户性别" options={["男", "女"]} value={filterGender} onChange={setFilterGender} />
+          <RangeSliderFilter label="年龄" min={18} max={80} unit="岁" value={filterAge} onChange={setFilterAge} />
+          <RangeSliderFilter label="身高" min={140} max={220} unit="cm" value={filterHeight} onChange={setFilterHeight} />
+          <FilterSelect label="职业" options={[...LEAD_OCCUPATION]} value={filterOccupation} onChange={setFilterOccupation} />
+          <FilterSelect label="学历" options={[...LEAD_EDUCATION]} value={filterEducation} onChange={setFilterEducation} />
+          <RegionCascaderFilter label="家乡" value={filterHometown} onChange={setFilterHometown} />
+          <RegionCascaderFilter label="现居" value={filterResidence} onChange={setFilterResidence} />
+          <FilterSelect label="婚况" options={[...LEAD_MARRIAGE]} value={filterMarriage} onChange={setFilterMarriage} />
+          <FilterMultiSelect
+            label="标签"
+            options={[...LEAD_TAGS]}
+            value={filterTags}
+            onChange={setFilterTags}
+            className="lead-span2"
+          />
+          <FilterSelect label="入库情况" options={["已入库", "未入库"]} value={filterStored} onChange={setFilterStored} />
+          <FilterSelect
+            label="加上了吗"
+            options={["未添加", "已加上", "没加上"]}
+            value={moreFilters.wechat_added ?? ""}
+            onChange={(v) => setMoreFilters((current) => ({ ...current, wechat_added: v }))}
+          />
+          <FilterSelect
+            label="相亲状态"
+            options={[...XIANGQIN_STATUS_CLOSE]}
+            value={moreFilters.xiangqin_status ?? ""}
+            onChange={(v) => setMoreFilters((current) => ({ ...current, xiangqin_status: v }))}
+          />
+          <FilterSelect
+            label="落户方式"
+            options={[...ACCOUNT_BIND_MODE]}
+            value={moreFilters.bind_mode ?? ""}
+            onChange={(v) => setMoreFilters((current) => ({ ...current, bind_mode: v }))}
+          />
+          <FilterSelect
+            label="记录排序"
+            options={[...RECORD_ORDER]}
+            value={moreFilters.order ?? ""}
+            onChange={(v) => setMoreFilters((current) => ({ ...current, order: v }))}
+          />
           <div className="lead-date-ranges">
-            <DateRangePicker label="录" startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-full max-w-[300px]" />
-            <DateRangePicker label="派" startValue={assignStartDate} endValue={assignEndDate} onStartChange={setAssignStartDate} onEndChange={setAssignEndDate} className="w-full max-w-[300px]" />
+            <DateRangePicker label="录" startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-full" />
+            <DateRangePicker label="派" startValue={assignStartDate} endValue={assignEndDate} onStartChange={setAssignStartDate} onEndChange={setAssignEndDate} className="w-full" />
           </div>
           <label><input type="checkbox" /> 隐藏今日已跟进</label><label><input type="checkbox" /> 隐藏今日已通话</label><label><input type="checkbox" /> 有电话</label><label><input type="checkbox" /> 有微信</label>
         </div>}
@@ -825,18 +875,13 @@ export default function Page() {
               <option value="">放弃红娘：不限</option>
               {Array.from(new Set(logRows.map((row) => row.abandoned_by))).map((id) => <option key={id} value={id}>账号 #{id}</option>)}
             </select>
-            <div className="date-range-picker w-80">
-              <span className="dr-field">
-                {!logFrom && <span className="dr-placeholder">开始日期</span>}
-                <input aria-label="开始日期" type="date" value={logFrom} onChange={(event) => { setLogFrom(event.target.value); setLogPage(1); }} />
-              </span>
-              <span aria-hidden className="dr-arrow">→</span>
-              <span className="dr-field">
-                {!logTo && <span className="dr-placeholder">结束日期</span>}
-                <input aria-label="结束日期" type="date" value={logTo} onChange={(event) => { setLogTo(event.target.value); setLogPage(1); }} />
-              </span>
-              <CalendarDays size={16} />
-            </div>
+            <DateRangePicker
+              className="w-80"
+              startValue={logFrom}
+              endValue={logTo}
+              onStartChange={(value) => { setLogFrom(value); setLogPage(1); }}
+              onEndChange={(value) => { setLogTo(value); setLogPage(1); }}
+            />
             <div className="flex h-10 min-w-[280px] flex-1">
               <input value={logKeyword} onChange={(event) => setLogKeyword(event.target.value)} placeholder="请输入会员昵称/手机/姓名/编号" className="min-w-0 flex-1 rounded-l border border-r-0 px-3 text-sm" />
               <button type="button" onClick={() => { setLogSearch(logKeyword); setLogPage(1); }} className="flex w-20 items-center justify-center gap-1 rounded-r bg-[#3658f7] text-sm text-white"><Search size={15} />搜索</button>

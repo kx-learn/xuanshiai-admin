@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarDays, ChevronDown, Download, Plus, X } from "lucide-react";
+import { ChevronDown, Download, Plus, X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
@@ -158,17 +159,7 @@ export default function PoploveMatchmakerDistributionDetailsPage() {
             </select>
             <ChevronDown className="pdd-caret" size={14} />
           </div>
-          <div className="pdd-daterange">
-            <div className="pdd-date">
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} placeholder="开始日期" />
-              <CalendarDays size={14} />
-            </div>
-            <span className="pdd-arrow">→</span>
-            <div className="pdd-date">
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} placeholder="结束日期" />
-              <CalendarDays size={14} />
-            </div>
-          </div>
+          <DateRangePicker startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-[260px]" />
           <div className="pdd-select">
             <select defaultValue="keyword">
               <option value="keyword">按关键字搜</option>

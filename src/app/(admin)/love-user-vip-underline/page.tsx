@@ -14,6 +14,7 @@ import {
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type {
@@ -483,27 +484,13 @@ export default function LoveUserVipUnderlinePage() {
             </select>
             <span className="lvip-caret" />
           </label>
-          <div className="lvip-daterange">
-            <label className="lvip-date">
-              <input
-                type="date"
-                aria-label="签单开始"
-                value={filterSignStart}
-                onChange={(event) => { setFilterSignStart(event.target.value); setPage(1); }}
-              />
-              <CalendarDays className="size-3.5" />
-            </label>
-            <span className="lvip-arrow">→</span>
-            <label className="lvip-date">
-              <input
-                type="date"
-                aria-label="签单结束"
-                value={filterSignEnd}
-                onChange={(event) => { setFilterSignEnd(event.target.value); setPage(1); }}
-              />
-              <CalendarDays className="size-3.5" />
-            </label>
-          </div>
+          <DateRangePicker
+            startValue={filterSignStart}
+            endValue={filterSignEnd}
+            onStartChange={(value) => { setFilterSignStart(value); setPage(1); }}
+            onEndChange={(value) => { setFilterSignEnd(value); setPage(1); }}
+            className="w-[260px]"
+          />
           <div className="lvip-searchbox">
             <label className="lvip-select">
               <select value={searchType} onChange={(event) => setSearchType(event.target.value)}>

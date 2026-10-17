@@ -326,9 +326,9 @@
 .customer-lead-page table td { border-bottom: 1px solid #edf0f5; vertical-align: middle; }
 .customer-lead-page .lead-cell-select { width: 150px; height: 40px; border: 1px solid #e1e4e9; border-radius: 7px; background: #fff; padding: 0 10px; color: #333; font-size: 14px; }
 .customer-lead-page .lead-cell-select.valid { width: 95px; color: #42b957; }
-.customer-lead-page .lead-filter-grid { position: relative; grid-template-columns: repeat(8, minmax(0, 1fr)); }
-.customer-lead-page .lead-more-filters { align-self: center; justify-self: end; color: #5680f8; font-size: 14px; white-space: nowrap; }
-.customer-lead-page > section > .lead-more-filters { display: flex; width: max-content; align-items: center; margin-top: 10px; border: 0; background: transparent; }
+.customer-lead-page .lead-filter-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) auto; gap: 10px 12px; align-items: center; }
+.customer-lead-page .lead-filter-grid .lead-more-filters { display: flex; align-items: center; justify-self: end; border: 0; background: transparent; color: #5680f8; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.customer-lead-page .lead-more-filters { align-self: center; justify-self: end; color: #5680f8; font-size: 13px; white-space: nowrap; }
 .customer-lead-page .lead-search-row { align-items: flex-end; }
 .customer-lead-page .lead-search-row label { width: 290px; margin-top: 0; }
 .customer-lead-page .lead-search-row label input { height: 40px; }
@@ -398,20 +398,59 @@
 .customer-statistics-page table td { padding-top: 9px; padding-bottom: 9px; }
 .customer-statistics-page .statistics-filter-row { display: flex; align-items: center; gap: 12px; padding: 14px 0 8px; }
 .customer-statistics-page .statistics-filter-row > input { width: 270px; height: 38px; border: 1px solid #d9dfe9; border-radius: 6px; padding: 0 12px; color: #8f99a9; font-size: 14px; outline: none; }
-.date-range-picker { position: relative; display: flex; height: 40px; align-items: center; gap: 6px; border: 1px solid #d9dfe9; border-radius: 6px; background: #fff; padding: 0 12px; color: #a0a8b5; }
-.date-range-picker .dr-field { position: relative; display: flex; flex: 1 1 0; align-items: center; min-width: 0; height: 100%; }
-.date-range-picker .dr-field input { width: 100%; height: 100%; border: 0; padding: 0; background: transparent; outline: none; color: #8f99a9; font-size: 14px; }
-.date-range-picker .dr-placeholder { position: absolute; left: 0; color: #a0a8b5; font-size: 14px; pointer-events: none; }
-.date-range-picker .dr-field:focus-within .dr-placeholder { display: none; }
-.date-range-picker .dr-arrow { color: #b8bfcc; font-size: 15px; line-height: 1; }
-.date-range-picker svg { flex-shrink: 0; color: #aeb5c0; }
-.date-range-picker .dr-label { color: #8f99a9; font-size: 14px; padding-left: 2px; }
-.date-range-picker .dr-field input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
-.date-range-picker .dr-field input.empty::-webkit-datetime-edit,
-.date-range-picker .dr-field input.empty::-webkit-datetime-edit-fields-wrapper {
-  color: transparent;
-}
-.date-range-picker .dr-picker-btn { display: flex; align-items: center; border: 0; background: transparent; padding: 0; cursor: pointer; color: #aeb5c0; }
+.date-range-picker { position: relative; display: inline-flex; height: 32px; align-items: center; padding: 0 11px; border: 1px solid #d9d9d9; border-radius: 2px; background: #fff; transition: border-color .2s ease, box-shadow .2s ease; }
+.date-range-picker:hover { border-color: #40a9ff; }
+.date-range-picker:focus-within { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24, 144, 255, .2); }
+.date-range-picker .dr-field { position: relative; display: flex; flex: 1 1 0; align-items: center; min-width: 30px; height: 100%; }
+.date-range-picker .dr-text { pointer-events: none; white-space: nowrap; overflow: hidden; color: rgba(0, 0, 0, .85); font-size: 14px; line-height: 1.5715; }
+.date-range-picker .dr-text[data-empty="true"] { color: #bfbfbf; }
+.date-range-picker .dr-field input { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; outline: none !important; color: transparent !important; font-size: 14px; cursor: pointer; }
+.date-range-picker .dr-field input::-webkit-calendar-picker-indicator { display: none; }
+.date-range-picker .dr-field input::-webkit-datetime-edit,
+.date-range-picker .dr-field input::-webkit-datetime-edit-fields-wrapper { color: transparent; }
+.date-range-picker .dr-field:focus-within::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: #1890ff; z-index: 1; }
+.date-range-picker .dr-sep { display: inline-flex; flex-shrink: 0; align-items: center; padding: 0 8px; color: #bfbfbf; }
+.date-range-picker .dr-suffix { display: inline-flex; flex-shrink: 0; align-items: center; margin-left: 4px; border: 0; background: none; padding: 0; cursor: pointer; color: #bfbfbf; }
+.date-range-picker .dr-suffix:hover { color: rgba(0, 0, 0, .45); }
+.date-range-picker svg { flex-shrink: 0; }
+.date-range-picker .dr-label { color: #8f99a9; font-size: 14px; padding-left: 6px; }
+/* ─── 线索筛选：原站同款下拉/滑杆/省市级联（ldd = lead dropdown） ─── */
+.ldd-trigger { display: flex; width: 100%; height: 32px; align-items: center; justify-content: space-between; gap: 6px; border: 1px solid #e3e7f2; border-radius: 4px; background: #fff; padding: 0 10px; color: #9aa1ad; font-size: 13px; cursor: pointer; text-align: left; transition: border-color .15s ease; }
+.ldd-trigger:hover { border-color: #b9c6ff; }
+.ldd-trigger.active { color: #303133; border-color: #c3ceff; }
+.ldd-chevron { flex-shrink: 0; color: #a8abb2; transition: transform .2s ease; }
+.ldd-chevron.open { transform: rotate(180deg); }
+.ldd-panel { position: absolute; z-index: 60; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: 340px; max-height: 280px; overflow-y: auto; border: 1px solid #e8ebf3; border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgba(15, 23, 42, .12); padding: 4px 0; }
+.ldd-item { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; padding: 9px 14px; color: #303133; font-size: 14px; line-height: 1.5; text-align: left; cursor: pointer; white-space: nowrap; }
+.ldd-item:hover { background: #f5f6fa; }
+.ldd-item.selected { background: #f0f3ff; color: #3658f7; }
+.ldd-check { position: relative; display: inline-flex; width: 14px; height: 14px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid #c9cfdd; border-radius: 3px; background: #fff; }
+.ldd-check.on { border-color: #3658f7; background: #3658f7; }
+.ldd-check.on::after { content: ""; width: 7px; height: 3px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translateY(-1px); }
+.ldd-range-panel { width: 460px; max-width: 92vw; padding: 14px 18px 16px; overflow: visible; }
+.ldd-range-text { margin-bottom: 4px; color: #303133; font-size: 14px; }
+.ldd-range-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: #667085; font-size: 13px; }
+.ldd-range-row.ldd-range-center { justify-content: center; margin-top: 10px; }
+.ldd-range-num { width: 70px; height: 32px; border: 1px solid #e3e7f2; border-radius: 4px; background: #fafbfe; padding: 0 8px; color: #606266; font-size: 13px; outline: none; }
+.ldd-range-num:focus { border-color: #b9c6ff; }
+.ldd-range-ok { margin-left: auto; height: 32px; flex-shrink: 0; border: 0; border-radius: 4px; background: #3a5bf0; padding: 0 22px; color: #fff; font-size: 14px; cursor: pointer; }
+.ldd-range-ok:hover { background: #2b48e0; }
+.ldd-range-center .ldd-range-ok { margin-left: 0; min-width: 96px; }
+.ldual { position: relative; height: 28px; margin: 10px 8px 2px; }
+.ldual-rail { position: absolute; top: 50%; left: 0; right: 0; height: 4px; border-radius: 2px; background: #e4e7ed; transform: translateY(-50%); }
+.ldual-fill { position: absolute; top: 50%; height: 4px; border-radius: 2px; background: #b7c6f7; transform: translateY(-50%); }
+.ldual input[type="range"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; border: 0; background: transparent; pointer-events: none; -webkit-appearance: none; appearance: none; outline: none; }
+.ldual input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 16px; height: 16px; border: 2px solid #b7c6f7; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(84, 110, 220, .25); }
+.ldual input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 13px; height: 13px; border: 2px solid #b7c6f7; border-radius: 50%; background: #fff; cursor: pointer; }
+/* 多选面板：原站样式为纯文本行，选中蓝字 + 右侧对勾（CSS 绘制） */
+.ldd-item.selected { color: #3658f7; }
+.ldd-tick { position: relative; width: 14px; height: 14px; flex-shrink: 0; }
+.ldd-tick::after { content: ""; position: absolute; left: 2px; top: 3px; width: 8px; height: 4px; border-left: 2px solid #3658f7; border-bottom: 2px solid #3658f7; transform: rotate(-45deg); }
+.ldd-region-panel { display: flex; width: 380px; max-width: 92vw; max-height: 300px; padding: 0; }
+.ldd-region-col { width: 150px; max-height: 300px; overflow-y: auto; border-right: 1px solid #f0f2f8; padding: 4px 0; }
+.ldd-region-cities { flex: 1; width: auto; border-right: 0; }
+.ldd-region-empty { padding: 14px; color: #9aa1ad; font-size: 13px; }
+.ldd-sub-arrow { flex-shrink: 0; width: 6px; height: 6px; border-right: 1px solid #b8bfce; border-top: 1px solid #b8bfce; transform: rotate(45deg); }
 .customer-statistics-page .statistics-date-filter { position: relative; display: flex; width: 440px; height: 38px; align-items: center; border: 1px solid #d9dfe9; border-radius: 6px; background: #fff; color: #a0a8b5; }
 .customer-statistics-page .statistics-date-filter input { width: 100%; height: 100%; border: 0; border-radius: inherit; padding: 0 38px 0 12px; color: #8f99a9; font-size: 14px; outline: none; }
 .customer-statistics-page .statistics-date-filter svg { position: absolute; right: 12px; color: #aeb5c0; }
@@ -560,11 +599,16 @@
 @keyframes customer-page-enter { from { opacity: .82; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
 .customer-lead-page .lead-metrics-grid { padding-bottom: 0; }
 .customer-lead-page .lead-chevron { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: translateY(-2px) rotate(45deg); }
-.customer-lead-page .lead-extra-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 12px; }
-.customer-lead-page .lead-extra-filters select, .customer-lead-page .lead-extra-filters input:not([type="checkbox"]) { width: 100%; height: 40px; border: 1px solid #ddd; border-radius: 6px; background: #fff; padding: 0 12px; color: #9aa1ad; font-size: 14px; }
-.customer-lead-page .lead-extra-filters label { display: flex; align-items: center; gap: 6px; color: #555; font-size: 14px; }
-@media (max-width: 900px) { .customer-lead-page .lead-extra-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.customer-lead-page .lead-extra-filters .lead-date-ranges { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: 100%; }
+.customer-lead-page .lead-extra-filters { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px 12px; padding-top: 12px; }
+.customer-lead-page .lead-extra-filters .lead-span2 { grid-column: span 2; }
+.customer-lead-page .lead-extra-filters select, .customer-lead-page .lead-extra-filters input:not([type="checkbox"]):not(.date-range-picker input) { width: 100%; height: 40px; border: 1px solid #ddd; border-radius: 6px; background: #fff; padding: 0 12px; color: #9aa1ad; font-size: 14px; }
+/* 日期范围选择器内部的原生 date 输入必须保持透明无边框，防止上面的宽泛 input 规则盖出白色小框 */
+.customer-lead-page .lead-extra-filters .date-range-picker .dr-field input { width: 100%; height: 100%; border: 0; border-radius: 0; background: transparent; padding: 0; }
+.customer-lead-page .lead-extra-filters label { display: flex; align-items: center; gap: 6px; color: #555; font-size: 13px; }
+@media (max-width: 900px) { .customer-lead-page .lead-extra-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .customer-lead-page .lead-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 日期范围与复选框按原站排布：日期选择器占 2 列，复选框各自占 1 列格 */
+.customer-lead-page .lead-extra-filters .lead-date-ranges { display: contents; }
+.customer-lead-page .lead-extra-filters .lead-date-ranges > .date-range-picker { grid-column: span 2; width: 100%; max-width: none; }
 .dashboard-pending-item:hover .dashboard-pending-name { border-radius: 999px; background: #fff; color: #333; }
 .dashboard-pending-item:hover .dashboard-pending-name svg { color: #8d86d9 !important; }
 .dashboard-pending-item:hover strong, .dashboard-pending-item:hover strong.has-pending, .dashboard-pending-item:hover small { color: #fff; }
@@ -1409,6 +1453,9 @@
 
 .nv-styles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
 .nv-style { border: 1px solid #eef0f4; border-radius: 8px; padding: 12px 4px 14px; display: flex; flex-direction: column; align-items: center; }
+.nv-style-img { display: block; width: 100%; border-radius: 6px; }
+.nv-icon-img { width: 28px; height: 28px; object-fit: contain; }
+.nv-glyph-img { max-width: 44px; max-height: 44px; object-fit: contain; }
 .nv-style-icons { display: flex; flex-wrap: nowrap; justify-content: center; gap: 4px 6px; margin-bottom: 12px; width: 100%; }
 .nv-style-icon { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 0 1 auto; min-width: 0; }
 .nv-style-glyph { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; color: #fff; font-size: 12px; }
@@ -1491,6 +1538,11 @@
 /* 样式选择卡 */
 .pl-styles { display: flex; flex-wrap: wrap; gap: 12px; }
 .pl-style { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid #eef0f4; border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+/* 原站同款样式预览图 */
+.pl-style-img { display: block; width: 100px; border-radius: 4px; }
+.pl-style-img-sm { display: block; width: 56px; border-radius: 4px; }
+.pl-style-img-pc { display: block; width: 86px; border-radius: 4px; }
+.pl-styles-phone .pl-style-img-sm { width: 64px; }
 .pl-style:hover { border-color: #c9d4fb; }
 .pl-style.selected { border-color: #3658f7; box-shadow: 0 0 0 1px #3658f7; }
 .pl-style-radio { width: 14px; height: 14px; border: 1px solid #d9d9d9; border-radius: 50%; box-sizing: border-box; flex: 0 0 14px; transition: border-color .15s, border-width .15s; }
@@ -2671,22 +2723,22 @@ button.au-page-num.active { border-color: #3658f7; background: #3658f7; color: #
 /* ================= 顶部个人中心下拉 ================= */
 .profile-panel {
   position: absolute; top: calc(100% + 10px); right: 0; z-index: 60;
-  width: 216px; padding: 12px 0 6px;
-  background: #fff; border-radius: 8px;
-  box-shadow: 0 12px 40px rgba(15, 18, 34, 0.16);
+  width: 112px; padding: 4px 0;
+  background: #fff; border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(15, 18, 34, 0.14);
   opacity: 0; visibility: hidden; transform: translateY(-6px);
   transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
 }
 .profile-panel::before {
-  content: ""; position: absolute; top: -6px; right: 22px;
-  width: 12px; height: 12px; background: #fff;
+  content: ""; position: absolute; top: -5px; right: 14px;
+  width: 10px; height: 10px; background: #fff;
   transform: rotate(45deg); border-radius: 2px;
 }
 .profile-visible { opacity: 1; visibility: visible; transform: translateY(0); }
 .profile-item {
   display: flex; align-items: center; width: 100%;
-  padding: 13px 24px; background: none; border: none;
-  font-size: 16px; color: #2f3542; cursor: pointer;
+  padding: 8px 16px; background: none; border: none;
+  font-size: 14px; color: #333; cursor: pointer; text-align: left;
   transition: background 0.14s ease;
 }
 .profile-item:hover { background: #f5f7fb; }

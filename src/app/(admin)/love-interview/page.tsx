@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronDown, X } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { MeetingRequestRecord, MeetingRequestReviewStatus, MeetingRequestStatus } from "@/lib/admin-endpoints";
 
@@ -319,17 +320,7 @@ export default function Page() {
           <button type="button" className="lvi-btn primary" onClick={() => void load(1)}>
             搜索
           </button>
-          <div className="lvi-daterange">
-            <label className="lvi-date">
-              <input type="date" aria-label="开始日期" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-              <CalendarDays size={14} />
-            </label>
-            <span className="lvi-arrow">→</span>
-            <label className="lvi-date">
-              <input type="date" aria-label="结束日期" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              <CalendarDays size={14} />
-            </label>
-          </div>
+          <DateRangePicker startValue={fromDate} endValue={toDate} onStartChange={setFromDate} onEndChange={setToDate} className="w-[260px]" />
           <label className="lvi-select">
             <select value={server} onChange={(e) => setServer(e.target.value)}>
               <option value="">服务红娘：不限</option>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { CreditRecordItem } from "@/lib/admin-endpoints";
@@ -177,21 +178,7 @@ export default function SystemCreditHistoryPage() {
             <option value="">全部支付分类</option>
             {CREDIT_CATEGORY.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
-          <div className="finord-daterange">
-            <input
-              className="finord-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <span className="finord-date-sep">→</span>
-            <input
-              className="finord-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
+          <DateRangePicker startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-[260px]" />
           <input
             className="finord-search-input crh-search-input"
             placeholder="请输入会员昵称/ID"

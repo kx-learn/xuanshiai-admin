@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { resolveMediaUrl } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { CommissionEntryDetailItem, CommissionEntryDetailOptions } from "@/lib/admin-endpoints";
@@ -132,17 +133,7 @@ export default function Page() {
             </select>
             <ChevronDown className="cdd-caret" size={14} />
           </div>
-          <div className="cdd-daterange">
-            <div className="cdd-date">
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              <CalendarDays size={14} />
-            </div>
-            <span className="cdd-arrow">→</span>
-            <div className="cdd-date">
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              <CalendarDays size={14} />
-            </div>
-          </div>
+          <DateRangePicker startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-[260px]" />
           <button type="button" className="cdd-search" onClick={handleSearch}>
             搜索
           </button>

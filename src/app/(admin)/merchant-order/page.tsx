@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints, type MerchantOrderItem, type MerchantOption } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
@@ -136,13 +137,7 @@ export default function MerchantOrderPage() {
             <input className="mo-input" placeholder="请输入" value={buyerKeyword} onChange={(e) => setBuyerKeyword(e.target.value)} />
           </div>
           <div className="mo-filters-row">
-            <div className="mo-daterange">
-              <span className="mo-text-muted">核销时间开始</span>
-              <input className="mo-date" type="date" value={verifyStart} onChange={(e) => setVerifyStart(e.target.value)} />
-              <span className="mo-text-muted">→</span>
-              <span className="mo-text-muted">核销时间结束</span>
-              <input className="mo-date" type="date" value={verifyEnd} onChange={(e) => setVerifyEnd(e.target.value)} />
-            </div>
+            <DateRangePicker startValue={verifyStart} endValue={verifyEnd} onStartChange={setVerifyStart} onEndChange={setVerifyEnd} className="w-[300px]" />
             <button className="finord-btn finord-btn-primary mo-search-btn" onClick={() => load()}>搜索</button>
             <button className="finord-btn finord-btn-primary mo-export-btn" onClick={exportExcel}><Download size={14} /> 导出EXCEL</button>
           </div>

@@ -2,10 +2,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { Info, Inbox, Search, Calendar, ChevronDown } from "lucide-react";
+import { Info, Inbox, Search, ChevronDown } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 
 type Row = Record<string, string>;
 
@@ -153,19 +154,7 @@ function AdminSelect({ label, value, onChange }: { label?: string; value: string
 }
 
 function DateRange({ from, to, setFrom, setTo }: { from: string; to: string; setFrom: (value: string) => void; setTo: (value: string) => void }) {
-  return (
-    <div className="syslog-daterange">
-      <label className="syslog-date">
-        <Calendar className="syslog-date-ico" />
-        <input aria-label="开始日期" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-      </label>
-      <span className="syslog-date-arrow">→</span>
-      <label className="syslog-date">
-        <Calendar className="syslog-date-ico" />
-        <input aria-label="结束日期" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-      </label>
-    </div>
-  );
+  return <DateRangePicker startValue={from} endValue={to} onStartChange={setFrom} onEndChange={setTo} className="w-[260px]" />;
 }
 
 function FilterBar({ tab, admin, setAdmin, keyword, setKeyword, from, to, setFrom, setTo, onSearch }: { tab: TabDef; admin: string; setAdmin: (v: string) => void; keyword: string; setKeyword: (v: string) => void; from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; onSearch: () => void }) {

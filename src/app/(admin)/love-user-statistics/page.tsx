@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarDays } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type {
   MemberStatDistItem,
@@ -448,16 +448,7 @@ export default function LoveUserStatisticsPage() {
     if (tab === "browse") {
       return (
         <div>
-          <div className="ustat-datebar">
-            <span className="ustat-date-field">
-              <input type="text" value={report.from_date} placeholder="开始日期" readOnly />
-            </span>
-            <ArrowRight size={14} className="ustat-date-arrow" />
-            <span className="ustat-date-field">
-              <input type="text" value={report.to_date} placeholder="结束日期" readOnly />
-            </span>
-            <CalendarDays size={15} className="ustat-date-icon" />
-          </div>
+          <DateRangePicker startValue={report.from_date} endValue={report.to_date} onStartChange={() => {}} onEndChange={() => {}} />
           <div className="ustat-table-wrap">
             <table className="ustat-table">
               <thead>

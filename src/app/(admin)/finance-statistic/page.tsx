@@ -1,6 +1,7 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 
@@ -26,7 +27,6 @@ export default function FinanceStatisticPage() {
   const [endDate, setEndDate] = useState("2026-09-09");
   const [rows, setRows] = useState<DailyRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const startDateRef = useRef<HTMLInputElement>(null);
 
   const breadcrumb = getBreadcrumb("财务管理", "统计报表");
 
@@ -102,31 +102,7 @@ export default function FinanceStatisticPage() {
             ))}
           </div>
           <div className="fs-daterange">
-            <input
-              className="finord-date"
-              type="date"
-              ref={startDateRef}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <span className="finord-date-sep">→</span>
-            <input
-              className="finord-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-            <button
-              type="button"
-              className="fs-cal"
-              aria-label="选择开始日期"
-              onClick={() => {
-                const input = startDateRef.current;
-                if (!input) return;
-                if (typeof input.showPicker === "function") input.showPicker();
-                else input.focus();
-              }}
-            >▦</button>
+            <DateRangePicker startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-[280px]" />
             <button className="finord-btn finord-btn-primary" onClick={load} disabled={loading}>
               {loading ? "加载中..." : "查询"}
             </button>

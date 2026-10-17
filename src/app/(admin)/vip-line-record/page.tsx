@@ -5,6 +5,7 @@ import { CalendarDays, ChevronDown, Download, Settings } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -241,17 +242,7 @@ export default function Page() {
             </select>
             <ChevronDown className="vlr-caret" />
           </label>
-          <div className="vlr-daterange">
-            <label className="vlr-date">
-              <input type="text" placeholder="开始日期" readOnly />
-              <CalendarDays size={14} />
-            </label>
-            <span className="vlr-arrow">→</span>
-            <label className="vlr-date">
-              <input type="text" placeholder="结束日期" readOnly />
-              <CalendarDays size={14} />
-            </label>
-          </div>
+          <DateRangePicker startValue="" endValue="" onStartChange={() => {}} onEndChange={() => {}} className="w-[260px]" />
           <label className="vlr-select">
             <select value={searchBy} onChange={(e) => setSearchBy(e.target.value)}>
               <option value="nick">按申请人昵称搜</option>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 
@@ -133,7 +133,7 @@ export default function Page() {
 function EmptyReport() { return <div className="flex h-40 items-center justify-center text-sm text-[#999]">暂无数据</div>; }
 
 function DateFilter({ fromValue, toValue, onFromChange, onToChange }: { fromValue: string; toValue: string; onFromChange: (v: string) => void; onToChange: (v: string) => void }) {
-  return <div className="statistics-date-filter date-range-picker"><span className="dr-field">{!fromValue && <span className="dr-placeholder">开始日期</span>}<input aria-label="开始日期" type="date" value={fromValue} onChange={(event) => onFromChange(event.target.value)} /></span><span aria-hidden className="dr-arrow">→</span><span className="dr-field">{!toValue && <span className="dr-placeholder">结束日期</span>}<input aria-label="结束日期" type="date" value={toValue} onChange={(event) => onToChange(event.target.value)} /></span><CalendarDays size={16} /></div>;
+  return <DateRangePicker startValue={fromValue} endValue={toValue} onStartChange={onFromChange} onEndChange={onToChange} />;
 }
 
 function ReportTable({ headers, labels, values = [], actions = false, plain = false }: { headers: string[]; labels: string[]; values?: number[]; actions?: boolean; plain?: boolean }) {

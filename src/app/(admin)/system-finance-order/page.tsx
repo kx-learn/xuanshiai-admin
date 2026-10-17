@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { FinanceOrderAdminItem, FinanceOrderAdminPage } from "@/lib/admin-endpoints";
@@ -138,21 +139,7 @@ export default function SystemFinanceOrderPage() {
             <option>按下单时间</option>
             <option>按支付时间</option>
           </select>
-          <div className="finord-daterange">
-            <input
-              className="finord-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <span className="finord-date-sep">→</span>
-            <input
-              className="finord-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
+          <DateRangePicker startValue={startDate} endValue={endDate} onStartChange={setStartDate} onEndChange={setEndDate} className="w-[260px]" />
           <div className="finord-searchbox">
             <select className="finord-search-label" aria-label="搜索类型" defaultValue="order">
               <option value="order">按订单号搜</option>

@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import UserCandidatePicker from "@/components/UserCandidatePicker";
+import DateRangePicker from "@/components/DateRangePicker";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { PartnerCommissionEntryItem, PartnerCommissionOptions, PartnerUserCandidate } from "@/lib/admin-endpoints";
@@ -90,13 +91,7 @@ export default function LovePartnerBonusDetailsPage() {
               <option key={event.id} value={event.id}>{event.name}</option>
             ))}
           </select>
-          <div className="lpbd-daterange">
-            <span className="lpbd-text-muted">开始日期</span>
-            <input className="lpbd-date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-            <span className="lpbd-text-muted">→</span>
-            <span className="lpbd-text-muted">结束日期</span>
-            <input className="lpbd-date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </div>
+          <DateRangePicker startValue={fromDate} endValue={toDate} onStartChange={setFromDate} onEndChange={setToDate} className="w-[260px]" />
           <input
             className="lpbd-input"
             placeholder="请输入合伙红娘名称"

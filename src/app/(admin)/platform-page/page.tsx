@@ -43,24 +43,6 @@ function Radio({ checked, label, onClick }: { checked: boolean; label: string; o
   );
 }
 
-/* 手机样机占位 */
-function PhoneThumb({ tone = "#8a6ee8" }: { tone?: string }) {
-  return (
-    <div className="pl-phone">
-      <div className="pl-phone-notch"></div>
-      <div className="pl-phone-hero" style={{ background: `linear-gradient(150deg, ${tone}, ${tone}bb)` }}></div>
-      <div className="pl-phone-line"></div>
-      <div className="pl-phone-line short"></div>
-      <div className="pl-phone-grid">
-        <i style={{ background: tone }}></i>
-        <i style={{ background: "#ff7aa2" }}></i>
-        <i style={{ background: "#5b8cff" }}></i>
-        <i style={{ background: "#57c98a" }}></i>
-      </div>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* 数据定义                                                            */
 /* ------------------------------------------------------------------ */
@@ -135,9 +117,7 @@ const CAROUSEL: CarouselItem[] = [
   { key: "c2", title: "Ta们都在为平台热心介绍", sub: "身边真实单身资源", tone: "#7a5cff" },
 ];
 
-const STAT_STYLES = ["#57c98a", "#5b8cff", "#ff7aa2", "#f5a623", "#8a6ee8", "#3ec6c0"];
-const TEXT_NAV_STYLES = ["#3d5cf1", "#8a5cff", "#ff6a9a", "#f5a623", "#3ec6c0", "#d93b8f", "#5b8cff", "#e8506b", "#a25cff", "#ef5da8"];
-const MEMBER_STYLES = ["双列模式", "列表模式", "大图模式", "简介模式", "简约模式", "醒目模式"];
+const MEMBER_STYLES = ["双列", "列表", "大图", "简介", "简约", "醒目"];
 const FREE_SWITCH = ["双列", "列表", "大图", "简介", "简约", "醒目"];
 const DELEGATE = ["联系方为被浏览人的服务红娘（默认）", "联系方为平台统一客服", "联系方为浏览人的服务红娘"];
 
@@ -463,14 +443,10 @@ export default function PlatformPagePage() {
               <div className="pl-block">
                 <div className="pl-block-title">数据统计样式选择</div>
                 <div className="pl-styles">
-                  {STAT_STYLES.map((c, i) => (
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div className={`pl-style ${statStyle === i ? "selected" : ""}`} key={i} onClick={() => setStatStyle(i)}>
                       <span className="pl-style-radio"></span>
-                      <div className="pl-stat-preview">
-                        {[0, 1, 2].map((n) => (
-                          <i key={n} style={{ background: n % 2 === 0 ? c : "#c9cfdb" }}></i>
-                        ))}
-                      </div>
+                      <img className="pl-style-img" src={`/refimg/icons/u-admin-loveindex-tongji-${i}.jpg`} alt={`数据统计样式${i + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -480,10 +456,10 @@ export default function PlatformPagePage() {
               <div className="pl-block">
                 <div className="pl-block-title">文字导航样式选择</div>
                 <div className="pl-styles">
-                  {TEXT_NAV_STYLES.map((c, i) => (
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((i) => (
                     <div className={`pl-style ${textNavStyle === i ? "selected" : ""}`} key={i} onClick={() => setTextNavStyle(i)}>
                       <span className="pl-style-radio"></span>
-                      <span className="pl-text-pill" style={{ background: c }}>最新</span>
+                      <img className="pl-style-img-sm" src={`/refimg/icons/u-admin-lovenav-${i}.jpg`} alt={`文字导航样式${i + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -493,10 +469,10 @@ export default function PlatformPagePage() {
               <div className="pl-block">
                 <div className="pl-block-title">红娘喜讯样式选择</div>
                 <div className="pl-styles">
-                  {[0, 1, 2, 3].map((i) => (
+                  {[0, 1, 2].map((i) => (
                     <div className={`pl-style ${xixunStyle === i ? "selected" : ""}`} key={i} onClick={() => setXixunStyle(i)}>
                       <span className="pl-style-radio"></span>
-                      <span className="pl-xixun-bar"><i></i></span>
+                      <img className="pl-style-img-sm" src={`/refimg/icons/u-admin-loveindex-xixun-${i}.jpg`} alt={`红娘喜讯样式${i + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -509,11 +485,8 @@ export default function PlatformPagePage() {
                   {MEMBER_STYLES.map((m, i) => (
                     <div className={`pl-style pl-style-phone ${memberStyle === i ? "selected" : ""}`} key={m} onClick={() => setMemberStyle(i)}>
                       <span className="pl-style-radio"></span>
-                      <div className="pl-phone-duo">
-                        <PhoneThumb />
-                        <PhoneThumb />
-                      </div>
-                      <span className="pl-phone-label">{m}</span>
+                      <img className="pl-style-img-sm" src={`/refimg/icons/u-admin-loveindex-big2-${i}.jpg`} alt={m} />
+                      <span className="pl-phone-label">{m}模式</span>
                     </div>
                   ))}
                 </div>
@@ -526,10 +499,7 @@ export default function PlatformPagePage() {
                   {DELEGATE.map((d, i) => (
                     <div className={`pl-style pl-style-phone ${delegate === i ? "selected" : ""}`} key={d} onClick={() => setDelegate(i)}>
                       <span className="pl-style-radio"></span>
-                      <div className="pl-phone-single">
-                        <PhoneThumb tone="#ff6a9a" />
-                        <div className="pl-delegate-line"></div>
-                      </div>
+                      <img className="pl-style-img-sm" src={`/refimg/icons/u-admin-entrust-${i}.jpg`} alt={d} />
                       <span className="pl-phone-label">{d}</span>
                     </div>
                   ))}
@@ -876,12 +846,10 @@ export default function PlatformPagePage() {
               <div className="pl-block">
                 <div className="pl-block-title">电脑端引导页模板</div>
                 <div className="pl-styles pl-styles-pc">
-                  {[0, 1, 2, 3, 4].map((i) => (
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div className={`pl-style pl-style-pc ${pcTemplate === i ? "selected" : ""}`} key={i} onClick={() => setPcTemplate(i)}>
                       <span className="pl-style-radio"></span>
-                      <div className="pl-pc-thumb" style={{ background: `linear-gradient(160deg, ${["#8a6ee8", "#b48be8", "#9a6ee8", "#7a5cff", "#a37ce8"][i]}, #f3d9ff)` }}>
-                        <span>引导页面</span>
-                      </div>
+                      <img className="pl-style-img-pc" src={`/refimg/icons/u-admin-loveindex-pc-${i}.png`} alt={`引导页模板${i + 1}`} />
                     </div>
                   ))}
                   <div className={`pl-style pl-style-pc ${pcTemplate === 5 ? "selected" : ""}`} onClick={() => setPcTemplate(5)}>

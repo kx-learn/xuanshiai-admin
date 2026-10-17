@@ -73,6 +73,7 @@ FastAPI **先注册先命中**。`member_records_admin`（136 行）早于 `memb
 ## 复用组件
 
 「搜索已注册用户并绑定」统一用 `@/components/UserCandidatePicker`（输入即搜 + 300ms 防抖 + 加载/空/失败三态 + `unavailable` 置灰）。传 `search(keyword)`，配合 `adminEndpoints.members({search})`。
+原站同款筛选控件 `@/components/LeadFilterControls`：`FilterSelect`（面板首项「xx：不限」重置）/`FilterMultiSelect`/`RangeSliderFilter`（双滑杆+确定）/`RegionCascaderFilter`（省市级联，regions/provinces|cities）。原站口径选项常量在 `filter-options.ts` 的 `LEAD_*`；CSS 前缀 `.ldd-*`。
 
 ## 事故恢复
 
