@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import { adminEndpoints } from "@/lib/admin-endpoints";
 import { useConfigDomain } from "@/lib/platform-config";
 import { showConfigToast } from "@/lib/platform-config";
 
@@ -39,10 +40,34 @@ export default function EContractConfigPage() {
     : DEFAULTS;
   const [form, setForm] = useState<EContractConfigForm>(DEFAULTS);
   const [bannerVisible, setBannerVisible] = useState(true);
+  // 「默认合同类型」的候选 = 已创建模板里出现过的合同类型（须知第 3 条：模板建好后配置到本页）
+  const [templateTypes, setTemplateTypes] = useState<string[]>([]);
 
   useEffect(() => {
+    adminEndpoints
+      .listContent("econtract_template", { page: 1, page_size: 100 })
+      .then((data) => {
+        const rows = (data.items ?? []) as Array<{ extra?: { contract_type?: unknown } }>;
+        const types = rows
+          .map((row) => row.extra?.contract_type)
+          .filter((t): t is string => typeof t === "string" && t.trim() !== "");
+        setTemplateTypes(Array.from(new Set(types)));
+      })
+      .catch(() => setTemplateTypes([]));
+  }, []);
+
+  const setItemValue = (key: string, value: string) =>
+    setForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => (item.key === key ? { ...item, value } : item)),
+    }));
+
+  // 依赖必须是整份快照：只盯标量字段时，配置加载完成前后这些值都没变，
+  // items（4 个键值配置项）就永远不会同步进表单，页面上一项也不显示。
+  useEffect(() => {
     setForm(cfg);
-  }, [cfg.enabled, cfg.company_name, cfg.credit_code, cfg.legal_rep, cfg.contract_quota]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot]);
 
   const handleSave = async () => {
     await save({ ...form, contract_quota: cfg.contract_quota }, "更新电子合同配置");
@@ -146,7 +171,22 @@ export default function EContractConfigPage() {
           </div>
 
           {form.items.length > 0 && <div className="ecc-settings">
-            {form.items.map((item) => <div className="ecc-row" key={item.key}><span className="ecc-label">{item.name}</span><span className="ecc-input" aria-label={item.name}>{item.value}</span></div>)}
+            {form.items.map((item) => {
+              if (item.key !== "default_contract_type") {
+                return <div className="ecc-row" key={item.key}><span className="ecc-label">{item.name}</span><span className="ecc-input" aria-label={item.name}>{item.value}</span></div>;
+              }
+              // 候选包含当前值，避免已保存但模板被删时下拉显示为空
+              const options = Array.from(new Set([...templateTypes, item.value].filter(Boolean)));
+              return (
+                <div className="ecc-row" key={item.key}>
+                  <span className="ecc-label">{item.name}</span>
+                  <select className="ecc-input" aria-label={item.name} value={item.value} onChange={(e) => setItemValue(item.key, e.target.value)}>
+                    {options.length === 0 && <option value="">请先创建合同模板</option>}
+                    {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              );
+            })}
           </div>}
 
           <button className="ecc-submit" onClick={handleSave} disabled={loading}>
