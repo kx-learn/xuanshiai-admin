@@ -730,7 +730,12 @@ export default function LoveUserBehaviorPage() {
                   </button>
                 ))}
               </div>
-              <button type="button" className="lub-link">
+              <button
+                type="button"
+                className="lub-link"
+                disabled
+                title="后台只有礼物流水查询，没有礼物价格/上下架的配置接口"
+              >
                 <Settings className="size-3.5" />
                 礼物设置
               </button>

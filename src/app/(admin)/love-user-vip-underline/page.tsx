@@ -29,7 +29,13 @@ import type {
 import { pickAndUploadImage, showConfigToast } from "@/lib/platform-config";
 import { VIP_SERVICE_STATUS, VIP_SERVICE_STATUS_VALUE } from "@/lib/filter-options";
 
-type StatCard = { value: string; label: string; color: string };
+type StatCard = {
+  value: string;
+  label: string;
+  color: string;
+  /** 有对应筛选维度的卡片可点击；没有对应参数的保持纯展示 */
+  onClick?: () => void;
+};
 
 const emptyStats: OfflineVipStatistics = {
   store_count: 0, vip_count: 0, serving_count: 0, expiring_count: 0, expired_count: 0,
@@ -47,10 +53,32 @@ const statusTabs: { key: "all" | OfflineVipProgress; label: string }[] = [
   { key: "breakup", label: "恋爱分手" },
   { key: "married", label: "已经领证" },
 ];
+const ALL_SUBTAB_KEYS = statusTabs.map((tab) => tab.key);
+/** 「服务进度」子 Tab 的显示偏好存在本机：后台没有保存这类界面偏好的接口。 */
+const SUBTAB_KEY = "xuanshiai_offline_vip_subtabs";
+const loadVisibleSubtabs = (): string[] => {
+  try {
+    const raw = window.localStorage.getItem(SUBTAB_KEY);
+    if (!raw) return ALL_SUBTAB_KEYS;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return ALL_SUBTAB_KEYS;
+    // 过滤掉已不存在的旧键，且「全部」始终保留
+    const kept = ALL_SUBTAB_KEYS.filter((key) => key === "all" || parsed.includes(key));
+    return kept.length ? kept : ALL_SUBTAB_KEYS;
+  } catch {
+    return ALL_SUBTAB_KEYS;
+  }
+};
+const saveVisibleSubtabs = (keys: readonly string[]) => {
+  try {
+    window.localStorage.setItem(SUBTAB_KEY, JSON.stringify(keys));
+  } catch {
+    // 隐私模式下写不进去，退回到当前会话生效即可
+  }
+};
 
 const columns = [
-  { title: "ID", width: 70 },
-  { title: "会员", width: 160 },
+  { title: "ID", width: 70 },  { title: "会员", width: 160 },
   { title: "签约日期", width: 110 },
   { title: "服务套餐", width: 120 },
   { title: "服务进度", width: 120 },
@@ -60,6 +88,18 @@ const columns = [
   { title: "电子合同", width: 100 },
   { title: "备注信息", width: 140 },
 ];
+
+/** 表头文案 → 后端 column_sort 白名单键；未列出的列不提供排序。 */
+type ColumnSortKey = "sign_date" | "package" | "progress" | "last_follow" | "amount" | "matchmaker" | "id";
+const COLUMN_SORT_KEY: Record<string, ColumnSortKey> = {
+  ID: "id",
+  签约日期: "sign_date",
+  服务套餐: "package",
+  服务进度: "progress",
+  最近跟进: "last_follow",
+  合同金额: "amount",
+  红娘: "matchmaker",
+};
 
 const emptyOptions: OfflineVipOptions = {
   sales_matchmakers: [], service_matchmakers: [], promoters: [], packages: [],
@@ -115,6 +155,10 @@ export default function LoveUserVipUnderlinePage() {
   const [activeTab, setActiveTab] = useState<"all" | OfflineVipProgress>("all");
   const [searchType, setSearchType] = useState("按昵称搜");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [packagesOpen, setPackagesOpen] = useState(false);
+  const [subtabSettingsOpen, setSubtabSettingsOpen] = useState(false);
+  const [visibleSubtabs, setVisibleSubtabs] = useState<string[]>(ALL_SUBTAB_KEYS);
+  const [columnSort, setColumnSort] = useState<ColumnSortKey | "">("");
   const [selected, setSelected] = useState<number[]>([]);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -142,15 +186,20 @@ export default function LoveUserVipUnderlinePage() {
 
   const statCards: StatCard[] = useMemo(
     () => [
+      // 「门店」是另一个维度（组织），列表没有对应筛选参数
       { value: `${stats.store_count}家`, label: "门店", color: "#fa8c16" },
-      { value: `${stats.vip_count}位`, label: "线下VIP", color: "#13c2c2" },
-      { value: `${stats.serving_count}位`, label: "服务中", color: "#52c41a" },
+      { value: `${stats.vip_count}位`, label: "线下VIP", color: "#13c2c2",
+        onClick: () => { setActiveTab("all"); setFilterServiceStatus(""); setPage(1); } },
+      { value: `${stats.serving_count}位`, label: "服务中", color: "#52c41a",
+        onClick: () => { setFilterServiceStatus("服务期内"); setPage(1); } },
       { value: `${stats.expiring_count}位`, label: "即将到期", color: "#8c8c8c" },
-      { value: `${stats.expired_count}位`, label: "服务到期", color: "#3658f7" },
+      { value: `${stats.expired_count}位`, label: "服务到期", color: "#3658f7",
+        onClick: () => { setFilterServiceStatus("已过期"); setPage(1); } },
       { value: `${stats.paid_count}位`, label: "有偿费", color: "#52c41a" },
       { value: `${stats.promise_meet_total}位`, label: "总计安排见面", color: "#722ed1" },
       { value: `${stats.promise_meet_month}位`, label: "本月已安排", color: "#13c2c2" },
-      { value: `${stats.refund_risk_count}位`, label: "有退费风险", color: "#13c2c2" },
+      { value: `${stats.refund_risk_count}位`, label: "有退费风险", color: "#13c2c2",
+        onClick: () => { setFilterServiceStatus("无退费风险"); setPage(1); } },
       { value: `${stats.refunded_count}位`, label: "已退费", color: "#ff4d4f" },
     ],
     [stats],
@@ -171,6 +220,8 @@ export default function LoveUserVipUnderlinePage() {
         keyword: submittedKeyword || undefined,
         // 服务状态与 progress（服务进度）是两套维度，独立参数
         service_status: filterServiceStatus ? VIP_SERVICE_STATUS_VALUE[filterServiceStatus] : undefined,
+        // 表头点击排序：未点表头时不传，沿用后端默认排序
+        column_sort: columnSort || undefined,
       });
       setRows(result.items ?? []);
       setTotal(result.total ?? 0);
@@ -181,7 +232,7 @@ export default function LoveUserVipUnderlinePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, activeTab, filterServiceId, filterSalesId, filterPromoterId, filterSignStart, filterSignEnd, submittedKeyword, filterServiceStatus]);
+  }, [page, pageSize, activeTab, filterServiceId, filterSalesId, filterPromoterId, filterSignStart, filterSignEnd, submittedKeyword, filterServiceStatus, columnSort]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -201,6 +252,7 @@ export default function LoveUserVipUnderlinePage() {
 
   useEffect(() => { void loadList(); }, [loadList]);
   useEffect(() => { void loadStats(); void loadOptions(); }, [loadStats, loadOptions]);
+  useEffect(() => { setVisibleSubtabs(loadVisibleSubtabs()); }, []);
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
   const exportRows = () => {
@@ -233,6 +285,55 @@ export default function LoveUserVipUnderlinePage() {
   };
 
   const resetForm = () => setForm(emptyForm);
+
+  /** 业绩报表：按当前筛选结果汇总，与列表导出的逐行明细互补。 */
+  const exportPerformance = () => {
+    if (!rows.length) {
+      showConfigToast("当前没有可汇总的线下VIP记录", "error");
+      return;
+    }
+    const esc = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const amountOf = (value: unknown) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    // 按服务红娘（无则销售红娘）分组统计签约数与合同金额
+    const groups = new Map<string, { count: number; amount: number }>();
+    for (const row of rows) {
+      const name = row.service_matchmaker_name ?? row.sales_matchmaker_name ?? "未分配";
+      const current = groups.get(name) ?? { count: 0, amount: 0 };
+      current.count += 1;
+      current.amount += amountOf(row.contract_amount);
+      groups.set(name, current);
+    }
+    const totalAmount = rows.reduce((sum, row) => sum + amountOf(row.contract_amount), 0);
+    const summary = [
+      ["指标", "数值"].map(esc).join(","),
+      ["线下VIP总数", stats.vip_count].map(esc).join(","),
+      ["服务中", stats.serving_count].map(esc).join(","),
+      ["即将到期", stats.expiring_count].map(esc).join(","),
+      ["已过期", stats.expired_count].map(esc).join(","),
+      ["有偿费", stats.paid_count].map(esc).join(","),
+      ["承诺约见总数", stats.promise_meet_total].map(esc).join(","),
+      ["承诺约见本月", stats.promise_meet_month].map(esc).join(","),
+      ["有退费风险", stats.refund_risk_count].map(esc).join(","),
+      ["已退费", stats.refunded_count].map(esc).join(","),
+      ["当前筛选记录数", rows.length].map(esc).join(","),
+      ["当前筛选合同金额合计", totalAmount.toFixed(2)].map(esc).join(","),
+      "",
+      ["红娘", "签约数", "合同金额合计"].map(esc).join(","),
+      ...[...groups.entries()]
+        .sort((a, b) => b[1].amount - a[1].amount)
+        .map(([name, item]) => [name, item.count, item.amount.toFixed(2)].map(esc).join(",")),
+    ].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["﻿", summary], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `线下VIP业绩报表-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    showConfigToast(`报表已导出：${rows.length} 条记录，${groups.size} 位红娘`, "ok");
+  };
 
   const openCreate = () => {
     setEditing(false);
@@ -382,7 +483,7 @@ export default function LoveUserVipUnderlinePage() {
               <Plus className="size-3.5" />
               添加线下VIP会员
             </button>
-            <button type="button" className="lvip-btn primary">
+            <button type="button" className="lvip-btn primary" onClick={exportPerformance}>
               <BarChart3 className="size-3.5" />
               业绩报表
             </button>
@@ -413,7 +514,24 @@ export default function LoveUserVipUnderlinePage() {
 
         <div className="lvip-stats">
           {statCards.map((card) => (
-            <div key={card.label} className="lvip-stat">
+            <div
+              key={card.label}
+              className={`lvip-stat ${card.onClick ? "cursor-pointer hover:opacity-80" : ""}`}
+              onClick={card.onClick}
+              role={card.onClick ? "button" : undefined}
+              tabIndex={card.onClick ? 0 : undefined}
+              title={card.onClick ? `点击按「${card.label}」筛选列表` : undefined}
+              onKeyDown={
+                card.onClick
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        card.onClick?.();
+                      }
+                    }
+                  : undefined
+              }
+            >
               <span className="lvip-stat-bar" style={{ background: card.color }} />
               <div className="lvip-stat-value">{card.value}</div>
               <div className="lvip-stat-label">{card.label}</div>
@@ -423,7 +541,7 @@ export default function LoveUserVipUnderlinePage() {
 
         <div className="lvip-subtabs">
           <div className="lvip-subtabs-list">
-            {statusTabs.map((tab) => (
+            {statusTabs.filter((tab) => visibleSubtabs.includes(tab.key)).map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -434,10 +552,63 @@ export default function LoveUserVipUnderlinePage() {
               </button>
             ))}
           </div>
-          <button type="button" className="lvip-subtabs-set" aria-label="设置">
+          <button
+            type="button"
+            className="lvip-subtabs-set"
+            aria-label="设置"
+            onClick={() => setSubtabSettingsOpen((v) => !v)}
+            title="设置显示哪些服务进度子 Tab"
+          >
             <Settings className="size-4" />
           </button>
         </div>
+        {subtabSettingsOpen && (
+          <div className="mb-2 rounded border border-[#e5e7eb] bg-[#fafafa] p-3 text-xs">
+            <div className="mb-2 flex items-center gap-3">
+              <span className="text-[#8c8c8c]">勾选要在上方显示的服务进度子 Tab（保存在本机浏览器）</span>
+              <button
+                type="button"
+                className="text-[#3658f7]"
+                onClick={() => {
+                  const keys = statusTabs.map((item) => item.key);
+                  setVisibleSubtabs(keys);
+                  saveVisibleSubtabs(keys);
+                }}
+              >
+                全选
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {statusTabs.map((item) => {
+                // 「全部」是兜底视图，不允许隐藏，否则列表可能没有任何 Tab 可选。
+                const locked = item.key === "all";
+                return (
+                  <label key={item.key} className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={visibleSubtabs.includes(item.key)}
+                      disabled={locked}
+                      onChange={(event) => {
+                        const next = event.target.checked
+                          ? [...visibleSubtabs, item.key]
+                          : visibleSubtabs.filter((key) => key !== item.key);
+                        // 始终保持与 statusTabs 一致的顺序，避免勾选顺序影响展示顺序
+                        const ordered = statusTabs.map((t) => t.key).filter((key) => next.includes(key));
+                        setVisibleSubtabs(ordered);
+                        saveVisibleSubtabs(ordered);
+                        if (!ordered.includes(activeTab as typeof ordered[number])) {
+                          setActiveTab("all");
+                          setPage(1);
+                        }
+                      }}
+                    />
+                    {item.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="lvip-subtabs-line" />
 
         <div className="lvip-filters">
@@ -526,9 +697,25 @@ export default function LoveUserVipUnderlinePage() {
             <thead>
               <tr>
                 <th><input type="checkbox" aria-label="全选" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((row) => row.id))} /></th>
-                {columns.map((col) => (
-                  <th key={col.title}>{col.title}</th>
-                ))}
+                {columns.map((col) => {
+                  // 表头排序只对后端 COLUMN_SORT_SQL 白名单里的列开放。
+                  const sortKey = COLUMN_SORT_KEY[col.title];
+                  if (!sortKey) return <th key={col.title}>{col.title}</th>;
+                  const active = columnSort === sortKey;
+                  return (
+                    <th key={col.title}>
+                      <button
+                        type="button"
+                        onClick={() => { setColumnSort(sortKey); setPage(1); }}
+                        className={`flex items-center gap-1 ${active ? "text-[#3658f7]" : ""}`}
+                        title={`按${col.title}排序`}
+                      >
+                        {col.title}
+                        <span className="text-[10px] text-[#bfbfbf]">{active ? "▼" : "↕"}</span>
+                      </button>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -745,10 +932,27 @@ export default function LoveUserVipUnderlinePage() {
                     </select>
                     <span className="lvip-caret" />
                   </label>
-                  <button type="button" className="lvip-link">
+                  <button type="button" className="lvip-link" onClick={() => setPackagesOpen((v) => !v)}>
                     套餐管理
                   </button>
                 </div>
+                {packagesOpen && (
+                  <div className="mt-2 rounded border border-[#e5e7eb] bg-[#fafafa] p-3 text-xs">
+                    <div className="mb-2 text-[#8c8c8c]">
+                      套餐类型取自已有线下VIP记录中出现过的名称，外加系统预置的四档。
+                      增删套餐请直接在「线下VIP」列表里新增或编辑记录的套餐类型。
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {options.packages.map((item) => (
+                        <span key={item} className="border border-[#d9d9d9] bg-white px-2 py-1">
+                          {item}
+                          {item === form.packageName ? <b className="ml-1 text-[#3658f7]">当前</b> : null}
+                        </span>
+                      ))}
+                    </div>
+                    {options.packages.length === 0 ? <div className="text-[#8c8c8c]">暂无可用套餐</div> : null}
+                  </div>
+                )}
               </div>
 
               <div className="lvip-field">

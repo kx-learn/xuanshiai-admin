@@ -22,7 +22,7 @@ const intentLabels = ["待联系", "已联系", "有意向", "已入库", "已�
 export default function Page() {
   const [activeTab, setActiveTab] = useState(0);
   const [stats, setStats] = useState({ total: 0, new_count: 0, contacted_count: 0, intended_count: 0, converted_count: 0, lost_count: 0 });
-  const [leads, setLeads] = useState<Array<{ id: number; source: string; status: string; matchmaker_id: number | null; created_at: string; next_follow_at: string | null }>>([]);
+  const [leads, setLeads] = useState<Array<{ id: number; source: string; status: string; matchmaker_id: number | null; promoter_id?: number | null; created_at: string; next_follow_at: string | null }>>([]);
   const [message, setMessage] = useState("");
   const [promoterFilter, setPromoterFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -86,6 +86,47 @@ export default function Page() {
     redniangMap.set(key, item);
   });
 
+  // 客户增量统计：按录入日期聚合，给出每天新增与累计
+  const incrementMap = new Map<string, number>();
+  dateFilteredLeads.forEach((lead) => {
+    const day = (lead.created_at || "").slice(0, 10);
+    if (!day) return;
+    incrementMap.set(day, (incrementMap.get(day) ?? 0) + 1);
+  });
+  const incrementDays = [...incrementMap.keys()].sort();
+  let runningTotal = 0;
+  const incrementCumulative = incrementDays.map((day) => {
+    runningTotal += incrementMap.get(day) ?? 0;
+    return runningTotal;
+  });
+  const incrementValues = incrementDays.map((day) => incrementMap.get(day) ?? 0);
+
+  // 客源分派统计：按服务红娘聚合分派量与其中已入库（转化成功）数量
+  const assignMap = new Map<number | null, { total: number; converted: number }>();
+  dateFilteredLeads.forEach((lead) => {
+    if (!lead.matchmaker_id) return;
+    const item = assignMap.get(lead.matchmaker_id) ?? { total: 0, converted: 0 };
+    item.total += 1;
+    if (lead.status === "CONVERTED") item.converted += 1;
+    assignMap.set(lead.matchmaker_id, item);
+  });
+  const assignRows = [...assignMap.entries()].sort((a, b) => b[1].total - a[1].total);
+
+  // 推广红娘获客统计：按 promoter_id 聚合录入量与状态分布
+  const promoterMap = new Map<number, { total: number; converted: number; lost: number; active: number }>();
+  dateFilteredLeads.forEach((lead) => {
+    if (!lead.promoter_id) return;
+    const item = promoterMap.get(lead.promoter_id) ?? { total: 0, converted: 0, lost: 0, active: 0 };
+    item.total += 1;
+    if (lead.status === "CONVERTED") item.converted += 1;
+    else if (lead.status === "LOST") item.lost += 1;
+    else item.active += 1;
+    promoterMap.set(lead.promoter_id, item);
+  });
+  const promoterRows = [...promoterMap.entries()]
+    .filter(([id]) => !promoterFilter || String(id).includes(promoterFilter.trim()))
+    .sort((a, b) => b[1].total - a[1].total);
+
   return (
     <div className="customer-statistics-page">
       <AdminBreadcrumb items={getBreadcrumb("客源线索", "数据报表")} />
@@ -104,7 +145,8 @@ export default function Page() {
             {activeTab === 1 && <ReportTable headers={["客户意向", "客源数量", "占比"]} labels={intentLabels} values={intentValues} />}
             {activeTab === 2 && <ReportTable headers={["来源", "客源数量", "占比"]} labels={sourceRows} values={sourceValues} />}
             {activeTab === 3 && <ReportTable headers={["状态", "客源数量", "占比"]} labels={statusRows.map((s) => statusLabels[s] || s)} values={statusValues} />}
-          </div> : activeTab === 4 ? <EmptyReport /> : activeTab === 5 ? <ReportTable headers={["分派给", "新分派客源", "操作"]} labels={[]} actions /> : activeTab === 6 ? <ReportTable headers={["推广红娘", "录入客源总数", "男客源", "女客源", "有效（男客源）", "有效（女客源）", "待审", "无效"]} labels={[]} plain /> : <table className="w-full min-w-[1100px] table-fixed text-sm">
+          </div> : activeTab === 4 ? <IncrementReport days={incrementDays} values={incrementValues} cumulative={incrementCumulative} /> : activeTab === 5 ? <AssignReport rows={assignRows} />
+              : activeTab === 6 ? <PromoterReport rows={promoterRows} /> : <table className="w-full min-w-[1100px] table-fixed text-sm">
             <thead className="bg-[#fafafa] text-[#222]"><tr>{followColumns.map((column) => <th key={column} className="border-b px-3 py-3 text-left font-semibold">{column}</th>)}</tr></thead>
             <tbody>
               {leads.length === 0 ? <tr><td colSpan={followColumns.length} className="h-40 text-center text-[#999]">暂无数据</td></tr> : (
@@ -131,6 +173,78 @@ export default function Page() {
 }
 
 function EmptyReport() { return <div className="flex h-40 items-center justify-center text-sm text-[#999]">暂无数据</div>; }
+
+/** 客源分派统计：按服务红娘列出分派量、已入库数与转化率。 */
+function AssignReport({ rows }: { rows: [number | null, { total: number; converted: number }][] }) {
+  if (rows.length === 0) return <EmptyReport />;
+  return (
+    <table className="w-full table-fixed text-sm">
+      <thead className="bg-[#fafafa]">
+        <tr>{["分派给", "新分派客源", "已入库", "转化率"].map((header) => <th key={header} className="border-b px-3 py-3 text-left font-semibold">{header}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map(([id, item]) => (
+          <tr key={String(id)} className="border-b">
+            <td className="px-3 py-3">红娘 #{id}</td>
+            <td className="px-3 py-3">{item.total}条</td>
+            <td className="px-3 py-3">{item.converted}条</td>
+            <td className="px-3 py-3">{item.total ? `${((item.converted / item.total) * 100).toFixed(2)}%` : "0.00%"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** 推广红娘获客统计：按推广红娘列出录入量与其状态分布。 */
+function PromoterReport({ rows }: { rows: [number, { total: number; converted: number; lost: number; active: number }][] }) {
+  if (rows.length === 0) return <EmptyReport />;
+  return (
+    <table className="w-full table-fixed text-sm">
+      <thead className="bg-[#fafafa]">
+        <tr>{["推广红娘", "录入客源总数", "进行中", "已入库", "已弃海", "入库率"].map((header) => <th key={header} className="border-b px-3 py-3 text-left font-semibold">{header}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map(([id, item]) => (
+          <tr key={id} className="border-b">
+            <td className="px-3 py-3">推广红娘 #{id}</td>
+            <td className="px-3 py-3">{item.total}条</td>
+            <td className="px-3 py-3">{item.active}条</td>
+            <td className="px-3 py-3">{item.converted}条</td>
+            <td className="px-3 py-3">{item.lost}条</td>
+            <td className="px-3 py-3">{item.total ? `${((item.converted / item.total) * 100).toFixed(2)}%` : "0.00%"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** 客户增量统计：按录入日期逐日列出新增量与累计量。 */function IncrementReport({ days, values, cumulative }: { days: string[]; values: number[]; cumulative: number[] }) {
+  if (days.length === 0) return <EmptyReport />;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return (
+    <>
+      <div className="py-2 text-xs text-[#8c8c8c]">
+        区间内新增 {total} 条，覆盖 {days.length} 天
+      </div>
+      <table className="w-full table-fixed text-sm">
+        <thead className="bg-[#fafafa]">
+          <tr>{["日期", "新增客源", "累计客源"].map((header) => <th key={header} className="border-b px-3 py-3 text-left font-semibold">{header}</th>)}</tr>
+        </thead>
+        <tbody>
+          {days.map((day, index) => (
+            <tr key={day} className="border-b">
+              <td className="px-3 py-3">{day}</td>
+              <td className="px-3 py-3">{values[index] ?? 0}条</td>
+              <td className="px-3 py-3">{cumulative[index] ?? 0}条</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
 
 function DateFilter({ fromValue, toValue, onFromChange, onToChange }: { fromValue: string; toValue: string; onFromChange: (v: string) => void; onToChange: (v: string) => void }) {
   return <DateRangePicker startValue={fromValue} endValue={toValue} onStartChange={onFromChange} onEndChange={onToChange} />;
