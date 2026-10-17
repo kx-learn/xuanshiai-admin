@@ -6,6 +6,7 @@ import { BarChart3, CalendarDays, FileDown, PackageOpen, Plus, Search } from "lu
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
+import type { CustomerLeadOptions } from "@/lib/admin-endpoints";
 import AdminPagination from "@/components/AdminPagination";
 import DateRangePicker from "@/components/DateRangePicker";
 import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
@@ -28,6 +29,7 @@ type Lead = {
   source: string;
   intention_level: 1 | 2 | 3;
   status: string;
+  audit_status: string;
   matchmaker_id: number | null;
   organization_id: number | null;
   next_follow_at: string | null;
@@ -91,6 +93,8 @@ export default function Page() {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   /** 「更多选项」里有后端参数的 4 项；key 与接口 query 参数同名，界面存中文文案 */
   const [moreFilters, setMoreFilters] = useState<Record<string, string>>({});
+  /** 下拉字典（/customer-leads/options），行内「分派跟进」用它的 matchmakers */
+  const [leadOptions, setLeadOptions] = useState<CustomerLeadOptions | null>(null);
   const [viewMode, setViewMode] = useState<"professional" | "simple">("professional");
   const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
   const [smartOpen, setSmartOpen] = useState(false);
@@ -177,18 +181,38 @@ export default function Page() {
     next_follow_at: "",
   });
 
-  const filterByDate = (items: Lead[]) => {
-    if (!startDate && !endDate) return items;
-    const fromTs = startDate ? new Date(`${startDate}T00:00:00`).getTime() : -Infinity;
-    const toTs = endDate ? new Date(`${endDate}T23:59:59`).getTime() : Infinity;
-    return items.filter((lead) => {
-      const t = lead.created_at ? new Date(lead.created_at).getTime() : NaN;
-      return Number.isFinite(t) && t >= fromTs && t <= toTs;
+  const filterByDate = useCallback(
+    (items: Lead[]) => {
+      if (!startDate && !endDate) return items;
+      const fromTs = startDate ? new Date(`${startDate}T00:00:00`).getTime() : -Infinity;
+      const toTs = endDate ? new Date(`${endDate}T23:59:59`).getTime() : Infinity;
+      return items.filter((lead) => {
+        const t = lead.created_at ? new Date(lead.created_at).getTime() : NaN;
+        return Number.isFinite(t) && t >= fromTs && t <= toTs;
+      });
+    },
+    [startDate, endDate],
+  );
+  const visibleLeads = useMemo(() => filterByDate(data.items), [filterByDate, data.items]);
+  /* 弃海客源 Tab 复用专业视图列，数据源换成弃海线索。
+     弃海接口（admin/customer-leads/abandoned）不接受 search/status/source 参数，
+     筛选必须在前端做，否则筛选区点了没反应。 */
+  const filteredAbandonLeads = useMemo(() => {
+    const kw = keyword.trim().toLowerCase();
+    return filterByDate(abandonLeads).filter((lead) => {
+      if (status && lead.status !== status) return false;
+      if (source && lead.source !== source) return false;
+      if (kw) {
+        const haystack = [lead.name, lead.phone, lead.wechat, lead.remark, String(lead.id)]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(kw)) return false;
+      }
+      return true;
     });
-  };
-  const visibleLeads = filterByDate(data.items);
-  /* 弃海客源 Tab 复用专业视图列，数据源换成弃海线索 */
-  const tableLeads = leadTab === "abandon" ? abandonLeads : visibleLeads;
+  }, [abandonLeads, keyword, status, source, filterByDate]);
+  const tableLeads = leadTab === "abandon" ? filteredAbandonLeads : visibleLeads;
   const effectiveView = leadTab === "abandon" ? "professional" : viewMode;
   const load = useCallback(
     async (page = 1, size = 20) => {
@@ -226,6 +250,9 @@ export default function Page() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    void adminEndpoints.customerLeadOptions().then(setLeadOptions).catch(() => setLeadOptions(null));
+  }, []);
   /* 支持 /love-customer-abandon、/love-customer-abandon-log 重定向带来的 tab 参数 */
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get("tab");
@@ -259,7 +286,7 @@ export default function Page() {
     if (leadTab === "log") void loadLog();
   }, [leadTab, loadAbandon, loadLog]);
   useEffect(() => {
-    const sourceItems = leadTab === "abandon" ? abandonLeads : data.items;
+    const sourceItems = leadTab === "abandon" ? filteredAbandonLeads : visibleLeads;
     const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".customer-lead-page table tbody tr"));
     if (effectiveView === "simple") rows.forEach((row) => row.querySelector(".lead-selection-cell")?.remove());
     if (effectiveView === "professional") rows.forEach((row) => { const cell = row.cells[0]; if (cell && !cell.querySelector("input[type=checkbox]")) { const box = document.createElement("input"); box.type = "checkbox"; cell.prepend(box); } if (cell && cell.querySelector("input[type=checkbox]") && !row.querySelector(".lead-selection-cell")) { const box = cell.querySelector("input[type=checkbox]")!; const selectionCell = document.createElement("td"); selectionCell.className = "lead-selection-cell"; selectionCell.appendChild(box); row.insertBefore(selectionCell, cell); } });
@@ -435,6 +462,48 @@ export default function Page() {
     }
   };
 
+  /** 行内「审核」下拉：有效 active / 待核 pending（后端 LeadAuditStatus 只有这两个值） */
+  const setAuditStatus = async (lead: Lead, audit_status: string) => {
+    if (audit_status === lead.audit_status) return;
+    await updateField(lead, { audit_status });
+  };
+
+  /** 行内「分派跟进」下拉：选中红娘即调用分配接口（空值=未分派，不提交） */
+  const setAssign = async (lead: Lead, value: string) => {
+    if (value === (lead.matchmaker_id ? String(lead.matchmaker_id) : "")) return;
+    if (!value) {
+      setMessage("取消分派请在「分配客源线索」弹窗中操作");
+      return;
+    }
+    try {
+      await adminEndpoints.assignCustomerLead(lead.id, { matchmaker_id: Number(value) });
+      await load(data.page);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "分派失败");
+    }
+  };
+
+  /** 行内「分派跟进」单元格；字典为空时只显示当前值，仍可看出分派状态 */
+  const assignCell = (x: Lead) => {
+    const options = leadOptions?.matchmakers ?? [];
+    const current = x.matchmaker_id ? String(x.matchmaker_id) : "";
+    return (
+      <select className="lead-cell-select" aria-label="分派跟进" value={current} onChange={(event) => void setAssign(x, event.target.value)}>
+        <option value="">待分派</option>
+        {options.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        {current && !options.some((item) => item.value === current) && <option value={current}>红娘 #{current}</option>}
+      </select>
+    );
+  };
+
+  /** 行内「审核」单元格：有效 active / 待核 pending */
+  const auditCell = (x: Lead) => (
+    <select className="lead-cell-select valid" aria-label="审核状态" value={x.audit_status || "active"} onChange={(event) => void setAuditStatus(x, event.target.value)}>
+      <option value="active">有效</option>
+      <option value="pending">待核</option>
+    </select>
+  );
+
   const abandon = async (lead: Lead) => {
     if (!window.confirm(`确定将「${lead.name}」放入弃海吗？`)) return;
     try {
@@ -446,9 +515,10 @@ export default function Page() {
   };
 
   const exportCsv = () => {
+    /* 导出当前可见行：弃海 Tab 导出的是弃海线索（含已应用的筛选），而非线索管理列表 */
     const csv = [
       "客源ID,称呼,手机,微信,来源,意向,状态",
-      ...data.items.map((x) =>
+      ...tableLeads.map((x) =>
         [
           x.id,
           x.name,
@@ -625,7 +695,7 @@ export default function Page() {
           </div>
           <div className="flex items-end gap-2">
             <button
-              onClick={() => void load()}
+              onClick={() => { if (leadTab === "abandon") void loadAbandon(); else void load(); }}
               className="flex h-10 items-center gap-1 rounded bg-[#3658f7] px-5 text-sm text-white"
             >
               <Search size={14} />
@@ -670,7 +740,7 @@ export default function Page() {
                   key={x}
                   className="border-b px-3 py-3 text-left font-normal"
                 >
-                  {index === 0 ? <input type="checkbox" aria-label="全选线索" checked={visibleLeads.length > 0 && selectedLeadIds.length === visibleLeads.length} onChange={(event) => setSelectedLeadIds(event.target.checked ? visibleLeads.map((item) => item.id) : [])} /> : x}
+                  {index === 0 ? <input type="checkbox" aria-label="全选线索" checked={tableLeads.length > 0 && selectedLeadIds.length === tableLeads.length} onChange={(event) => setSelectedLeadIds(event.target.checked ? tableLeads.map((item) => item.id) : [])} /> : x}
                 </th>
               ))}
             </tr>
@@ -694,14 +764,14 @@ export default function Page() {
                   key={x.id}
                   className="border-b align-top hover:bg-[#fafcff]"
                 >
-                  {effectiveView === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? "已分派" : "待分派"}><option>待分派</option><option>已分派</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue="有效"><option>有效</option><option>无效</option></select></td><td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3"><button onClick={() => open("edit", x)}>编辑</button><button onClick={() => open("edit", x)}>详情</button><button onClick={() => open("follow", x)}>跟进</button><button onClick={() => void abandon(x)}>放入弃海</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
+                  {effectiveView === "simple" ? <><td className="px-3 py-3"><input type="checkbox" /></td><td className="px-3 py-3">-</td><td className="px-3 py-3 text-[#3658f7]">{x.id}</td><td className="px-3 py-3">{x.name || "-"}</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">-</td><td className="px-3 py-3">{x.source || "-"}</td><td className="px-3 py-3 text-xs">账号 #{x.created_by}<br />{new Date(x.created_at).toLocaleString("zh-CN")}</td><td className="px-3 py-3">{assignCell(x)}</td><td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.phone || x.wechat ? "已填写" : "未设置"}><option>未设置</option><option>已填写</option></select></td><td className="px-3 py-3">{auditCell(x)}</td><td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td><td className="px-3 py-3"><span className="simple-tag">-</span></td><td className="px-3 py-3"><span className={x.converted_user_id ? "simple-converted" : "simple-not-converted"}>{x.converted_user_id ? "已入库" : "未入库"}</span>{x.converted_user_id && <small className="block">#{x.converted_user_id}</small>}</td><td className="px-3 py-3">{x.remark || "-"}</td><td className="px-3 py-3"><button onClick={() => open("edit", x)}>编辑</button><button onClick={() => open("edit", x)}>详情</button><button onClick={() => open("follow", x)}>跟进</button><button onClick={() => void abandon(x)}>放入弃海</button></td></> : <><td className="px-3 py-3 text-[#3658f7]">{x.id}</td>
                   <td className="px-3 py-3">
                     <div className="lead-profile"><div className="lead-avatar">#{x.id}</div><div><b>{x.name || "-"}</b>{x.phone && <span className="lead-tag">有电话</span>}{x.wechat && <span className="lead-tag">有微信</span>}</div></div>
                     <div className="lead-actions"><button onClick={() => open("edit", x)}>基本资料</button><button onClick={() => open("edit", x)}>择偶要求</button><button onClick={() => open("follow", x)}>跟进信息</button><button onClick={() => open("edit", x)} className="lead-more-button">更多</button></div>
                   </td>
                   <td className="px-3 py-3"><select className="lead-cell-select" value={String(x.intention_level)} onChange={(event) => void updateField(x, { intention_level: Number(event.target.value) })}><option value="1">低意向</option><option value="2">中意向</option><option value="3">高意向</option></select></td>
                   <td className="px-3 py-3">{x.source || "-"}</td>
-                  <td className="px-3 py-3"><select className="lead-cell-select valid" defaultValue="有效"><option>有效</option><option>无效</option></select></td>
+                  <td className="px-3 py-3">{auditCell(x)}</td>
                   <td className="px-3 py-3 text-xs">
                     账号 #{x.created_by}
                     <br />
@@ -712,7 +782,7 @@ export default function Page() {
                     </span>
                   </td>
                   <td className="px-3 py-3"><select className="lead-cell-select" value={x.status} onChange={(event) => void updateField(x, { status: event.target.value })}><option value="NEW">待联系</option><option value="CONTACTED">已联系</option><option value="INTENDED">有意向</option><option value="CONVERTED">已入库</option><option value="LOST">已弃海</option><option value="CLOSED">已关闭</option></select></td>
-                  <td className="px-3 py-3"><select className="lead-cell-select" defaultValue={x.matchmaker_id ? `红娘 #${x.matchmaker_id}` : "待分派"}><option>待分派</option><option>已分派</option></select></td>
+                  <td className="px-3 py-3">{assignCell(x)}</td>
                   <td className="px-3 py-3 text-xs text-[#777]">
                     <div>从未跟进</div>
                     <div className="text-[#ff7a21]">{daysSince(x.created_at)}天<span className="text-[#777]">未跟进</span></div>

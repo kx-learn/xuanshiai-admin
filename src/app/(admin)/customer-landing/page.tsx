@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link2, Image as ImageIcon, Smile, Quote, Code, Heading1, Heading2, RotateCcw, RotateCw, Trash2, Maximize2, Plus, Minus } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
@@ -36,31 +36,6 @@ const REQUIRED_FIELDS = new Set(["昵称", "性别", "手机"]);
 const DATA_POS_OPTIONS = ["保存到客源线索", "保存到会员资料（并自动注册用户账号）"];
 const PHONE_OPTIONS = ["无需验证（手机号直接填写无需验证）", "需验证（手机号码需要进行验证码验真后才可以提交）"];
 const ASSIGN_OPTIONS = ["待分派", "分派给指定红娘"];
-
-const CLL_TOOLBAR: { icon: React.ReactNode; title: string }[] = [
-  { icon: <Heading1 size={14} />, title: "标题" },
-  { icon: <Type size={14} />, title: "正文" },
-  { icon: <Bold size={14} />, title: "加粗" },
-  { icon: <Italic size={14} />, title: "斜体" },
-  { icon: <Underline size={14} />, title: "下划线" },
-  { icon: <Strikethrough size={14} />, title: "删除线" },
-  { icon: <AlignLeft size={14} />, title: "左对齐" },
-  { icon: <AlignCenter size={14} />, title: "居中" },
-  { icon: <AlignRight size={14} />, title: "右对齐" },
-  { icon: <List size={14} />, title: "无序列表" },
-  { icon: <ListOrdered size={14} />, title: "有序列表" },
-  { icon: <Quote size={14} />, title: "引用" },
-  { icon: <Link2 size={14} />, title: "链接" },
-  { icon: <ImageIcon size={14} />, title: "图片" },
-  { icon: <Smile size={14} />, title: "表情" },
-  { icon: <Code size={14} />, title: "代码" },
-  { icon: <Plus size={14} />, title: "更多" },
-  { icon: <RotateCcw size={14} />, title: "撤销" },
-  { icon: <RotateCw size={14} />, title: "重做" },
-  { icon: <Minus size={14} />, title: "分割线" },
-  { icon: <Maximize2 size={14} />, title: "全屏" },
-  { icon: <Trash2 size={14} />, title: "清空" },
-];
 
 type FormType = (typeof FORM_TYPE_OPTIONS)[number];
 type PageType = (typeof PAGE_TYPE_OPTIONS)[number];
@@ -488,11 +463,7 @@ function AddLandingDrawer(props: {
             <span className="cll-label">头部自定义</span>
             <div className="cll-content">
               <div className="cll-editor">
-                <div className="cll-editor-toolbar">
-                  {CLL_TOOLBAR.map((it, idx) => (
-                    <button key={idx} type="button" className="cll-editor-tool" title={it.title}>{it.icon}</button>
-                  ))}
-                </div>
+                <div className="cll-editor-toolbar"><span className="cll-editor-tool-hint">支持纯文本编辑</span></div>
                 <textarea
                   className="cll-editor-body"
                   rows={6}

@@ -107,7 +107,6 @@ export default function XixunBannerPage() {
     const payload = {
       title: draft.title.trim() || `锦旗-${draft.giver}→${draft.target}`,
       subtitle: draft.maker.trim() || null,
-      image_url: null,
       status: draft.public ? 1 : 2,
       sort: draft.sort,
       extra: {

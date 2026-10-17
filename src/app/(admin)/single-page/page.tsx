@@ -11,27 +11,6 @@ import { QRCODE_TYPE, QRCODE_TYPE_VALUE } from "@/lib/filter-options";
 
 const breadcrumb = getBreadcrumb("运营工具", "内容单页");
 
-const SSP_TOOLBAR: { label: string; title: string }[] = [
-  { label: "H1", title: "标题" },
-  { label: "B", title: "加粗" },
-  { label: "T", title: "正文" },
-  { label: "I", title: "斜体" },
-  { label: "U", title: "下划线" },
-  { label: "S", title: "删除线" },
-  { label: "≡", title: "左对齐" },
-  { label: "☰", title: "居中" },
-  { label: "≡", title: "右对齐" },
-  { label: "1.", title: "有序列表" },
-  { label: "•", title: "无序列表" },
-  { label: "❝", title: "引用" },
-  { label: "🔗", title: "链接" },
-  { label: "🖼", title: "图片" },
-  { label: "😊", title: "表情" },
-  { label: "↶", title: "撤销" },
-  { label: "↷", title: "重做" },
-  { label: "🗑", title: "清空" },
-];
-
 type ContentItem = {
   id: number;
   domain: string;
@@ -344,11 +323,7 @@ export default function SinglePagePage() {
                 <span className="ssp-label">页面内容</span>
                 <div className="ssp-content">
                   <div className="ssp-editor">
-                    <div className="ssp-editor-toolbar">
-                      {SSP_TOOLBAR.map((it, idx) => (
-                        <button key={idx} type="button" className="ssp-editor-tool" title={it.title} onClick={(e) => e.preventDefault()}>{it.label}</button>
-                      ))}
-                    </div>
+                    <div className="ssp-editor-toolbar"><span className="ssp-editor-tool-hint">支持纯文本编辑</span></div>
                     <div
                       className="ssp-editor-body"
                       contentEditable

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Camera, Type, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link2, Image as ImageIcon, Smile, Quote, Code, Heading1, Heading2, RotateCcw, RotateCw, Trash2, Maximize2, Plus } from "lucide-react";
+import { X, Camera, Plus } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
@@ -69,30 +69,6 @@ const EMPTY_DRAFT: GroupDraft = {
   status: "邀请加入",
   online: true,
 };
-
-const GX_TOOLBAR: { icon: React.ReactNode; title: string }[] = [
-  { icon: <Heading1 size={14} />, title: "标题" },
-  { icon: <Type size={14} />, title: "正文" },
-  { icon: <Bold size={14} />, title: "加粗" },
-  { icon: <Italic size={14} />, title: "斜体" },
-  { icon: <Underline size={14} />, title: "下划线" },
-  { icon: <Strikethrough size={14} />, title: "删除线" },
-  { icon: <AlignLeft size={14} />, title: "左对齐" },
-  { icon: <AlignCenter size={14} />, title: "居中" },
-  { icon: <AlignRight size={14} />, title: "右对齐" },
-  { icon: <List size={14} />, title: "无序列表" },
-  { icon: <ListOrdered size={14} />, title: "有序列表" },
-  { icon: <Quote size={14} />, title: "引用" },
-  { icon: <Link2 size={14} />, title: "链接" },
-  { icon: <ImageIcon size={14} />, title: "图片" },
-  { icon: <Smile size={14} />, title: "表情" },
-  { icon: <Code size={14} />, title: "代码" },
-  { icon: <Plus size={14} />, title: "更多" },
-  { icon: <RotateCcw size={14} />, title: "撤销" },
-  { icon: <RotateCw size={14} />, title: "重做" },
-  { icon: <Trash2 size={14} />, title: "清空" },
-  { icon: <Maximize2 size={14} />, title: "全屏" },
-];
 
 const CATEGORIES = ["美食搭子", "运动搭子", "旅行搭子", "读书搭子", "电影搭子", "音乐搭子", "其他"];
 
@@ -603,11 +579,7 @@ function AddGroupDrawer({
             <span className="gx-label">本群介绍</span>
             <div className="gx-content">
               <div className="gx-editor">
-                <div className="gx-editor-toolbar">
-                  {GX_TOOLBAR.map((it, idx) => (
-                    <button key={idx} type="button" className="gx-editor-tool" title={it.title}>{it.icon}</button>
-                  ))}
-                </div>
+                <div className="gx-editor-toolbar"><span className="gx-editor-tool-hint">支持纯文本编辑</span></div>
                 <textarea
                   className="gx-editor-body"
                   rows={6}

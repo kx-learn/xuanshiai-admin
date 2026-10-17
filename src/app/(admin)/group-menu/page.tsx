@@ -8,33 +8,6 @@ import { pickAndUploadImage, showConfigToast, useConfigDomain } from "@/lib/plat
 
 const breadcrumb = getBreadcrumb("运营工具", "搭子栏目");
 
-const TOOLBAR: ({ t: string; title: string } | null)[] = [
-  { t: "H", title: "标题" },
-  { t: "B", title: "加粗" },
-  { t: "T", title: "正文" },
-  null,
-  { t: "I", title: "斜体" },
-  { t: "U", title: "下划线" },
-  { t: "S", title: "删除线" },
-  null,
-  { t: "≡", title: "左对齐" },
-  { t: "☰", title: "居中" },
-  { t: "≡", title: "右对齐" },
-  null,
-  { t: "••", title: "无序列表" },
-  { t: "1.", title: "有序列表" },
-  null,
-  { t: "❝", title: "引用" },
-  { t: "🔗", title: "链接" },
-  { t: "🖼", title: "图片" },
-  { t: "⋯", title: "更多" },
-  null,
-  { t: "↶", title: "撤销" },
-  { t: "↷", title: "重做" },
-  null,
-  { t: "🗑", title: "清空" },
-];
-
 type HotRegion = { region: string; sort: number };
 
 type GroupMenuConfig = {
@@ -115,21 +88,7 @@ export default function GroupMenuPage() {
 
   const renderToolbar = (target: keyof GroupMenuConfig) => (
     <div className="gm-toolbar">
-      {TOOLBAR.map((tool, i) =>
-        tool === null ? (
-          <span className="gm-tool-sep" key={`sep-${target}-${i}`} />
-        ) : (
-          <button
-            className="gm-tool"
-            type="button"
-            key={`${target}-${tool.title}-${i}`}
-            title={tool.title}
-            onClick={(e) => e.preventDefault()}
-          >
-            {tool.t}
-          </button>
-        ),
-      )}
+      <span className="gm-tool-hint">支持纯文本编辑</span>
     </div>
   );
 

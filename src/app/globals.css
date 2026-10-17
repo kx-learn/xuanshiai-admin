@@ -440,7 +440,11 @@
 .follow-up-page { font-size: 13px; }
 .follow-up-page .follow-metrics { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .follow-up-page .follow-metric { min-height: 92px; border-top: 3px solid #3658f7; border-radius: 4px; background: #fff; padding: 14px 14px 10px; }
+.follow-up-page button.follow-metric { width: 100%; border-right: 0; border-bottom: 0; border-left: 0; text-align: left; font-family: inherit; }
+.follow-up-page button.follow-metric:not(.active) { border-top-color: #d9dfe9; }
+.follow-up-page button.follow-metric.active { background: #f4f6ff; }
 .follow-up-page .follow-metric strong { display: block; color: #222; font-size: 29px; font-weight: 500; line-height: 1.2; }
+.follow-up-page button.follow-metric > small { display: block; margin-top: 10px; color: #666; font-size: 13px; white-space: nowrap; }
 .follow-up-page .follow-metric strong small { margin-left: 6px; color: #999; font-size: 13px; }
 .follow-up-page .follow-chevron { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-right: 1px solid #888; border-bottom: 1px solid #888; transform: translateY(-3px) rotate(45deg); }
 .follow-up-page .follow-metric span { display: block; margin-top: 10px; color: #666; font-size: 13px; white-space: nowrap; }
@@ -1373,7 +1377,9 @@
 .cf-editor-toolbar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid #f0f1f4; flex-wrap: wrap; }
 .cf-tool { min-width: 26px; height: 26px; padding: 0 6px; border: 0; border-radius: 5px; background: transparent; color: #55607a; font-size: 12px; cursor: pointer; transition: background .15s, color .15s; }
 .cf-tool:hover { background: #eef1ff; color: #3658f7; }
-.cf-tool-hint, .ac-editor-tool-hint, .lp-editor-tool-hint, .mm-editor-tool-hint { color: #9aa3b2; font-size: 12px; }
+.cf-tool-hint, .ac-editor-tool-hint, .lp-editor-tool-hint, .mm-editor-tool-hint,
+.al-editor-tool-hint, .cll-editor-tool-hint, .gx-editor-tool-hint, .mp-editor-tool-hint,
+.ms-editor-tool-hint, .svc-editor-tool-hint, .ssp-editor-tool-hint, .ur-editor-tool-hint { color: #9aa3b2; font-size: 12px; }
 .cf-editor-text { display: block; width: 100%; min-height: 220px; padding: 12px 14px; border: 0; outline: none; resize: vertical; font-size: 13px; color: #333; background: #fbfbfd; }
 .cf-input { flex: 1; max-width: 320px; height: 38px; padding: 0 12px; border: 1px solid #e2e5ec; border-radius: 6px; font-size: 13px; color: #333; outline: none; transition: border-color .15s; background: #fff; }
 .cf-input:focus { border-color: #3d5cf1; }
@@ -2098,6 +2104,7 @@
 /* 富文本编辑器 */
 .sy-editor { width: 100%; max-width: 780px; border: 1px solid #e3e6ee; border-radius: 5px; overflow: hidden; }
 .sy-editor-tools { display: flex; align-items: center; gap: 2px; padding: 7px 10px; border-bottom: 1px solid #eef1f6; background: #fff; overflow: hidden; }
+.sy-editor-tool-hint { font-size: 12px; color: #9aa3b2; }
 .sy-editor-tool { min-width: 24px; padding: 4px 6px; border-radius: 4px; font-size: 12px; color: #8a94a8; text-align: center; cursor: pointer; white-space: nowrap; }
 .sy-editor-tool:hover { background: #f2f6ff; color: #3658f7; }
 .sy-editor-content { padding: 12px 14px; font-size: 13px; color: #444; line-height: 1.75; }
@@ -3279,6 +3286,7 @@ button.au-page-num.active { border-color: #3658f7; background: #3658f7; color: #
 .gm-tool { min-width: 26px; height: 26px; padding: 0 6px; border: none; background: transparent; border-radius: 3px; color: #555; font-size: 13px; cursor: pointer; }
 .gm-tool:hover { background: #eef0f3; color: #333; }
 .gm-tool-sep { width: 1px; height: 18px; background: #e0e0e0; margin: 0 4px; }
+.gm-tool-hint { color: #9aa3b2; font-size: 12px; }
 .gm-body { min-height: 160px; padding: 14px 16px; }
 .gm-banner { position: relative; display: flex; align-items: center; justify-content: space-between; height: 200px; padding: 30px 46px; background: linear-gradient(135deg, #d8f0fb 0%, #eaf8fe 60%, #f6fbff 100%); border-radius: 10px; }
 .gm-banner-text { position: relative; z-index: 2; }

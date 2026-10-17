@@ -132,16 +132,17 @@ export default function XixunListPage() {
       return;
     }
     const matchmaker = matchmakerOptions.find((m) => m.id === draft.matchmaker_id);
+    const existing = rows.find((r) => r.id === draft.id);
+    const existingExtra = existing?.extra ?? {};
     const payload = {
       title: `喜讯-${draft.feedback_name}`,
       subtitle: matchmaker?.nickname ?? null,
-      image_url: null,
       status: draft.public ? 1 : 2,
       sort: draft.sort,
       extra: {
         status: draft.status,
         matchmaker_id: draft.matchmaker_id,
-        matchmaker_name: matchmaker?.nickname ?? null,
+        matchmaker_name: matchmaker?.nickname ?? existingExtra.matchmaker_name ?? null,
         feedback_name: draft.feedback_name.trim(),
         partner_name: draft.partner_name.trim(),
         feedback_source: draft.feedback_source,
@@ -150,7 +151,8 @@ export default function XixunListPage() {
         content_html: draft.content_html,
         blessing: draft.blessing.trim(),
         public: draft.public,
-        views: 0,
+        // 保留已有浏览次数，避免编辑时被清零
+        views: typeof existingExtra.views === "number" ? existingExtra.views : 0,
       },
     };
     try {

@@ -8,31 +8,6 @@ import { pickAndUploadImage, showConfigToast, useConfigDomain } from "@/lib/plat
 
 const breadcrumb = getBreadcrumb("短视频", "参数配置");
 
-const TOOLBAR: { t: string; title: string }[] = [
-  { t: "H", title: "标题" },
-  { t: "B", title: "加粗" },
-  { t: "Tt", title: "正文" },
-  { t: "f", title: "字体" },
-  { t: "I", title: "斜体" },
-  { t: "U", title: "下划线" },
-  { t: "S", title: "删除线" },
-  { t: "≡", title: "左对齐" },
-  { t: "☰", title: "居中" },
-  { t: "≡", title: "右对齐" },
-  { t: "••", title: "无序" },
-  { t: "1.", title: "有序" },
-  { t: "❝", title: "引用" },
-  { t: "😊", title: "表情" },
-  { t: "🖼", title: "图片" },
-  { t: "🎬", title: "视频" },
-  { t: "📝", title: "表单" },
-  { t: "—", title: "分割线" },
-  { t: "↶", title: "撤销" },
-  { t: "↷", title: "重做" },
-  { t: "⋯", title: "更多" },
-  { t: "⤢", title: "全屏" },
-];
-
 const AGREEMENT_CONTENT = `一、网络短视频内容审核基本标准
 （一）《互联网视听节目服务管理规定》第十六条所列10条标准。
 （二）《网络视听节目内容审核通则》第四章第七、八、九、十、十一、十二条所列94条标准。
@@ -301,11 +276,7 @@ export default function ShortVideoConfigPage() {
         <div className="svc-row svc-row-top">
           <span className="svc-label"><span className="svc-req">＊</span>视频发布协议</span>
           <div className="svc-editor">
-            <div className="svc-editor-toolbar">
-              {TOOLBAR.map((tool, i) => (
-                <button className="svc-editor-tool" key={`${tool.title}-${i}`} title={tool.title}>{tool.t}</button>
-              ))}
-            </div>
+            <div className="svc-editor-toolbar"><span className="svc-editor-tool-hint">支持纯文本编辑</span></div>
             <div
               id="svc-agreement"
               className="svc-editor-body"

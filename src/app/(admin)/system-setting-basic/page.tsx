@@ -117,9 +117,7 @@ function Editor({ height = 120, seed, onChange, children }: { height?: number; s
   return (
     <div className="sy-editor">
       <div className="sy-editor-tools">
-        {tools.map((t) => (
-          <span key={t} className="sy-editor-tool">{t}</span>
-        ))}
+        <span className="sy-editor-tool-hint">支持纯文本编辑</span>
       </div>
       <div
         ref={ref}
