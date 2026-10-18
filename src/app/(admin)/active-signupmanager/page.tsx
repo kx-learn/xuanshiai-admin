@@ -103,6 +103,21 @@ export default function ActiveSignupmanagerPage() {
       .catch((e) => showConfigToast(e instanceof Error ? e.message : "导出失败", "error"));
   };
 
+  /**
+   * 资料入库：把报名资料标记为已入库会员档案（`in_crm`）。
+   * 报名记录本身已关联会员账号，这里改的是入库状态位，不重复建档。
+   */
+  const importSignup = async (r: ActivitySignupItem) => {
+    if (r.in_crm) return;
+    try {
+      await adminEndpoints.updateActivitySignup(r.id, { in_crm: true });
+      showConfigToast("已入库", "ok");
+      if (activityId) await loadRows(Number(activityId));
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "入库失败", "error");
+    }
+  };
+
   const removeSignup = async (r: ActivitySignupItem) => {
     if (!window.confirm(`确定删除该报名记录（ID ${r.id}）？`)) return;
     try {
@@ -241,9 +256,14 @@ export default function ActiveSignupmanagerPage() {
                       <div className="sm-ops">
                         <button className="finord-btn finord-btn-primary sm-edit-btn" onClick={() => setEditRow(r)}>修改报名</button>
                         {r.is_realname ? (
-                          <a className="finord-link">查看资料</a>
+                          <button className="finord-link" onClick={() => setEditRow(r)}>查看资料</button>
                         ) : (
-                          <button className="finord-btn finord-btn-primary sm-import-btn">资料入库</button>
+                          <button
+                            className="finord-btn finord-btn-primary sm-import-btn"
+                            disabled={r.in_crm}
+                            title={r.in_crm ? "该报名资料已入库" : "把报名资料标记为已入库会员档案"}
+                            onClick={() => void importSignup(r)}
+                          >{r.in_crm ? "已入库" : "资料入库"}</button>
                         )}
                         <a className="finord-link sm-op-del" onClick={() => removeSignup(r)}>删除</a>
                       </div>

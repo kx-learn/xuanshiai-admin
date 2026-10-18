@@ -105,7 +105,6 @@ function UploadBtn({ size = "lg", label = "上传图片", value, onDone }: { siz
 
 /* 富文本编辑框：seed 回填 + 可编辑取值 */
 function Editor({ height = 120, seed, onChange, children }: { height?: number; seed?: string; onChange?: (html: string) => void; children?: React.ReactNode }) {
-  const tools = ["H", "B", "T₁", "T₂", "I", "U", "S", "文", "引", "链接", "图片", "表格", "代码", "表情", "对齐", "撤销", "重做", "全屏"];
   const ref = useRef<HTMLDivElement | null>(null);
   const seeded = useRef(false);
   useEffect(() => {
@@ -134,7 +133,7 @@ function Editor({ height = 120, seed, onChange, children }: { height?: number; s
 }
 
 function SaveBtn({ onSave }: { onSave?: () => void }) {
-  return <button className="sy-save-btn" onClick={onSave}>确定提交</button>;
+  return <button type="button" className="sy-save-btn" onClick={onSave}>确定提交</button>;
 }
 
 /* ------------------------- Tabs 内容 ------------------------- */
@@ -223,7 +222,7 @@ function BasicTab() {
         <div className="sy-domain">
           <span className="sy-domain-prefix">https://</span>
           <input className="sy-input" value={domainName} onChange={(e) => setDomainName(e.target.value)} />
-          <button className="sy-domain-btn">SSL 证书</button>
+          <button type="button" className="sy-domain-btn" disabled title="SSL 证书需由服务器运维在网关侧签发与部署，后台暂无证书管理接口">SSL 证书</button>
         </div>
       </Row>
       <Row label="域名备案">
@@ -262,7 +261,7 @@ function BasicTab() {
       <Row label="隐私政策">
         <Editor height={260} seed={privacy} onChange={setPrivacy} />
       </Row>
-      <SaveBtn onSave={async () => { const ok = await flushRef.current("保存基本信息"); if (ok) showConfigToast("已保存"); }} />
+      <SaveBtn onSave={async () => { const ok = await flushRef.current("保存基本信息"); showConfigToast(ok ? "已保存" : "内容无变化，无需保存"); }} />
     </div>
   );
 }
@@ -340,7 +339,7 @@ function RegisterTab() {
       <Row label="注册短信验证码" tips={<Info>须知：关闭验证码后，用户在平台H5网页中注册时不需要输入手机的短信验证码就可完成账号注册。建议仅在特殊必要情况下临时关闭验证码</Info>}>
         <Switch on={sms} onChange={setSms} />
       </Row>
-      <SaveBtn onSave={async () => { const ok = await flushRef.current("保存注册访问配置"); if (ok) showConfigToast("已保存"); }} />
+      <SaveBtn onSave={async () => { const ok = await flushRef.current("保存注册访问配置"); showConfigToast(ok ? "已保存" : "内容无变化，无需保存"); }} />
     </div>
   );
 }
@@ -396,7 +395,7 @@ function StorageTab() {
     <div className="sy-form">
       <div className="sy-info mb-5">
         <span className="sy-info-i">i</span>
-        <span><strong>须知</strong><br />本系统的附件数据为私有化部署方案，即您和用户所上传的图片、视频、文档、PPT、PDF、ZIP等附件数据均存储在您自有的七牛云存储空间。推荐您开通购买七牛包年1T流量套餐包。七牛云官网：<a className="sy-link" href="#">https://www.qiniu.com/</a></span>
+        <span><strong>须知</strong><br />本系统的附件数据为私有化部署方案，即您和用户所上传的图片、视频、文档、PPT、PDF、ZIP等附件数据均存储在您自有的七牛云存储空间。推荐您开通购买七牛包年1T流量套餐包。七牛云官网：<a className="sy-link" href="https://www.qiniu.com/" target="_blank" rel="noreferrer">https://www.qiniu.com/</a></span>
       </div>
       <Row label="七牛accessKey">
         <input className="sy-input w-[460px]" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} placeholder="" />
@@ -416,7 +415,7 @@ function StorageTab() {
       <Row label="私有队列">
         <input className="sy-input w-[460px]" value={queue} onChange={(e) => setQueue(e.target.value)} placeholder="" />
       </Row>
-      <SaveBtn onSave={async () => { const ok = await flushRef.current("保存文件存储配置"); if (ok) showConfigToast("已保存"); }} />
+      <SaveBtn onSave={async () => { const ok = await flushRef.current("保存文件存储配置"); showConfigToast(ok ? "已保存" : "内容无变化，无需保存"); }} />
     </div>
   );
 }
@@ -433,6 +432,8 @@ function PayTab() {
   const [v2Key, setV2Key] = useState("");
   const [v3Key, setV3Key] = useState("");
   const [sort, setSort] = useState(1);
+  const [p12, setP12] = useState("");
+  const p12InputRef = useRef<HTMLInputElement | null>(null);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -454,6 +455,7 @@ function PayTab() {
     setV2Key(asStr(c.wechat_api_v2_key, ""));
     setV3Key(asStr(c.wechat_api_v3_key, ""));
     setSort(asNumber(c.sort, 1));
+    setP12(asStr(c.p12_file, ""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain.ready]);
 
@@ -469,6 +471,7 @@ function PayTab() {
         wechat_pubkey: pubKey,
         wechat_api_v2_key: v2Key,
         wechat_api_v3_key: v3Key,
+        p12_file: p12,
         sort,
         alipay_enabled: false,
       },
@@ -485,7 +488,7 @@ function PayTab() {
     const timer = setTimeout(() => void flushRef.current("自动保存支付配置"), 900);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, appid, mch, cert, pubKeyId, pubKey, v2Key, v3Key, sort]);
+  }, [on, appid, mch, cert, pubKeyId, pubKey, v2Key, v3Key, p12, sort]);
 
   return (
     <div className="sy-form">
@@ -521,13 +524,34 @@ function PayTab() {
             <input className="sy-input w-[460px]" value={v3Key} onChange={(e) => setV3Key(e.target.value)} placeholder="" />
           </Row>
           <Row label="apiclient_cert.p12证书">
-            <div className="sy-upload-sm sy-upload-file"><Upload className="h-4 w-4" /><span>上传p12文件</span></div>
-            <div className="sy-p12">data:application/octet-stream;base64,...</div>
+            <button type="button" className="sy-upload-sm sy-upload-file" onClick={() => p12InputRef.current?.click()}>
+              <Upload className="h-4 w-4" /><span>{p12 ? "重新上传p12文件" : "上传p12文件"}</span>
+            </button>
+            <input
+              ref={p12InputRef}
+              type="file"
+              accept=".p12,application/x-pkcs12,application/octet-stream"
+              style={{ display: "none" }}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) { showConfigToast("p12 文件不能超过 5MB", "error"); return; }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setP12(String(reader.result ?? ""));
+                  showConfigToast("证书已读取，稍后自动保存");
+                };
+                reader.onerror = () => showConfigToast("p12 文件读取失败，请重新选择", "error");
+                reader.readAsDataURL(file);
+              }}
+            />
+            <div className="sy-p12">{p12 ? `${p12.slice(0, 60)}…（${Math.round(p12.length / 1024)}KB）` : "data:application/octet-stream;base64,..."}</div>
           </Row>
           <Row label="显示排序">
             <input className="sy-input w-[120px]" type="number" value={sort} onChange={(e) => setSort(Number(e.target.value))} />
           </Row>
-          <SaveBtn onSave={async () => { const ok = await flushRef.current("保存支付配置"); if (ok) showConfigToast("已保存"); }} />
+          <SaveBtn onSave={async () => { const ok = await flushRef.current("保存支付配置"); showConfigToast(ok ? "已保存" : "内容无变化，无需保存"); }} />
         </>
       ) : (
         <div className="sy-empty"><div className="sy-empty-icon"><ImageIcon className="h-10 w-10" /></div><div>暂无支付宝配置，请切换</div></div>
@@ -630,7 +654,7 @@ function WatermarkTab() {
           </div>
           <Info>用于控制文字平铺的间距</Info>
         </Row>
-        <SaveBtn onSave={async () => { const ok = await flushRef.current("保存图片水印配置"); if (ok) showConfigToast("已保存"); }} />
+        <SaveBtn onSave={async () => { const ok = await flushRef.current("保存图片水印配置"); showConfigToast(ok ? "已保存" : "内容无变化，无需保存"); }} />
       </div>
       <div className="sy-wm-preview">
         <div className="sy-preview-title">效果预览</div>
@@ -742,17 +766,34 @@ function RegionTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain.ready]);
 
+  const addProvince = async () => {
+    const name = window.prompt("请输入省份名称");
+    if (!name || !name.trim()) return;
+    const next = [...provinces, { name: name.trim() }];
+    const ok = await domain.save({ provinces: next } as Partial<Dict>, "添加省份");
+    if (ok) {
+      setProvinces(next);
+      showConfigToast("省份已添加");
+    } else {
+      showConfigToast(domain.error ?? "省份添加失败", "error");
+    }
+  };
+
   return (
     <div className="sy-region">
       <div className="sy-region-head">
         <span className="sy-region-title">区域数据管理</span>
         <div className="flex items-center gap-4">
-          <a className="sy-link" href="#">云端数据迁移下载</a>
+          <a
+            className="sy-link"
+            href={`data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify({ provinces }, null, 2))}`}
+            download="region-data.json"
+          >
+            云端数据迁移下载
+          </a>
           <button
             className="sy-add-btn"
-            onClick={() => {
-              showConfigToast("请在数据库或后续版本中添加区域数据");
-            }}
+            onClick={() => void addProvince()}
           >
             + 添加省份
           </button>

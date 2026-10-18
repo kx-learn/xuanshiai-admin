@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ClipboardList, FilePlus2, PartyPopper,
+  ClipboardList, FilePlus2, PartyPopper, RefreshCw, Download,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,7 +11,8 @@ import {
 } from "recharts";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { useSweepAngle } from "@/hooks/useSweepAngle";
-import { adminEndpoints, type AdminDashboardReport, type AnnouncementItem, type AcademyCategory } from "@/lib/admin-endpoints";
+import { adminEndpoints, type AdminDashboardReport, type AnnouncementItem, type AcademyCategory, type DashboardTrend } from "@/lib/admin-endpoints";
+import { showConfigToast } from "@/lib/platform-config";
 
 /* ---------- 问候 ---------- */
 function greeting() {
@@ -89,6 +90,9 @@ export default function HomePage() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [guides, setGuides] = useState<AcademyCategory[]>([]);
   const [trendDays, setTrendDays] = useState<7 | 15>(7);
+  const [trendRows, setTrendRows] = useState<DashboardTrend[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [trendLoading, setTrendLoading] = useState(false);
   /* 图表进场动画开关：首帧为 false，hydration 后再置 true，强制图表重新挂载以播放动画（进入/刷新页面均生效） */
   const [chartsReady, setChartsReady] = useState(false);
   /* 环形图扫过进度 0→1：从 12 点位置顺时针扫一整圈形成完整圆环 */
@@ -99,27 +103,40 @@ export default function HomePage() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
+  /* 首页统计（本月区间）：metrics / pending / 男女占比 / 本月增量 */
+  const loadStats = useCallback(async () => {
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const trendStart = new Date(today);
-    trendStart.setDate(trendStart.getDate() - 14);
-    const from = trendStart < monthStart ? trendStart : monthStart;
+    const data = await adminEndpoints.dashboard({ from: toISO(monthStart), to: toISO(today) });
+    setReport(data);
+    setLoaded(true);
+    const ms = toISO(monthStart);
+    const monthTrends = (data.trends ?? []).filter((t) => t.date >= ms);
+    setMonth({
+      member: monthTrends.reduce((sum, t) => sum + num(t.member_count), 0),
+      lead: monthTrends.reduce((sum, t) => sum + num(t.lead_count), 0),
+      online: monthTrends.reduce((sum, t) => sum + num(t.online_paid_amount), 0),
+      offline: monthTrends.reduce((sum, t) => sum + num(t.offline_paid_amount), 0),
+    });
+  }, []);
 
-    adminEndpoints.dashboard({ from: toISO(from), to: toISO(today) })
-      .then((data) => {
-        setReport(data);
-        setLoaded(true);
-        const ms = toISO(monthStart);
-        const monthTrends = (data.trends ?? []).filter((t) => t.date >= ms);
-        setMonth({
-          member: monthTrends.reduce((sum, t) => sum + num(t.member_count), 0),
-          lead: monthTrends.reduce((sum, t) => sum + num(t.lead_count), 0),
-          online: monthTrends.reduce((sum, t) => sum + num(t.online_paid_amount), 0),
-          offline: monthTrends.reduce((sum, t) => sum + num(t.offline_paid_amount), 0),
-        });
-      })
-      .catch(() => {});
+  /* 会员增长趋势：把 7/15 天真正传给后端 from/to，返回的天级数据直接驱动图表 */
+  const loadTrend = useCallback(async (days: 7 | 15) => {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(start.getDate() - (days - 1));
+    setTrendLoading(true);
+    try {
+      const data = await adminEndpoints.dashboard({ from: toISO(start), to: toISO(today) });
+      setTrendRows(data.trends ?? []);
+    } catch {
+      setTrendRows([]);
+    } finally {
+      setTrendLoading(false);
+    }
+  }, []);
+
+  const loadBasics = useCallback(async () => {
     adminEndpoints.bootstrap()
       .then((data) => {
         setOperatorName(data?.operator?.name || "管理员");
@@ -135,6 +152,67 @@ export default function HomePage() {
       .then((data) => setGuides(data ?? []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    void loadStats().catch(() => {});
+    void loadTrend(7);
+    void loadBasics();
+  }, [loadStats, loadTrend, loadBasics]);
+
+  /* 切换 7/15 天：重新向后端请求对应区间数据 */
+  const changeTrendDays = (days: 7 | 15) => {
+    if (days === trendDays && trendRows.length) return;
+    setTrendDays(days);
+    void loadTrend(days);
+  };
+
+  /* 刷新：重新拉取首页全部数据 */
+  const refresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([loadStats(), loadTrend(trendDays), loadBasics()]);
+      showConfigToast("首页数据已刷新");
+    } catch {
+      showConfigToast("刷新失败，请稍后重试", "error");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  /* 导出：后端无导出接口，用当前 dashboard 数据生成 CSV 并触发下载 */
+  const exportCsv = () => {
+    const esc = (value: unknown) => {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const lines: string[] = [];
+    lines.push(["统计区间", `${report.from_date} ~ ${report.to_date}`].map(esc).join(","));
+    lines.push("");
+    lines.push(["指标", "数值"].map(esc).join(","));
+    lines.push(["平台用户", report.metrics.platform_user_count].map(esc).join(","));
+    lines.push(["公众号粉丝", report.metrics.wechat_fan_count].map(esc).join(","));
+    lines.push(["会员总数", report.metrics.member_count].map(esc).join(","));
+    lines.push(["客源线索", report.metrics.lead_count].map(esc).join(","));
+    lines.push(["红娘团队", report.metrics.matchmaker_count].map(esc).join(","));
+    lines.push(["线上总收入", report.metrics.online_income].map(esc).join(","));
+    lines.push(["线下总收入", report.metrics.offline_income].map(esc).join(","));
+    lines.push("");
+    lines.push(["日期", "新增会员", "新增线索", "线上收入", "线下收入"].map(esc).join(","));
+    (report.trends ?? []).forEach((t) => {
+      lines.push([t.date, t.member_count, t.lead_count, t.online_paid_amount, t.offline_paid_amount].map(esc).join(","));
+    });
+    const blob = new Blob([`﻿${lines.join("\n")}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `首页概览_${report.from_date || toISO(new Date())}_${report.to_date || toISO(new Date())}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showConfigToast("已导出当前概览数据");
+  };
 
   /* ---------- 统计卡 ---------- */
   const statCards = [
@@ -164,13 +242,13 @@ export default function HomePage() {
 
   /* ---------- 会员增长趋势 ---------- */
   const memberTrend = useMemo(
-    () => (report.trends ?? []).slice(-trendDays).map((t) => ({
+    () => (trendRows ?? []).slice(-trendDays).map((t) => ({
       date: shortDate(t.date),
       count: num(t.member_count),
     })),
-    [report.trends, trendDays],
+    [trendRows, trendDays],
   );
-  const trendEmpty = memberTrend.every((t) => t.count === 0);
+  const trendEmpty = !trendLoading && memberTrend.every((t) => t.count === 0);
 
   /* ---------- 会员登记来源占比 ---------- */
   const sourceRows = MEMBER_SOURCES.map((item, i) => ({ ...item, color: SOURCE_COLORS[i % SOURCE_COLORS.length] }));
@@ -217,6 +295,12 @@ export default function HomePage() {
       <div className="ov-greet">
         <div className="ov-greet-left"><img className="ov-wave" src="/refimg/20260906-home-icon-greeting.png" alt="" /><span className="ov-greet-text">{greeting()}，{operatorName}!</span></div>
         <div className="ov-greet-actions">
+          <button type="button" className="inline-flex h-[34px] items-center gap-[5px] rounded border border-[#dfe3ea] bg-white px-3.5 text-[14px] text-[#55607a] hover:border-[#3658f7] hover:text-[#3658f7] disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void refresh()} disabled={refreshing} title="重新拉取首页统计与公告数据">
+            <RefreshCw className={`h-[14px] w-[14px] ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "刷新中" : "刷新"}
+          </button>
+          <button type="button" className="inline-flex h-[34px] items-center gap-[5px] rounded border border-[#dfe3ea] bg-white px-3.5 text-[14px] text-[#55607a] hover:border-[#3658f7] hover:text-[#3658f7] disabled:cursor-not-allowed disabled:opacity-60" onClick={exportCsv} disabled={!loaded} title={loaded ? "按当前概览数据导出 CSV" : "数据加载完成后可导出"}>
+            <Download className="h-[14px] w-[14px]" />导出
+          </button>
           {quickBtns.map((btn) => {
             const Icon = btn.icon;
             return <Link key={btn.label} href={btn.href} className="ov-greet-btn"><Icon className="ov-greet-btn-icon" />{btn.label}</Link>;
@@ -259,12 +343,12 @@ export default function HomePage() {
           <div className="ov-card-head">
             <h2>会员增长趋势</h2>
             <div className="ov-tab-group">
-              <button type="button" className={`ov-tab ${trendDays === 7 ? "active" : ""}`} onClick={() => setTrendDays(7)}>7天</button>
-              <button type="button" className={`ov-tab ${trendDays === 15 ? "active" : ""}`} onClick={() => setTrendDays(15)}>15天</button>
+              <button type="button" className={`ov-tab ${trendDays === 7 ? "active" : ""}`} onClick={() => changeTrendDays(7)}>7天</button>
+              <button type="button" className={`ov-tab ${trendDays === 15 ? "active" : ""}`} onClick={() => changeTrendDays(15)}>15天</button>
             </div>
           </div>
           <div className="ov-card-body">
-            <div className="ov-unit">单位：元</div>
+            <div className="ov-unit">单位：人（按日新增会员）</div>
             {trendEmpty ? (
               <div className="ov-empty">
                 <svg className="ov-empty-icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -275,7 +359,7 @@ export default function HomePage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={230}>
-                <AreaChart key={`trend-${trendDays}-${chartsReady ? (loaded ? "on" : "empty") : "boot"}`} data={memberTrend}>
+                <AreaChart key={`trend-${trendDays}-${memberTrend.map((t) => `${t.date}:${t.count}`).join("|")}`} data={memberTrend}>
                   <defs>
                     <linearGradient id="ovTrendGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#5a72ef" stopOpacity={0.2} />
@@ -285,8 +369,8 @@ export default function HomePage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#999" }} axisLine={{ stroke: "#f0f0f0" }} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#999" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
-                  <Area type="monotone" dataKey="count" stroke="#5a72ef" strokeWidth={2} fill="url(#ovTrendGradient)" isAnimationActive={false} />
+                  <Tooltip formatter={(v: number) => [`${v} 人`, "新增会员"]} contentStyle={{ borderRadius: 4, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} />
+                  <Area type="monotone" dataKey="count" name="新增会员" stroke="#5a72ef" strokeWidth={2} fill="url(#ovTrendGradient)" isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             )}

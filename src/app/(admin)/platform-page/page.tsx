@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import {
   useConfigDomain,
+  pickAndUploadImage,
   showConfigToast,
   asStr,
   asObject,
   type Dict,
 } from "@/lib/platform-config";
+
+/** 后台暂无对应的前台预览地址/配置项时的统一禁用原因 */
+const NO_PREVIEW_REASON = "前台效果预览地址尚未接入后台，暂不可用";
 
 /* ------------------------------------------------------------------ */
 /* 通用小组件                                                          */
@@ -110,6 +115,8 @@ interface CarouselItem {
   title: string;
   sub: string;
   tone: string;
+  /** 上传的轮播图地址；有值时直接展示图片，不再使用文案色块 */
+  image?: string;
 }
 
 const CAROUSEL: CarouselItem[] = [
@@ -212,6 +219,8 @@ export default function PlatformPagePage() {
   const [carousels, setCarousels] = useState<CarouselItem[]>(CAROUSEL);
   const [joinText, setJoinText] = useState("我要做红娘");
   const [manageText, setManageText] = useState("红娘管理中心");
+  const [carouselUploading, setCarouselUploading] = useState(false);
+  const carouselFileRef = useRef<HTMLInputElement | null>(null);
 
   /* 电脑端 */
   const [pcTemplate, setPcTemplate] = useState(3);
@@ -381,6 +390,25 @@ export default function PlatformPagePage() {
   const deleteCarousel = (key: string) =>
     setCarousels((items) => items.filter((r) => r.key !== key));
 
+  /** 头部轮播图上传：每次上传新增一张轮播图，图片地址写入 team.carousels */
+  const addCarouselImage = (url: string) => {
+    setCarousels((items) => [
+      ...items,
+      { key: `up-${Date.now()}`, title: "", sub: "", tone: "#7a5cff", image: url },
+    ]);
+    setCarouselUploading(false);
+    showConfigToast("轮播图上传成功");
+  };
+
+  const handleCarouselFile = (file?: File | null) => {
+    if (!file) return;
+    setCarouselUploading(true);
+    pickAndUploadImage(file, addCarouselImage, (message) => {
+      setCarouselUploading(false);
+      showConfigToast(message, "error");
+    });
+  };
+
   const updateStat = (key: keyof typeof STAT_DEFAULTS, v: string) =>
     setStats((prev) => ({ ...prev, [key]: v }));
 
@@ -433,7 +461,22 @@ export default function PlatformPagePage() {
                     <div className="pl-row-ops">
                       {i !== 0 && <Move dir={-1} disabled={i === 0} onClick={() => moveRow(row.key, -1)} />}
                       {i !== homeRows.length - 1 && <Move dir={1} onClick={() => moveRow(row.key, 1)} />}
-                      {row.link && <span className="pl-row-link">{row.link} <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg></span>}
+                      {row.link && row.key === "iconnav" && (
+                        <Link href="/platform-navconfig" className="pl-row-link">
+                          {row.link} <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                        </Link>
+                      )}
+                      {row.link && row.key !== "iconnav" && (
+                        <button
+                          type="button"
+                          className="pl-row-link"
+                          disabled
+                          title="首页轮播图暂无后台配置项，暂不可用"
+                          style={{ background: "none", border: 0, padding: 0, opacity: 0.45, cursor: "not-allowed" }}
+                        >
+                          {row.link} <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -641,14 +684,6 @@ export default function PlatformPagePage() {
                 </div>
               </div>
 
-              <div className="pl-submit"><button
-                type="button"
-                className="nv-ok-btn pl-submit-btn"
-                onClick={async () => {
-                  const ok = await saveLayout("保存平台布局");
-                  if (ok) showConfigToast("平台布局已保存");
-                }}
-              >确定提交</button></div>
             </div>
           )}
 
@@ -657,7 +692,7 @@ export default function PlatformPagePage() {
             <div className="pl-pane">
               <div className="pl-row pl-view-row">
                 <span className="pl-row-label">会员资料页设计效果图</span>
-                <button type="button" className="nv-ok-btn">点击查看</button>
+                <button type="button" className="nv-ok-btn" disabled title={NO_PREVIEW_REASON}>点击查看</button>
               </div>
 
               <div className="pl-row pl-view-row">
@@ -666,7 +701,7 @@ export default function PlatformPagePage() {
                   <Radio checked={promoteRadio === "显示"} label="显示" onClick={() => setPromoteRadio("显示")} />
                   <Radio checked={promoteRadio === "不显示"} label="不显示" onClick={() => setPromoteRadio("不显示")} />
                 </div>
-                <button type="button" className="nv-ok-btn">效果查看</button>
+                <button type="button" className="nv-ok-btn" disabled title={NO_PREVIEW_REASON}>效果查看</button>
               </div>
 
               <div className="pl-block">
@@ -676,7 +711,7 @@ export default function PlatformPagePage() {
                     <Radio checked={vipPopup === "开启"} label="开启" onClick={() => setVipPopup("开启")} />
                     <Radio checked={vipPopup === "关闭"} label="关闭" onClick={() => setVipPopup("关闭")} />
                   </div>
-                  <button type="button" className="nv-ok-btn">点击查看</button>
+                  <button type="button" className="nv-ok-btn" disabled title={NO_PREVIEW_REASON}>点击查看</button>
                 </div>
                 <div className="pl-tip">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5m0 3h.01" /></svg>
@@ -737,14 +772,6 @@ export default function PlatformPagePage() {
                   <input className="nv-input pl-text-input" value={nextText} onChange={(e) => setNextText(e.target.value)} />
                 </div>
 
-                <div className="pl-submit"><button
-                type="button"
-                className="nv-ok-btn pl-submit-btn"
-                onClick={async () => {
-                  const ok = await saveLayout("保存平台布局");
-                  if (ok) showConfigToast("平台布局已保存");
-                }}
-              >确定提交</button></div>
               </div>
             </div>
           )}
@@ -754,7 +781,7 @@ export default function PlatformPagePage() {
             <div className="pl-pane">
               <div className="pl-row pl-view-row">
                 <span className="pl-row-label">预览红娘团队展示页面效果</span>
-                <span className="pl-link">点击这里</span>
+                <button type="button" className="pl-link" disabled title={NO_PREVIEW_REASON} style={{ background: "none", border: 0, padding: 0, opacity: 0.45, cursor: "not-allowed" }}>点击这里</button>
               </div>
 
               <div className="pl-row pl-form-row">
@@ -792,20 +819,34 @@ export default function PlatformPagePage() {
               <div className="pl-block pl-block-wide">
                 <div className="pl-row pl-form-row pl-head-row">
                   <span className="pl-row-label">头部轮播图</span>
-                  <button type="button" className="nv-icon-btn">
+                  <input
+                    ref={carouselFileRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) => {
+                      handleCarouselFile(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button type="button" className="nv-icon-btn" disabled={carouselUploading} onClick={() => carouselFileRef.current?.click()}>
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" /></svg>
-                    上传
+                    {carouselUploading ? "上传中..." : "上传"}
                   </button>
                   <span className="pl-size-note">最佳尺寸: 700像素×240像素</span>
                 </div>
                 <div className="pl-carousel-list">
                   {carousels.map((c, i) => (
                     <div className="pl-carousel" key={c.key}>
-                      <div className="pl-carousel-img" style={{ background: `linear-gradient(135deg, ${c.tone}, ${c.tone}99 60%, #ffd0e2)` }}>
-                        <div className="pl-carousel-tag">专业匹配</div>
-                        <div className="pl-carousel-title">{c.title}</div>
-                        <div className="pl-carousel-sub">{c.sub}</div>
-                      </div>
+                      {c.image ? (
+                        <div className="pl-carousel-img" style={{ background: `center / cover no-repeat url("${c.image}")` }} />
+                      ) : (
+                        <div className="pl-carousel-img" style={{ background: `linear-gradient(135deg, ${c.tone}, ${c.tone}99 60%, #ffd0e2)` }}>
+                          <div className="pl-carousel-tag">专业匹配</div>
+                          <div className="pl-carousel-title">{c.title}</div>
+                          <div className="pl-carousel-sub">{c.sub}</div>
+                        </div>
+                      )}
                       <div className="pl-carousel-ops">
                         {i !== 0 && <Move dir={-1} onClick={() => moveCarousel(c.key, -1)} />}
                         {i !== carousels.length - 1 && <Move dir={1} onClick={() => moveCarousel(c.key, 1)} />}
@@ -829,14 +870,6 @@ export default function PlatformPagePage() {
                 <input className="nv-input pl-text-input" value={manageText} onChange={(e) => setManageText(e.target.value)} />
               </div>
 
-              <div className="pl-submit"><button
-                type="button"
-                className="nv-ok-btn pl-submit-btn"
-                onClick={async () => {
-                  const ok = await saveLayout("保存平台布局");
-                  if (ok) showConfigToast("平台布局已保存");
-                }}
-              >确定提交</button></div>
             </div>
           )}
 
@@ -862,14 +895,6 @@ export default function PlatformPagePage() {
                 </div>
               </div>
 
-              <div className="pl-submit"><button
-                type="button"
-                className="nv-ok-btn pl-submit-btn"
-                onClick={async () => {
-                  const ok = await saveLayout("保存平台布局");
-                  if (ok) showConfigToast("平台布局已保存");
-                }}
-              >确定提交</button></div>
             </div>
           )}
         </div>

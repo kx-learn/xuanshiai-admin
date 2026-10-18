@@ -263,16 +263,6 @@ export default function PowerConfigPage() {
           <Radio checked={browse.single === "hide"} label="隐藏" note='，仅在“官宣”列表中显示' onClick={() => setBrowse({ ...browse, single: "hide" })} />
         </Row>
 
-        <div className="pm-submit">
-          <button
-            type="button"
-            className="nv-ok-btn pm-submit-btn"
-            onClick={async () => {
-              const ok = await savePerm("保存权限配置");
-              if (ok) showConfigToast("权限配置已保存");
-            }}
-          >确定提交</button>
-        </div>
       </Card>
 
       {/* ===================== 卡片2 会员资料页内容查看权限 ===================== */}
@@ -315,16 +305,6 @@ export default function PowerConfigPage() {
           <Radio checked={view.more === "vip"} label="仅VIP会员可查看" onClick={() => setView({ ...view, more: "vip" })} />
         </Row>
 
-        <div className="pm-submit">
-          <button
-            type="button"
-            className="nv-ok-btn pm-submit-btn"
-            onClick={async () => {
-              const ok = await savePerm("保存权限配置");
-              if (ok) showConfigToast("权限配置已保存");
-            }}
-          >确定提交</button>
-        </div>
       </Card>
 
       {/* ===================== 卡片3 会员状态更改权限 ===================== */}
@@ -358,16 +338,6 @@ export default function PowerConfigPage() {
           <Radio checked={stateAuth.single === "no"} label="不允许会员自己设置" note="（会员操作时弹出提示“请联系您的红娘”）" onClick={() => setStateAuth({ ...stateAuth, single: "no" })} />
         </Row>
 
-        <div className="pm-submit">
-          <button
-            type="button"
-            className="nv-ok-btn pm-submit-btn"
-            onClick={async () => {
-              const ok = await savePerm("保存权限配置");
-              if (ok) showConfigToast("权限配置已保存");
-            }}
-          >确定提交</button>
-        </div>
       </Card>
 
       {/* ===================== 卡片4 会员线上牵线权限 ===================== */}
@@ -414,16 +384,6 @@ export default function PowerConfigPage() {
           设置为“禁止”，被牵线的人如果没有实名认证，被发起牵线的时候会弹出提示“提醒被牵线人未实名，无法发起牵线”，将触发系统自动发送短信提醒被牵线人进行实名；设置为“允许”，被牵线的人如果没有实名认证，也能正常被发起牵线
         </Info>
 
-        <div className="pm-submit">
-          <button
-            type="button"
-            className="nv-ok-btn pm-submit-btn"
-            onClick={async () => {
-              const ok = await savePerm("保存权限配置");
-              if (ok) showConfigToast("权限配置已保存");
-            }}
-          >确定提交</button>
-        </div>
       </Card>
 
       {/* ===================== 卡片5 其他权限配置 ===================== */}
@@ -467,16 +427,6 @@ export default function PowerConfigPage() {
         </Row>
         <Info indent>会员在学员“已认证”的情况下，无法自行修改学历</Info>
 
-        <div className="pm-submit">
-          <button
-            type="button"
-            className="nv-ok-btn pm-submit-btn"
-            onClick={async () => {
-              const ok = await savePerm("保存权限配置");
-              if (ok) showConfigToast("权限配置已保存");
-            }}
-          >确定提交</button>
-        </div>
       </Card>
     </div>
   );

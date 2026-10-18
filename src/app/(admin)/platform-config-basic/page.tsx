@@ -127,7 +127,7 @@ function UploadBox({ previewText, dark = true, cloud = false, tip, value, onPick
           </button>
         </div>
         {cloud && (
-          <button type="button" className="pcfg-cloud-btn" title="云端素材">
+          <button type="button" className="pcfg-cloud-btn" title="云端素材" disabled={uploading} onClick={() => inputRef.current?.click()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 16.5A4.5 4.5 0 0 1 6.5 8.2a6 6 0 0 1 11.6-1.2A4.5 4.5 0 0 1 20 16.5H4z"/></svg>
             云端素材
           </button>
@@ -149,7 +149,7 @@ function UploadBox({ previewText, dark = true, cloud = false, tip, value, onPick
 }
 
 /** 头像上传块（男/女缺省头像，底部叠上传条） */
-function AvatarUpload({ placeholder, url, onPick }: { placeholder: string; url?: string | null; onPick: (url: string) => void }) {
+function AvatarUpload({ placeholder, url, onPick, cloud = false }: { placeholder: string; url?: string | null; onPick: (url: string) => void; cloud?: boolean }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const filled = !!url;
@@ -178,11 +178,19 @@ function AvatarUpload({ placeholder, url, onPick }: { placeholder: string; url?:
           {uploading ? "上传中..." : "上传图片"}
         </button>
       </div>
+      {cloud && (
+        <button type="button" className="pcfg-cloud-btn" disabled={uploading} onClick={() => inputRef.current?.click()}>
+          从云端素材选择
+        </button>
+      )}
     </>
   );
 }
 
 const BREADCRUMB = getBreadcrumb("平台配置", "基本配置");
+
+/** 默认籍贯地/现居地文案的恢复值，与后端 platform_basic 的默认值一致（app/services/admin_config.py） */
+const DEFAULT_PLACE_TEXT = "江苏省 / 南京市";
 
 /** 服务端基础数据默认值（与页面 UI 初始值一致） */
 const BASIC_DEFAULTS: Dict = {
@@ -611,6 +619,7 @@ export default function PlatformConfigBasicPage() {
                     </select>
                     <svg className="pcfg-select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
                   </div>
+                  <button type="button" className="pcfg-reset-btn" onClick={() => setNativePlace(DEFAULT_PLACE_TEXT)}>恢复默认</button>
                 </div>
 
                 <div className="pcfg-field">
@@ -623,37 +632,23 @@ export default function PlatformConfigBasicPage() {
                     </select>
                     <svg className="pcfg-select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
                   </div>
+                  <button type="button" className="pcfg-reset-btn" onClick={() => setLivePlace(DEFAULT_PLACE_TEXT)}>恢复默认</button>
                 </div>
 
                 <div className="pcfg-field">
                   <span className="pcfg-label">自定义默认头像设置</span>
                   <div className="pcfg-avatar-group">
                     <div className="pcfg-avatar-item">
-                      <AvatarUpload placeholder="男" url={maleAvatarUrl} onPick={(u) => setMaleAvatarUrl(u)} />
-                      <button type="button" className="pcfg-cloud-btn">从云端素材选择</button>
+                      <AvatarUpload cloud placeholder="男" url={maleAvatarUrl} onPick={(u) => setMaleAvatarUrl(u)} />
                       <span className="pcfg-avatar-name">男会员缺省头像</span>
                     </div>
                     <div className="pcfg-avatar-item">
-                      <AvatarUpload placeholder="女" url={femaleAvatarUrl} onPick={(u) => setFemaleAvatarUrl(u)} />
-                      <button type="button" className="pcfg-cloud-btn">从云端素材选择</button>
+                      <AvatarUpload cloud placeholder="女" url={femaleAvatarUrl} onPick={(u) => setFemaleAvatarUrl(u)} />
                       <span className="pcfg-avatar-name">女会员缺省头像</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pcfg-field">
-                  <span className="pcfg-label" />
-                  <button
-                    type="button"
-                    className="pcfg-submit"
-                    onClick={async () => {
-                      const ok = await saveBasic("保存基本配置");
-                      if (ok) showConfigToast("基本配置已保存");
-                    }}
-                  >
-                    确定提交
-                  </button>
-                </div>
               </div>
 
               {/* 右侧分享效果预览 */}
@@ -715,19 +710,6 @@ export default function PlatformConfigBasicPage() {
                 <svg className="pcfg-mode-arrow" width="90" height="40" viewBox="0 0 90 40" fill="none" stroke="#ff5a5f" strokeWidth="2" strokeDasharray="5,4" strokeLinecap="round"><path d="M4 34 C 30 34, 50 22, 60 12 M60 12 L50 14 M60 12 L58 22" /></svg>
               </div>
 
-              <div className="pcfg-field">
-                <span className="pcfg-label" />
-                <button
-                  type="button"
-                  className="pcfg-submit"
-                  onClick={async () => {
-                    const ok = await saveMode("保存运营模式");
-                    if (ok) showConfigToast("运营模式已保存");
-                  }}
-                >
-                  确定提交
-                </button>
-              </div>
             </div>
           )}
 

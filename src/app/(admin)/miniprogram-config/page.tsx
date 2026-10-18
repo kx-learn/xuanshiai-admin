@@ -20,7 +20,12 @@ function CheckSwitch({ label = "启用", enabled, onToggle }: SwitchProps) {
       className={`mp-switch ${enabled ? "on" : ""}`}
       onClick={onToggle}
     >
-      {enabled && <span className="mp-switch-label">{label}</span>}
+      <span
+        className="mp-switch-label"
+        style={enabled ? undefined : { left: "auto", right: 7 }}
+      >
+        {enabled ? label : "关"}
+      </span>
       <span className="mp-switch-knob" />
     </button>
   );
@@ -91,15 +96,35 @@ export default function MiniprogramConfigPage() {
     authorized: domain.snapshot?.config.authorized === true,
   } as Partial<Dict>);
 
+  /** 当前表单是否与服务端最新快照一致 */
+  const hasChanges = () => {
+    const current = (domain.snapshot?.config ?? {}) as Dict;
+    const next = payload();
+    return Object.keys(next).some((k) => JSON.stringify(next[k] ?? null) !== JSON.stringify(current[k] ?? DEFAULTS[k as keyof typeof DEFAULTS] ?? null));
+  };
+
+  /** 保存失败（多为版本冲突/他人已修改）：重新加载最新配置，避免用旧版本反复提交 */
+  const onSaveFailed = async () => {
+    showConfigToast("保存未成功，配置可能已被他人修改，已为您加载最新版本，请确认后重新提交", "error");
+    await domain.reload();
+  };
+
   const submit = async () => {
+    if (!hasChanges()) {
+      showConfigToast("没有需要保存的修改");
+      return;
+    }
     const ok = await domain.save(payload(), "小程序参数配置更新");
     if (ok) showConfigToast("已保存");
-    else if (domain.error) showConfigToast(domain.error, "error");
+    else await onSaveFailed();
   };
 
   useEffect(() => {
     if (!domain.ready) return;
-    const t = setTimeout(() => { domain.save(payload(), "小程序参数配置更新"); }, 900);
+    const t = setTimeout(() => {
+      if (!hasChanges()) return;
+      void domain.save(payload(), "小程序参数配置更新").then((ok) => { if (!ok) void onSaveFailed(); });
+    }, 900);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, appId, appSecret, barColor, qrUrl, coverUrl, realName, domain.ready]);
@@ -215,7 +240,13 @@ export default function MiniprogramConfigPage() {
         <div className="admin-card-body mp-card-body">
           <div className="mp-form">
             <div className="mp-field">
-              <button type="button" className="mp-authorize-btn" onClick={() => showConfigToast("授权需联系第三方微信服务商完成，当前后端未接入授权服务", "error")}>立即授权</button>
+              <button
+                type="button"
+                className="mp-authorize-btn"
+                disabled
+                title="授权需联系第三方微信服务商完成，当前后端未接入授权服务"
+                style={{ opacity: 0.5, cursor: "not-allowed" }}
+              >立即授权</button>
             </div>
             <div className="mp-field">
               <div className="mp-tipbox">

@@ -85,7 +85,7 @@ export default function Page() {
             <br />
             请对接系统服务商进行授权委托协助您腾讯公司完成短信签名的申请，待腾讯审核通过后即可正常使用
           </p>
-          <p className="obc-notice-desc">相关政策：签名实名制报备 签名审核标准</p>
+          <p className="obc-notice-desc">相关政策：<a href="https://cloud.tencent.com/document/product/382" target="_blank" rel="noreferrer" style={{ color: "#3658f7" }}>签名实名制报备</a> <a href="https://cloud.tencent.com/document/product/382" target="_blank" rel="noreferrer" style={{ color: "#3658f7" }}>签名审核标准</a>（腾讯云短信文档）</p>
         </div>
       </div>
 

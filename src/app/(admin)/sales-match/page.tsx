@@ -165,6 +165,15 @@ export default function SalesMatchPage() {
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
 
+  /** 销售库链接可能存放在这些 extra 键上；没有则视为无链接可用 */
+  const rowLink = (extra: Record<string, unknown>): string | null => {
+    for (const key of ["view_url", "share_url", "link", "url", "qrcode_url"]) {
+      const value = extra[key];
+      if (typeof value === "string" && /^https?:\/\//i.test(value)) return value;
+    }
+    return null;
+  };
+
   return (
     <div>
       <AdminBreadcrumb items={breadcrumb} />
@@ -184,7 +193,15 @@ export default function SalesMatchPage() {
         <div className="slm-head">
           <div className="slm-title-wrap">
             <div className="slm-title">销售匹配库</div>
-            <button className="slm-demo" type="button" onClick={() => showConfigToast("当前后端未提供客户签署流程演示接口", "error")}>客户签署流程演示</button>
+            <button
+              className="slm-demo"
+              type="button"
+              disabled
+              title="后端未提供客户签署流程演示接口，暂不可用"
+              aria-disabled="true"
+            >
+              客户签署流程演示
+            </button>
           </div>
           <div className="slm-actions">
             <button className="finord-btn finord-btn-primary" onClick={openCreate}>创建销售匹配库</button>
@@ -262,7 +279,21 @@ export default function SalesMatchPage() {
                     <td>{typeof extra.arrival === "string" ? extra.arrival : "未到店"}</td>
                     <td>{typeof extra.matchmaker === "string" ? extra.matchmaker : "-"}</td>
                     <td>{r.status === 1 ? "开启" : "关闭"}</td>
-                    <td><button className="finord-link" type="button" onClick={() => showConfigToast("当前记录未返回销售库链接或二维码接口数据", "error")}>查看</button></td>
+                    <td>
+                      {(() => {
+                        const link = rowLink(extra);
+                        if (!link) {
+                          return (
+                            <span className="finord-link is-disabled" title="该记录未返回销售库链接或二维码数据" aria-disabled="true" style={{ color: "#b9bfcc", cursor: "not-allowed" }}>
+                              查看
+                            </span>
+                          );
+                        }
+                        return (
+                          <a className="finord-link" href={link} target="_blank" rel="noopener noreferrer">查看</a>
+                        );
+                      })()}
+                    </td>
                     <td>{typeof extra.pick_count === "number" ? extra.pick_count : 0}</td>
                     <td>{typeof extra.fav_count === "number" ? extra.fav_count : 0}</td>
                     <td>

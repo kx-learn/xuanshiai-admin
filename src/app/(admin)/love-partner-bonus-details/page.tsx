@@ -78,7 +78,7 @@ export default function LovePartnerBonusDetailsPage() {
     <div>
       <AdminBreadcrumb items={breadcrumb} />
 
-      <div className="finord-card lpbd-card">
+      <div className="finord-card lpbd-card au-card">
         <div className="lpbd-head">
           <h2 className="lpbd-title">合伙人（红娘）分成明细</h2>
           <button className="finord-btn finord-btn-primary lpbd-add-btn" onClick={() => setAddOpen(true)}>＋ 录入一笔分成</button>
@@ -140,6 +140,12 @@ export default function LovePartnerBonusDetailsPage() {
           </table>
         </div>
 
+        {selected.length > 0 && (
+          <div className="lead-bulk-toolbar">
+            <span>已选择 <b>{selected.length}</b> 项</span>
+            <button type="button" onClick={() => setSelected([])}>取消选择</button>
+          </div>
+        )}
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         {message && <p style={{ color: "#ff4d4f", marginTop: 12 }}>{message}</p>}
       </div>
@@ -165,10 +171,12 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
   const [ruleId, setRuleId] = useState("");
   const [consumeEvent, setConsumeEvent] = useState("");
   const [amount, setAmount] = useState("");
-  const [code, setCode] = useState("");
   const [consumerId, setConsumerId] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  // 分成事件来自 commission_rule（beneficiary_type=partner, status=1）；没有时无法录入
+  const noEvents = options.events.length === 0;
 
   const partnerId = useMemo(
     () => options.partners.find((item) => item.name === partnerName.trim())?.id,
@@ -180,7 +188,10 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
   };
 
   const submit = async () => {
+    if (noEvents) { setMessage("后端未配置分成事件，暂无法录入"); return; }
     if (!partnerId) { setMessage("请从候选中选择合伙人红娘"); return; }
+    if (!ruleId) { setMessage("请选择分成事件"); return; }
+    if (!consumeEvent) { setMessage("请选择消费事件"); return; }
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) { setMessage("请输入大于 0 的分成金额"); return; }
     setSaving(true);
@@ -214,7 +225,7 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
             <span className="tlc-panel-title">录入一笔分成</span>
           </div>
           <div className="lpbd-head-actions">
-            <button className="finord-btn finord-btn-primary" disabled={saving} onClick={() => void submit()}>
+            <button className="finord-btn finord-btn-primary" disabled={saving || noEvents} title={noEvents ? "后端未配置分成事件" : undefined} onClick={() => void submit()}>
               {saving ? "提交中…" : "确定提交"}
             </button>
           </div>
@@ -256,8 +267,8 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
           {/* 分成事件 */}
           <div className="lpbd-row">
             <span className="lpbd-label">＊分成事件</span>
-            <select className="lpbd-select-wide" value={ruleId} onChange={(e) => setRuleId(e.target.value)}>
-              <option value="">请选择分成事件</option>
+            <select className="lpbd-select-wide" value={ruleId} disabled={noEvents} onChange={(e) => setRuleId(e.target.value)}>
+              <option value="">{noEvents ? "后端未配置分成事件" : "请选择分成事件"}</option>
               {options.events.map((event) => (
                 <option key={event.id} value={event.id}>{event.name}</option>
               ))}
@@ -267,8 +278,8 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
           {/* 消费事件 */}
           <div className="lpbd-row">
             <span className="lpbd-label">＊消费事件</span>
-            <select className="lpbd-select-wide" value={consumeEvent} onChange={(e) => setConsumeEvent(e.target.value)}>
-              <option value="">请选择消费事件</option>
+            <select className="lpbd-select-wide" value={consumeEvent} disabled={noEvents} onChange={(e) => setConsumeEvent(e.target.value)}>
+              <option value="">{noEvents ? "后端未配置分成事件" : "请选择消费事件"}</option>
               {options.events.map((event) => (
                 <option key={event.id} value={event.name}>{event.name}</option>
               ))}
@@ -281,34 +292,15 @@ function AddBonusDrawer({ options, onClose, onSaved }: {
             <div className="lpbd-amount-row">
               <input className="lpbd-num" value={amount} onChange={(e) => setAmount(e.target.value)} />
               <span className="lpbd-unit">元</span>
-              <button
-                type="button"
-                className="finord-btn finord-btn-primary lpbd-get-code-btn"
-                onClick={() => setMessage("后台人工录入不校验短信验证码，提交后直接生成分成明细与余额明细")}
-              >
-                获取验证码
-              </button>
             </div>
           </div>
 
-          {/* 短信验证码 */}
-          <div className="lpbd-row">
-            <span className="lpbd-label">＊短信验证码</span>
-            <div className="lpbd-content">
-              <input
-                className="lpbd-input-wide"
-                placeholder="请输入短信验证码"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-              <div className="lpbd-info">① 短信将发送至admin绑定的手机号；后台人工录入流程不校验该验证码</div>
-            </div>
-          </div>
+          {noEvents && <div className="lpbd-info-block">① 后端未配置分成事件（分成规则表中没有启用的合伙人分成事件），暂无法录入分成</div>}
 
           {message && <p style={{ color: "#faad14" }}>{message}</p>}
 
           <div className="lpbd-submit-row">
-            <button className="finord-btn finord-btn-primary lpbd-submit" disabled={saving} onClick={() => void submit()}>
+            <button className="finord-btn finord-btn-primary lpbd-submit" disabled={saving || noEvents} title={noEvents ? "后端未配置分成事件" : undefined} onClick={() => void submit()}>
               {saving ? "提交中…" : "确定提交"}
             </button>
           </div>

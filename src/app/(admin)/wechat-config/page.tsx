@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { asStr, pickAndUploadImage, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
+import { asStr, pickAndUploadImage, showConfigToast, uploadAdminVerifyFile, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 /**
  * 公众号参数配置：全部字段接后端 wechat_mp 配置域（改动即保存 + 提交按钮手动落库）
@@ -59,15 +59,55 @@ export default function WechatConfigPage() {
   } as Partial<Dict>);
 
   const submit = async () => {
+    if (!hasChanges()) {
+      showConfigToast("没有需要保存的修改");
+      return;
+    }
     const ok = await domain.save(payload(), "公众号参数配置更新");
     if (ok) showConfigToast("已保存");
-    else if (domain.error) showConfigToast(domain.error, "error");
+    else await onSaveFailed();
+  };
+
+  /** 当前表单是否与服务端最新快照一致 */
+  const hasChanges = () => {
+    const current = (domain.snapshot?.config ?? {}) as Dict;
+    const next = payload();
+    return Object.keys(next).some((k) => JSON.stringify(next[k] ?? null) !== JSON.stringify(current[k] ?? DEFAULTS[k as keyof typeof DEFAULTS] ?? null));
+  };
+
+  /** 保存失败（多为版本冲突/他人已修改）：重新加载最新配置，避免用旧版本反复提交 */
+  const onSaveFailed = async () => {
+    showConfigToast("保存未成功，配置可能已被他人修改，已为您加载最新版本，请确认后重新提交", "error");
+    await domain.reload();
+  };
+
+  /** 公众号安全验证文件：走后端文件上传接口（.txt/.html/.htm，≤1MB） */
+  const uploadVerifyFile = async (file: File) => {
+    if (!/\.(txt|html?)$/i.test(file.name)) {
+      showConfigToast("仅支持上传 .txt 或 .html 文件", "error");
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      showConfigToast("文件大小不能超过1MB", "error");
+      return;
+    }
+    try {
+      const url = await uploadAdminVerifyFile(file);
+      setFileName(file.name);
+      setFileUrl(url);
+      showConfigToast("文件已上传");
+    } catch (error) {
+      showConfigToast(error instanceof Error ? error.message : "文件上传失败", "error");
+    }
   };
 
   // 防抖自动保存（与其它配置页一致）
   useEffect(() => {
     if (!domain.ready) return;
-    const t = setTimeout(() => { domain.save(payload(), "公众号参数配置更新"); }, 900);
+    const t = setTimeout(() => {
+      if (!hasChanges()) return;
+      void domain.save(payload(), "公众号参数配置更新").then((ok) => { if (!ok) void onSaveFailed(); });
+    }, 900);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wxNo, appId, appSecret, apiToken, secretKey, mode, qrUrl, fileName, fileUrl, domain.ready]);
@@ -159,7 +199,13 @@ export default function WechatConfigPage() {
                   <button type="button" className="gzh-icon-btn" onClick={() => qrInputRef.current?.click()}>
                     <span className="gzh-icon">↑</span>上传二维码
                   </button>
-                  <button type="button" className="gzh-icon-btn" onClick={() => showConfigToast("生成二维码需接入公众号平台后可用", "error")}>
+                  <button
+                    type="button"
+                    className="gzh-icon-btn"
+                    disabled
+                    title="生成公众号二维码需接入公众号平台接口，暂不可用，请先上传二维码图片"
+                    style={{ opacity: 0.5, cursor: "not-allowed" }}
+                  >
                     <span className="gzh-icon">↻</span>生成二维码
                   </button>
                 </div>
@@ -189,17 +235,12 @@ export default function WechatConfigPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".txt,.html"
+                  accept=".txt,.html,.htm"
                   className="gzh-file-input"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-                    pickAndUploadImage(
-                      file,
-                      (url) => { setFileName(file.name); setFileUrl(url); },
-                      (msg) => showConfigToast(msg, "error"),
-                    );
                     e.target.value = "";
+                    if (file) void uploadVerifyFile(file);
                   }}
                 />
               </div>

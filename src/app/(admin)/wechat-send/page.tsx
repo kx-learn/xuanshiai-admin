@@ -5,11 +5,16 @@ import { X, Inbox } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { asNumber, asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 
+type LinkType = "empty" | "miniprogram" | "web";
+
 interface SendRow {
   id: number;
   title: string;
   platformTpl: string;
   updatetime: string;
+  /** 本地草稿内容（不会真实群发） */
+  content: string;
+  link_type: LinkType;
 }
 
 interface TplItem {
@@ -18,13 +23,20 @@ interface TplItem {
 
 const DEFAULTS = { items: [] as unknown[] } as const;
 
+const LINK_LABEL: Record<LinkType, string> = { empty: "空", miniprogram: "小程序", web: "网页" };
+const SEND_UNAVAILABLE_REASON = "真实群发需接入公众号平台，暂不可用";
+const TARGET_UNAVAILABLE_REASON = "群发对象选择需接入公众号粉丝分组，暂不可用";
+const SCHEDULE_UNAVAILABLE_REASON = "定时群发需接入公众号平台，暂不可用";
+const EXPORT_UNAVAILABLE_REASON = "群发记录导出需后端导出接口，暂不可用";
+
 function SendDrawer({ tplList, onAddNew, onClose, onPick }: {
   tplList: TplItem[];
   onAddNew: (no: string) => void;
   onClose: () => void;
-  onPick: (no: string) => void;
+  onPick: (no: string, linkType: LinkType) => void;
 }) {
   const [newNo, setNewNo] = useState("");
+  const [linkType, setLinkType] = useState<LinkType>("empty");
   return (
     <div className="sd-modal-mask" onClick={onClose}>
       <div className="sd-modal" onClick={(e) => e.stopPropagation()}>
@@ -42,19 +54,19 @@ function SendDrawer({ tplList, onAddNew, onClose, onPick }: {
 
           <div className="flex items-center gap-2 pb-3">
             <select
-              className="h-8 rounded border border-[#d9d9d9] bg-white px-2 text-sm"
+              className="h-8 cursor-not-allowed rounded border border-[#d9d9d9] bg-white px-2 text-sm opacity-60"
               aria-label="群发分组"
+              title={TARGET_UNAVAILABLE_REASON}
+              disabled
               defaultValue=""
             >
               <option value="">请选择分组</option>
-              <option value="all">全部粉丝</option>
-              <option value="member">已注册会员</option>
-              <option value="unregistered">未注册粉丝</option>
             </select>
             <select
               className="h-8 rounded border border-[#d9d9d9] bg-white px-2 text-sm"
               aria-label="链接类型"
-              defaultValue="empty"
+              value={linkType}
+              onChange={(e) => setLinkType(e.target.value as LinkType)}
             >
               <option value="empty">空</option>
               <option value="miniprogram">小程序</option>
@@ -90,7 +102,7 @@ function SendDrawer({ tplList, onAddNew, onClose, onPick }: {
                     </svg>
                   </div>
                   <div className="sd-tpl-act">
-                    <button type="button" className="sd-pick-btn" onClick={() => onPick(tpl.no)}>
+                    <button type="button" className="sd-pick-btn" onClick={() => onPick(tpl.no, linkType)}>
                       确定
                     </button>
                   </div>
@@ -110,16 +122,21 @@ export default function WechatSendPage() {
   const [data, setData] = useState<SendRow[]>([]);
   const [platformTpls, setPlatformTpls] = useState<TplItem[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [editing, setEditing] = useState<{ id: number; title: string; link_type: LinkType; content: string } | null>(null);
 
   const apply = useCallback((config: Dict | null) => {
     const list = Array.isArray(config?.items) ? config!.items : [];
     setData(list.map((r, i) => {
       const o = asObject(r as Dict);
+      const linkRaw = asStr(o.link_type, "empty");
       return {
         id: asNumber(o.id, i + 1),
         title: asStr(o.title, ""),
         platformTpl: asStr(o.platformTpl, ""),
         updatetime: asStr(o.updatetime, ""),
+        content: asStr(o.content, ""),
+        link_type: (linkRaw === "miniprogram" || linkRaw === "web" ? linkRaw : "empty") as LinkType,
       };
     }));
   }, []);
@@ -131,9 +148,13 @@ export default function WechatSendPage() {
   }, [mpDomain.snapshot]);
   useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
 
+  /** 提交并刷新视图；失败时回滚到提交前快照 */
   const persist = async (next: SendRow[], summary: string) => {
+    const before = domain.snapshot?.config ?? null;
     setData(next);
-    await domain.save({ items: next } as Partial<Dict>, summary);
+    const ok = await domain.save({ items: next } as Partial<Dict>, summary);
+    if (!ok) apply(before);
+    return ok;
   };
 
   const addPlatformTpl = async (no: string) => {
@@ -142,17 +163,63 @@ export default function WechatSendPage() {
     await mpDomain.save({ platform_templates: next } as Partial<Dict>, `添加平台模板 ${no}`);
   };
 
-  const pickTpl = (no: string) => {
+  const pickTpl = async (no: string, linkType: LinkType) => {
     const now = new Date();
     const updatetime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    persist([...data, { id: Date.now(), title: "新建群发", platformTpl: no, updatetime }], `新建群发消息（模板 ${no}）`);
-    setDrawerOpen(false);
+    const ok = await persist(
+      [...data, { id: Date.now(), title: "新建群发", platformTpl: no, updatetime, content: "", link_type: linkType }],
+      `新建群发消息（模板 ${no}）`,
+    );
+    if (ok) {
+      setDrawerOpen(false);
+      showConfigToast("已新建群发草稿");
+    } else {
+      showConfigToast("新建失败，请稍后重试", "error");
+    }
   };
 
   const remove = async (id: number) => {
     if (!window.confirm("确认删除该群发消息？")) return;
+    setSelectedIds((cur) => cur.filter((x) => x !== id));
     await persist(data.filter((r) => r.id !== id), "删除群发消息");
   };
+
+  const removeSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`确认删除已选择的 ${selectedIds.length} 条群发消息？`)) return;
+    const ids = new Set(selectedIds);
+    const ok = await persist(data.filter((r) => !ids.has(r.id)), "批量删除群发消息");
+    if (ok) setSelectedIds([]);
+  };
+
+  const startEdit = (r: SendRow) => setEditing({ id: r.id, title: r.title, link_type: r.link_type, content: r.content });
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const title = editing.title.trim();
+    if (!title) {
+      showConfigToast("请输入模板标题", "error");
+      return;
+    }
+    const next = data.map((r) => (r.id === editing.id
+      ? { ...r, title, link_type: editing.link_type, content: editing.content }
+      : r));
+    const unchanged = JSON.stringify(next) === JSON.stringify(data);
+    if (unchanged) {
+      setEditing(null);
+      showConfigToast("没有需要保存的修改");
+      return;
+    }
+    const ok = await persist(next, "编辑群发消息内容");
+    if (ok) {
+      setEditing(null);
+      showConfigToast("已保存草稿");
+    } else {
+      showConfigToast("保存失败，请稍后重试", "error");
+    }
+  };
+
+  const allChecked = data.length > 0 && selectedIds.length === data.length;
 
   return (
     <div>
@@ -186,6 +253,15 @@ export default function WechatSendPage() {
           <button type="button" className="sd-add-btn" onClick={() => setDrawerOpen(true)}>
             + 添加新模板
           </button>
+          <button
+            type="button"
+            className="sd-add-btn"
+            disabled
+            title={EXPORT_UNAVAILABLE_REASON}
+            style={{ opacity: 0.5, cursor: "not-allowed" }}
+          >
+            导出
+          </button>
         </div>
         <div className="admin-card-body px-6 pb-6">
           {/* 表格 */}
@@ -193,6 +269,14 @@ export default function WechatSendPage() {
             <table className="sd-table">
               <thead>
                 <tr className="bg-[#fafafa]">
+                  <th className="sd-th" style={{ width: 40 }}>
+                    <input
+                      type="checkbox"
+                      aria-label="全选"
+                      checked={allChecked}
+                      onChange={(e) => setSelectedIds(e.target.checked ? data.map((r) => r.id) : [])}
+                    />
+                  </th>
                   <th className="sd-th sd-th-id">ID</th>
                   <th className="sd-th">模板标题</th>
                   <th className="sd-th">对应公众号平台模板</th>
@@ -203,7 +287,7 @@ export default function WechatSendPage() {
               <tbody>
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-0">
+                    <td colSpan={6} className="py-0">
                       <div className="flex flex-col items-center justify-center py-16 text-sm text-[#999]">
                         <Inbox className="mb-2 h-10 w-10 text-[#d8dde6]" strokeWidth={1.2} />
                         {domain.loading ? "加载中…" : "暂无数据"}
@@ -213,11 +297,46 @@ export default function WechatSendPage() {
                 ) : (
                   data.map((r) => (
                     <tr key={r.id} className="border-b border-[#f0f0f0] transition-colors hover:bg-[#fafafa]">
+                      <td className="sd-td" style={{ width: 40 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(r.id)}
+                          onChange={(e) => setSelectedIds((cur) => (e.target.checked ? [...cur, r.id] : cur.filter((x) => x !== r.id)))}
+                        />
+                      </td>
                       <td className="sd-td sd-td-id">{r.id}</td>
                       <td className="sd-td">{r.title}</td>
                       <td className="sd-td">{r.platformTpl}</td>
                       <td className="sd-td">{r.updatetime}</td>
-                      <td className="sd-td sd-td-act">
+                      <td className="sd-td sd-td-act" style={{ whiteSpace: "nowrap" }}>
+                        <button type="button" className="sd-link" onClick={() => startEdit(r)}>编辑内容</button>
+                        <button
+                          type="button"
+                          className="sd-link"
+                          disabled
+                          title={SEND_UNAVAILABLE_REASON}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          发送
+                        </button>
+                        <button
+                          type="button"
+                          className="sd-link"
+                          disabled
+                          title={TARGET_UNAVAILABLE_REASON}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          对象选择
+                        </button>
+                        <button
+                          type="button"
+                          className="sd-link"
+                          disabled
+                          title={SCHEDULE_UNAVAILABLE_REASON}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          定时
+                        </button>
                         <button type="button" className="sd-link" onClick={() => remove(r.id)}>删除</button>
                       </td>
                     </tr>
@@ -226,6 +345,52 @@ export default function WechatSendPage() {
               </tbody>
             </table>
           </div>
+
+          {/* 草稿编辑 */}
+          {editing && (
+            <div className="mt-4 rounded-[6px] border border-[#e5e9f2] p-4" style={{ display: "grid", gap: 10 }}>
+              <div className="flex items-center gap-3">
+                <span className="w-[72px] text-sm text-[#333]">模板标题</span>
+                <input
+                  className="h-8 flex-1 rounded border border-[#d9d9d9] px-2 text-sm outline-none focus:border-[#3658f7]"
+                  value={editing.title}
+                  onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-[72px] text-sm text-[#333]">链接类型</span>
+                <select
+                  className="h-8 rounded border border-[#d9d9d9] bg-white px-2 text-sm"
+                  value={editing.link_type}
+                  onChange={(e) => setEditing({ ...editing, link_type: e.target.value as LinkType })}
+                >
+                  <option value="empty">空</option>
+                  <option value="miniprogram">小程序</option>
+                  <option value="web">网页</option>
+                </select>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-[72px] pt-2 text-sm text-[#333]">消息内容</span>
+                <textarea
+                  className="min-h-[72px] flex-1 rounded border border-[#d9d9d9] px-2 py-1.5 text-sm outline-none focus:border-[#3658f7]"
+                  value={editing.content}
+                  onChange={(e) => setEditing({ ...editing, content: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" className="h-8 rounded border border-[#d9d9d9] px-4 text-sm" onClick={() => setEditing(null)}>取消</button>
+                <button type="button" className="h-8 rounded bg-[#3658f7] px-4 text-sm text-white" onClick={() => void saveEdit()}>保存草稿</button>
+              </div>
+            </div>
+          )}
+
+          {selectedIds.length > 0 && (
+            <div className="lead-bulk-toolbar">
+              <span>已选择 <b>{selectedIds.length}</b> 项</span>
+              <button type="button" onClick={() => void removeSelected()}>批量删除</button>
+              <button type="button" onClick={() => setSelectedIds([])}>取消选择</button>
+            </div>
+          )}
         </div>
       </div>
 

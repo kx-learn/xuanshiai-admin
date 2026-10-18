@@ -29,6 +29,10 @@ export default function LovePartnerRelationPage() {
   const [bindOpen, setBindOpen] = useState(false);
   const [bindTarget, setBindTarget] = useState<PartnerRelationItem | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [removeTarget, setRemoveTarget] = useState<PartnerRelationItem | null>(null);
+  const [removeReason, setRemoveReason] = useState("后台人工移出团队");
+  const [removeError, setRemoveError] = useState("");
+  const [removing, setRemoving] = useState(false);
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
 
@@ -63,17 +67,21 @@ export default function LovePartnerRelationPage() {
     setApplied({ team: teamFilter, keyword: keyword.trim() });
   };
 
-  const removeRow = async (row: PartnerRelationItem) => {
-    const reason = typeof window !== "undefined"
-      ? window.prompt(`确认将「${row.promoter_name ?? row.promoter_id}」移出团队「${row.team_name ?? ""}」？请填写原因`, "后台人工移出团队")
-      : "后台人工移出团队";
-    if (reason === null) return;
-    if (!reason.trim()) { setMessage("请填写移出原因"); return; }
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    const reason = removeReason.trim();
+    if (!reason) { setRemoveError("请填写移出原因"); return; }
+    setRemoving(true);
+    setRemoveError("");
     try {
-      await adminEndpoints.removePartnerRelation(row.id, reason.trim());
+      await adminEndpoints.removePartnerRelation(removeTarget.id, reason);
+      showConfigToast("已移出团队");
+      setRemoveTarget(null);
       await load();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "移出失败");
+      setRemoveError(error instanceof Error ? error.message : "移出失败");
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -97,7 +105,7 @@ export default function LovePartnerRelationPage() {
         </div>
       </div>
 
-      <div className="finord-card lpr-card">
+      <div className="finord-card lpr-card au-card">
         <div className="lpr-head">
           <h2 className="lpr-title">合伙人团队关系</h2>
           <button className="finord-btn finord-btn-primary lpr-bind-btn" onClick={() => { setBindTarget(null); setBindOpen(true); }}>人工绑定团队关系</button>
@@ -141,7 +149,7 @@ export default function LovePartnerRelationPage() {
                   <td><span className="lpr-status">{r.status_label}</span></td>
                   <td>
                     <div className="lpr-ops">
-                      <a className="finord-link" role="button" onClick={() => void removeRow(r)}>移出团队</a>
+                      <a className="finord-link" role="button" onClick={() => { setRemoveTarget(r); setRemoveReason("后台人工移出团队"); setRemoveError(""); }}>移出团队</a>
                       <a className="finord-link" role="button" onClick={() => { setBindTarget(r); setBindOpen(true); }}>变更团队</a>
                     </div>
                   </td>
@@ -158,9 +166,43 @@ export default function LovePartnerRelationPage() {
           </table>
         </div>
 
+        {selected.length > 0 && (
+          <div className="lead-bulk-toolbar">
+            <span>已选择 <b>{selected.length}</b> 项</span>
+            <button type="button" onClick={() => setSelected([])}>取消选择</button>
+          </div>
+        )}
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         {message && <p style={{ color: "#ff4d4f", marginTop: 12 }}>{message}</p>}
       </div>
+
+      {removeTarget && (
+        <>
+          <div className="tlc-mask" onClick={() => !removing && setRemoveTarget(null)} />
+          <div role="dialog" aria-modal="true" aria-label="移出团队" style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 1300, width: 420, background: "#fff", borderRadius: 8, padding: "20px 22px" }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#25272d", marginBottom: 12 }}>移出团队</div>
+            <p style={{ fontSize: 13, color: "#545a69", lineHeight: 1.7, margin: "0 0 12px" }}>
+              确认将「{removeTarget.promoter_name ?? `红娘${removeTarget.promoter_id}`}」移出团队「{removeTarget.team_name ?? "-"}」？
+            </p>
+            <label style={{ display: "block", fontSize: 13, color: "#25272d", marginBottom: 6 }}>＊移出原因</label>
+            <input
+              className="lpr-input-wide"
+              value={removeReason}
+              maxLength={255}
+              autoFocus
+              onChange={(e) => setRemoveReason(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void confirmRemove(); }}
+            />
+            {removeError && <p style={{ color: "#ff4d4f", fontSize: 12, margin: "8px 0 0" }}>{removeError}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+              <button type="button" className="finord-btn lpr-cancel" disabled={removing} onClick={() => setRemoveTarget(null)}>取消</button>
+              <button type="button" className="finord-btn finord-btn-primary" disabled={removing} onClick={() => void confirmRemove()}>
+                {removing ? "提交中…" : "确定"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {bindOpen && (
         <BindRelationDrawer
@@ -180,7 +222,7 @@ function BindRelationDrawer({ target, teams, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [promoter, setPromoter] = useState(target?.promoter_name ?? "");
+  const [promoter, setPromoter] = useState(target ? (target.promoter_name ?? `红娘${target.promoter_id}`) : "");
   const [teamId, setTeamId] = useState(target ? String(target.team_id) : "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -188,9 +230,12 @@ function BindRelationDrawer({ target, teams, onClose, onSaved }: {
   const submit = async () => {
     if (!promoter.trim()) { setMessage("请输入推广红娘的账号昵称"); return; }
     if (!teamId) { setMessage("请选择一个团队"); return; }
+    // 变更团队时目标团队与当前团队相同则无需提交，避免后端 409 报错
+    if (target && Number(teamId) === target.team_id) { setMessage("请选择与当前不同的团队"); return; }
     setSaving(true);
     setMessage("");
     try {
+      // 后端 POST /admin/partner-relations 会先结束原归属（记为「变更」）再绑定到新团队，即变更团队
       await adminEndpoints.bindPartnerRelation({
         promoter_user_id: target?.promoter_id,
         promoter_lookup: target ? undefined : promoter.trim(),
@@ -215,7 +260,7 @@ function BindRelationDrawer({ target, teams, onClose, onSaved }: {
         <div className="tlc-panel-head">
           <div className="tlc-panel-head-left">
             <button className="tlc-x" onClick={onClose} aria-label="关闭"><X size={18} /></button>
-            <span className="tlc-panel-title">人工绑定团队关系</span>
+            <span className="tlc-panel-title">{target ? "变更团队" : "人工绑定团队关系"}</span>
           </div>
           <div className="lpr-head-actions">
             <button className="finord-btn lpr-cancel" onClick={onClose}>关闭</button>

@@ -31,6 +31,9 @@ export default function BranchConfigPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [editor, setEditor] = useState<{ open: boolean; row: StoreAdminItem | null }>({ open: false, row: null });
+  /** 行内「自动跳转」开关正在提交的分站 id，避免重复点击 */
+  const [redirectSaving, setRedirectSaving] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // 配置域回填分站模式（不改动 DOM 结构，仅同步受控值）
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function BranchConfigPage() {
       const result = await adminEndpoints.storeList({ page, page_size: pageSize });
       setRows(result.items);
       setTotal(result.total);
+      setSelectedIds([]);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载失败");
@@ -71,8 +75,42 @@ export default function BranchConfigPage() {
     }
   };
 
+  /* 行内切换「自动跳转」：直接 PATCH，成功后就地更新该行，失败回滚并提示 */
+  const toggleAutoRedirect = async (row: StoreAdminItem) => {
+    if (redirectSaving !== null) return;
+    const next = !row.auto_redirect;
+    setRedirectSaving(row.id);
+    setMessage("");
+    setRows((current) => current.map((item) => (item.id === row.id ? { ...item, auto_redirect: next } : item)));
+    try {
+      const updated = await adminEndpoints.updateStoreAdmin(row.id, { auto_redirect: next });
+      setRows((current) => current.map((item) => (item.id === row.id ? { ...item, ...updated } : item)));
+      showConfigToast(next ? "已开启自动跳转" : "已关闭自动跳转");
+    } catch (error) {
+      setRows((current) => current.map((item) => (item.id === row.id ? { ...item, auto_redirect: row.auto_redirect } : item)));
+      const detail = error instanceof Error && error.message ? error.message : "请求失败";
+      const text = `自动跳转切换失败：${detail}`;
+      setMessage(text);
+      showConfigToast(text, "error");
+    } finally {
+      setRedirectSaving(null);
+    }
+  };
+
   return (
     <div>
+      <style>{`
+.bc-switch { display: inline-flex; align-items: center; gap: 8px; width: 66px; height: 26px; padding: 0 3px 0 10px; border: 0; border-radius: 13px; background: #d9dde6; cursor: pointer; transition: background .18s ease; }
+.bc-switch.on { background: #3658f7; }
+.bc-switch:disabled { opacity: .6; cursor: progress; }
+.bc-switch-label { font-size: 12px; color: #fff; line-height: 1; white-space: nowrap; }
+.bc-switch-dot { width: 20px; height: 20px; margin-left: auto; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: margin-left .18s ease; }
+.bc-switch:not(.on) .bc-switch-dot { margin-left: 0; margin-right: auto; }
+.bc-switch:not(.on) .bc-switch-label { order: 2; color: #fff; }
+.bc-switch:not(.on) { padding: 0 10px 0 3px; }
+.bc-bulk-toolbar { position: fixed; right: 0; bottom: 0; left: 224px; z-index: 45; display: flex; align-items: center; gap: 10px; min-height: 54px; margin: 0; padding: 8px 18px; border-top: 1px solid #e3e7ef; background: #fff; box-shadow: 0 -2px 10px rgba(24,40,80,.12); color: #46516b; font-size: 13px; }
+.bc-bulk-toolbar button { height: 36px; border: 1px solid #3658f7; border-radius: 4px; background: #3658f7; padding: 0 16px; color: #fff; font-size: 13px; white-space: nowrap; cursor: pointer; }
+      `}</style>
       <AdminBreadcrumb items={breadcrumb} />
 
       <div className="ecl-notice">
@@ -126,12 +164,28 @@ export default function BranchConfigPage() {
           <table className="finord-table bc-table">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="全选"
+                    checked={rows.length > 0 && selectedIds.length === rows.length}
+                    onChange={() => setSelectedIds(selectedIds.length === rows.length ? [] : rows.map((row) => row.id))}
+                  />
+                </th>
                 {columns.map((c) => <th key={c}>{c}</th>)}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      aria-label={`选择分站 ${row.display_name || row.name}`}
+                      checked={selectedIds.includes(row.id)}
+                      onChange={() => setSelectedIds((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])}
+                    />
+                  </td>
                   <td>{row.region_code || "-"}</td>
                   <td>{row.display_name || row.name}</td>
                   <td>{row.link_url || "-"}</td>
@@ -141,7 +195,20 @@ export default function BranchConfigPage() {
                       <a className="finord-link" href={resolveMediaUrl(row.qr_code) ?? row.qr_code} target="_blank" rel="noreferrer">查看二维码</a>
                     ) : "-"}
                   </td>
-                  <td>{row.auto_redirect ? "开启" : "关闭"}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={`bc-switch ${row.auto_redirect ? "on" : ""}`}
+                      role="switch"
+                      aria-checked={row.auto_redirect}
+                      aria-label={`自动跳转 ${row.display_name || row.name}`}
+                      disabled={redirectSaving === row.id}
+                      onClick={() => void toggleAutoRedirect(row)}
+                    >
+                      <span className="bc-switch-label">{row.auto_redirect ? "开启" : "关闭"}</span>
+                      <span className="bc-switch-dot" />
+                    </button>
+                  </td>
                   <td>
                     <button type="button" className="finord-link" style={{ border: 0, background: "none", padding: 0 }} onClick={() => setEditor({ open: true, row })}>编辑</button>
                     <span style={{ margin: "0 8px", color: "#dfe3ea" }}>|</span>
@@ -167,6 +234,12 @@ export default function BranchConfigPage() {
           onPageChange={setPage}
           onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
         />
+        {selectedIds.length > 0 && (
+          <div className="lead-bulk-toolbar bc-bulk-toolbar">
+            <span>已选择 <b>{selectedIds.length}</b> 项</span>
+            <button type="button" onClick={() => setSelectedIds([])}>取消选择</button>
+          </div>
+        )}
         {message && <p style={{ color: "#ff4d4f", fontSize: 13, marginTop: 8 }}>{message}</p>}
       </div>
 

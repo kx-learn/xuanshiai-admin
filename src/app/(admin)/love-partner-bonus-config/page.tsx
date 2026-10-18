@@ -6,9 +6,12 @@ import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { PartnerBonusItem, PartnerLevelId, PartnerLevelItem } from "@/lib/admin-endpoints";
-import { showConfigToast } from "@/lib/platform-config";
+import { readPlatformConfig, savePlatformConfig, showConfigToast, type Dict } from "@/lib/platform-config";
 
 const breadcrumb = getBreadcrumb("合伙红娘", "分成配置");
+
+// 「更新数据」按比例写入的后端配置域（levels 按合伙级别 level_id 逐条保存）
+const BONUS_DOMAIN = "tools_partner_bonus";
 
 const columns = ["ID", "分成级别", "级别名称", "分成模式", "合伙人数量", "自动升级条件", "操作"];
 
@@ -134,7 +137,49 @@ function EditBonusDrawer({ level, onClose, onSaved }: {
     return result;
   });
   const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState("");
+  const isRatio = splitMode === SPLIT_MODES[1];
+
+  // 「更新数据」：以固定基数（平台收费配置金额）× 比例计算，结果可重复计算（幂等）；
+  // 同时把该级别的比例与金额写入配置域 tools_partner_bonus。
+  const applyRatio = async () => {
+    const rate = Number(splitRate);
+    if (!splitRate.trim() || !Number.isFinite(rate) || rate < 0 || rate > 100) {
+      setMessage("请输入 0-100 之间的比例数值");
+      return;
+    }
+    const next: Record<string, string> = {};
+    BONUS_ITEMS.forEach((item) => {
+      next[item.name] = String(Math.round((Number(item.base) * rate) / 100));
+    });
+    const bonusItems: PartnerBonusItem[] = BONUS_ITEMS.map((item) => ({ name: item.name, amount: next[item.name] }));
+    setUpdating(true);
+    setMessage("");
+    try {
+      const snapshot = await readPlatformConfig<Dict>(BONUS_DOMAIN);
+      const config = snapshot.config ?? {};
+      const others = (Array.isArray(config.levels) ? (config.levels as Dict[]) : [])
+        .filter((item) => item.level_id !== level.level_id);
+      await savePlatformConfig(
+        BONUS_DOMAIN,
+        snapshot.version,
+        {
+          ...config,
+          levels: [...others, { level_id: level.level_id, mode: "ratio", ratio: rate, bonus_items: bonusItems }],
+        },
+        `${level.level_name}分成配置按比例 ${rate}% 更新数据`,
+      );
+      setAmounts(next);
+      showConfigToast("分成金额已按比例更新");
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "更新数据失败";
+      setMessage(text);
+      showConfigToast(text, "error");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const submit = async () => {
     setSaving(true);
@@ -247,26 +292,21 @@ function EditBonusDrawer({ level, onClose, onSaved }: {
                     <span>{o}</span>
                   </label>
                 ))}
-                <input className="lpb-num" value={splitRate} onChange={(e) => setSplitRate(e.target.value)} />
+                <input
+                  className="lpb-num"
+                  value={splitRate}
+                  disabled={!isRatio}
+                  onChange={(e) => setSplitRate(e.target.value)}
+                />
                 <span className="lpb-unit">%</span>
                 <button
                   type="button"
                   className="finord-btn finord-btn-primary lpb-update-btn"
-                  onClick={() => {
-                    const rate = Number(splitRate);
-                    if (!Number.isFinite(rate)) {
-                      setMessage("请输入有效的比例数值");
-                      return;
-                    }
-                    const next: Record<string, string> = {};
-                    BONUS_ITEMS.forEach((item) => {
-                      next[item.name] = (Number(item.base) * rate / 100).toFixed(2);
-                    });
-                    setAmounts(next);
-                    setMessage("");
-                  }}
+                  disabled={!isRatio || updating}
+                  title={isRatio ? undefined : "切换为「按比例自动计算」后可更新数据"}
+                  onClick={() => void applyRatio()}
                 >
-                  更新数据
+                  {updating ? "更新中…" : "更新数据"}
                 </button>
               </div>
               <div className="lpb-info">① 按照百分比模式下系统自动根据平台收费配置中的数值乘以百分比，四舍五入到元，最小单位为1元，不满1元则为0</div>
@@ -284,6 +324,7 @@ function EditBonusDrawer({ level, onClose, onSaved }: {
                     <input
                       className="lpb-num"
                       value={amounts[b.name] ?? b.base}
+                      disabled={isRatio}
                       onChange={(e) => setAmounts((prev) => ({ ...prev, [b.name]: e.target.value }))}
                     />
                     <span className="lpb-unit">元</span>

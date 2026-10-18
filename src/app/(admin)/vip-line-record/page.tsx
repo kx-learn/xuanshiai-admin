@@ -6,11 +6,32 @@ import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import DateRangePicker from "@/components/DateRangePicker";
+import { adminApi } from "@/lib/admin-api";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import { showConfigToast } from "@/lib/platform-config";
 
-/* ---------- 统计（按 match_records 真实聚合） ---------- */
-type Stat = { value: number; label: string; bar: string };
+/* ---------- 统计（match-records/statistics 聚合，与列表共用筛选条件） ---------- */
+type Stat = { value: number; label: string; bar: string; group: string };
+
+const STAT_DEFS: Array<{ key: "total" | "pending" | "matching" | "success" | "fail" | "closed"; label: string; bar: string; group: string }> = [
+  { key: "total", label: "全部牵线", bar: "#3658f7", group: "" },
+  { key: "pending", label: "待牵线", bar: "#fa8c16", group: "pending" },
+  { key: "matching", label: "牵线中", bar: "#13c2c2", group: "matching" },
+  { key: "success", label: "牵线成功", bar: "#52c41a", group: "success" },
+  { key: "fail", label: "牵线失败", bar: "#ff4d4f", group: "fail" },
+  { key: "closed", label: "已关闭", bar: "#722ed1", group: "closed" },
+];
+
+type MatchRecordStats = {
+  total: number;
+  pending: number;
+  matching: number;
+  success: number;
+  fail: number;
+  closed: number;
+};
+
+const emptyStats: MatchRecordStats = { total: 0, pending: 0, matching: 0, success: 0, fail: 0, closed: 0 };
 
 /* ---------- 行类型 ---------- */
 type LineRow = {
@@ -96,12 +117,14 @@ export default function Page() {
   const [addOpen, setAddOpen] = useState(false);
   const [lineResult, setLineResult] = useState<"success" | "fail">("success");
   const [rows, setRows] = useState<LineRow[]>([]);
-  const [stats, setStats] = useState<Stat[]>([]);
+  const [stats, setStats] = useState<Stat[]>(() => STAT_DEFS.map((d) => ({ value: 0, label: d.label, bar: d.bar, group: d.group })));
+  const [statusGroup, setStatusGroup] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
   /** 服务红娘候选：`/admin/matchmaker/matchmakers` 返回 user_id，可直接作为筛选值 */
   const [matchmakers, setMatchmakers] = useState<Array<{ user_id: number; nickname?: string | null }>>([]);
 
@@ -115,6 +138,26 @@ export default function Page() {
       .catch(() => setMatchmakers([]));
   }, []);
 
+  /* ---------- 列表与统计共用筛选条件 ---------- */
+  const filters = {
+    search: keyword.trim() || undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
+    matchmaker_id: server ? Number(server) : undefined,
+  };
+
+  const loadStats = async () => {
+    try {
+      const stat = await adminApi<MatchRecordStats>("admin/matchmaker/match-records/statistics", {
+        method: "GET",
+        query: filters,
+      });
+      setStats(STAT_DEFS.map((d) => ({ value: stat[d.key] ?? 0, label: d.label, bar: d.bar, group: d.group })));
+    } catch {
+      setStats((current) => current.map((item) => ({ ...item, value: 0 })));
+    }
+  };
+
   /* ---------- 加载 ---------- */
   const loadData = async () => {
     setLoading(true);
@@ -122,41 +165,19 @@ export default function Page() {
       const result = await adminEndpoints.matchRecords({
         page,
         page_size: pageSize,
-        search: keyword.trim() || undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-        matchmaker_id: server ? Number(server) : undefined,
+        ...filters,
+        status_group: statusGroup || undefined,
       });
       const items = (result as { items: LineRow[]; total: number }).items;
       setRows(items);
       setTotal((result as { total: number }).total);
       setSelected([]);
-      const totalCount = (result as { total: number }).total;
-      const success = items.filter((r) => r.status === 1).length;
-      const fail = items.filter((r) => r.status === 2).length;
-      const pending = items.filter((r) => r.status === 0).length;
-      const closed = items.filter((r) => r.status === 3).length;
-      const matchmaking = items.filter((r) => r.matchmaker_id != null).length;
-      const next: Stat[] = [
-        { value: totalCount, label: "全部牵线", bar: "#3658f7" },
-        { value: pending, label: "待牵线", bar: "#fa8c16" },
-        { value: matchmaking, label: "牵线中", bar: "#13c2c2" },
-        { value: success, label: "牵线成功", bar: "#52c41a" },
-        { value: fail, label: "牵线失败", bar: "#ff4d4f" },
-        { value: closed, label: "已关闭", bar: "#722ed1" },
-      ];
-      setStats(next);
+      await loadStats();
     } catch (error) {
       showConfigToast(error instanceof Error ? error.message : "加载失败", "error");
       setRows([]);
-      setStats([
-        { value: 0, label: "全部牵线", bar: "#3658f7" },
-        { value: 0, label: "待牵线", bar: "#fa8c16" },
-        { value: 0, label: "牵线中", bar: "#13c2c2" },
-        { value: 0, label: "牵线成功", bar: "#52c41a" },
-        { value: 0, label: "牵线失败", bar: "#ff4d4f" },
-        { value: 0, label: "已关闭", bar: "#722ed1" },
-      ]);
+      setTotal(0);
+      setStats((current) => current.map((item) => ({ ...item, value: 0 })));
     } finally {
       setLoading(false);
     }
@@ -164,7 +185,41 @@ export default function Page() {
 
   useEffect(() => {
     void loadData();
-  }, [keyword, page, pageSize]);
+  }, [keyword, page, pageSize, statusGroup]);
+
+  /* ---------- 顶部统计卡：点击按对应状态重新拉列表 ---------- */
+  const pickStatus = (group: string) => {
+    setStatusGroup(group);
+    setPage(1);
+    setSelected([]);
+  };
+
+  /* ---------- 批量结束：循环调用单条状态更新 ---------- */
+  const bulkClose = async () => {
+    const targets = rows.filter((row) => selected.includes(row.id) && row.status === 0);
+    if (targets.length === 0) {
+      showConfigToast("所选记录均非「待处理」状态，无需结束", "error");
+      return;
+    }
+    setBulkBusy(true);
+    let failed = 0;
+    for (const row of targets) {
+      try {
+        await adminApi(`admin/matchmaker/match-records/${row.id}`, {
+          method: "PATCH",
+          body: { status: 3, reason: "批量结束" },
+        });
+      } catch {
+        failed += 1;
+      }
+    }
+    setBulkBusy(false);
+    showConfigToast(
+      failed === 0 ? `已结束 ${targets.length} 条牵线记录` : `${targets.length - failed} 条已结束，${failed} 条失败`,
+      failed === 0 ? "ok" : "error",
+    );
+    await loadData();
+  };
 
   /* ---------- 抽屉提交 ---------- */
   const handleSubmit = async () => {
@@ -203,6 +258,16 @@ export default function Page() {
 
   return (
     <div className="min-w-0">
+      <style>{`
+.vlr-stats button.vlr-stat { appearance: none; width: 100%; text-align: left; background: #fff; font: inherit; cursor: pointer; transition: border-color .18s, box-shadow .18s; }
+.vlr-stats button.vlr-stat:hover { border-color: #c3cdfa; }
+.vlr-stats button.vlr-stat.active { border-color: #3658f7; box-shadow: 0 0 0 1px #3658f7 inset; }
+.vlr-stats button.vlr-stat.active .vlr-stat-label { color: #3658f7; }
+.vlr-bulk-toolbar { position: fixed; right: 0; bottom: 0; left: 224px; z-index: 45; display: flex; align-items: center; gap: 10px; min-height: 54px; margin: 0; padding: 8px 18px; border-top: 1px solid #e3e7ef; background: #fff; box-shadow: 0 -2px 10px rgba(24,40,80,.12); color: #46516b; font-size: 13px; }
+.vlr-bulk-toolbar button { height: 36px; border: 1px solid #3658f7; border-radius: 4px; background: #3658f7; padding: 0 16px; color: #fff; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.vlr-bulk-toolbar button.ghost { border-color: #dfe3ea; background: #fff; color: #545a69; }
+.vlr-bulk-toolbar button:disabled { opacity: .6; cursor: not-allowed; }
+      `}</style>
       <AdminBreadcrumb items={getBreadcrumb("会员服务", "红娘牵线")} />
 
       <section className="vlr-card">
@@ -219,14 +284,20 @@ export default function Page() {
           </p>
         </div>
 
-        {/* 统计卡 - 来自 match_records 实时聚合 */}
+        {/* 统计卡 - 与列表共用筛选条件；点击即按该状态重新筛选列表 */}
         <div className="vlr-stats">
           {stats.map((item) => (
-            <div className="vlr-stat" key={item.label}>
+            <button
+              type="button"
+              className={`vlr-stat${statusGroup === item.group ? " active" : ""}`}
+              key={item.label}
+              aria-pressed={statusGroup === item.group}
+              onClick={() => pickStatus(item.group)}
+            >
               <span className="vlr-stat-bar" style={{ background: item.bar }} />
               <div className="vlr-stat-value">{item.value}</div>
               <div className="vlr-stat-label">{item.label}</div>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -454,6 +525,17 @@ export default function Page() {
           onPageChange={setPage}
           onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
         />
+        {selected.length > 0 && (
+          <div className="lead-bulk-toolbar vlr-bulk-toolbar">
+            <span>已选择 <b>{selected.length}</b> 项</span>
+            <button type="button" disabled={bulkBusy} onClick={() => void bulkClose()}>
+              {bulkBusy ? "处理中…" : "批量结束牵线"}
+            </button>
+            <button type="button" className="ghost" disabled={bulkBusy} onClick={() => setSelected([])}>
+              取消选择
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Drawer：添加牵线记录（保留原 DOM 与类名） */}

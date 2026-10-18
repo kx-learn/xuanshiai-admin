@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { CU, styleCardImage } from "@/lib/nav-icon-data";
 import {
   useConfigDomain,
+  pickAndUploadImage,
   showConfigToast,
   type Dict,
 } from "@/lib/platform-config";
@@ -175,19 +177,46 @@ function StyleCard({ group, style, onApply }: { group: number; style: number; on
   );
 }
 
-function ItemRow({ item, index, total, onChange, onMove, onOk }: {
+function ItemRow({ item, index, total, onChange, onMove, onOk, onDelete }: {
   item: NavItem;
   index: number;
   total: number;
   onChange: (patch: Partial<NavItem>) => void;
   onMove: (dir: -1 | 1) => void;
   onOk?: () => void;
+  onDelete: () => void;
 }) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
   return (
     <div className="nv-item">
       <input className="nv-input nv-input-name" value={item.name} onChange={(e) => onChange({ name: e.target.value })} />
       <input className="nv-input nv-input-path" value={item.path} onChange={(e) => onChange({ path: e.target.value })} />
-      <button type="button" className="nv-icon-btn">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          setUploading(true);
+          pickAndUploadImage(
+            file,
+            (url) => {
+              setUploading(false);
+              onChange({ icon: url });
+              showConfigToast("图标已更新");
+            },
+            (message) => {
+              setUploading(false);
+              showConfigToast(message, "error");
+            },
+          );
+        }}
+      />
+      <button type="button" className="nv-icon-btn" disabled={uploading} onClick={() => fileRef.current?.click()}>
         {item.icon ? (
           <img className="nv-icon-img" src={item.icon} alt="" />
         ) : (
@@ -212,6 +241,46 @@ function ItemRow({ item, index, total, onChange, onMove, onOk }: {
       )}
       <button type="button" className="nv-move" disabled={index === 0} onClick={() => onMove(-1)}>↑ 上移</button>
       <button type="button" className="nv-move" disabled={index === total - 1} onClick={() => onMove(1)}>↓ 下移</button>
+      <button type="button" className="nv-move" onClick={onDelete}>删除</button>
+    </div>
+  );
+}
+
+/** 更多图标样式表格行：更换颜色（隐藏的 color 取色器）+ 恢复默认 */
+function IconTableRow({ row, onColor, onRestore }: {
+  row: IconRow;
+  onColor: (hex: string) => void;
+  onRestore: () => void;
+}) {
+  const colorRef = useRef<HTMLInputElement | null>(null);
+  const hex = row.color && /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : "#8c57ff";
+  return (
+    <div className="nv-table-row">
+      <span className="nv-td nv-td-pos">{row.position}</span>
+      <span className="nv-td nv-td-icon">
+        {row.icon ? (
+          <img className="nv-glyph-img" src={row.icon} alt={row.name} />
+        ) : (
+          <span className="nv-glyph-box" style={{ background: row.color }} />
+        )}
+      </span>
+      <span className="nv-td nv-td-name">{row.name}</span>
+      <span className="nv-td nv-td-size">{row.size}</span>
+      <span className="nv-td nv-td-act">
+        {row.colorAction && (
+          <>
+            <input
+              ref={colorRef}
+              type="color"
+              value={hex}
+              hidden
+              onChange={(e) => onColor(e.target.value)}
+            />
+            <button type="button" className="nv-link nv-link-blue" onClick={() => colorRef.current?.click()}>更换颜色</button>
+          </>
+        )}
+        <button type="button" className="nv-link" onClick={onRestore}>恢复默认</button>
+      </span>
     </div>
   );
 }
@@ -224,31 +293,25 @@ export default function PlatformNavconfigPage() {
   const navDomain = useConfigDomain<Dict>("platform_navigation", NAV_DEFAULTS);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [sections, setSections] = useState<Section[]>(SECTIONS);
+  const [iconRows, setIconRows] = useState<IconRow[]>(ICON_ROWS);
+  const [pendingDelete, setPendingDelete] = useState<{ secKey: string; index: number } | null>(null);
 
-  // 初次加载：服务端回填。旧存档没有 styleGroup/icon 等新字段：
-  // 结构字段（title/styleGroup）以代码里的 SECTIONS 默认为准，仅回填用户可编辑的 items
+  // 初次加载：服务端回填。结构字段（title/styleGroup）以代码里的 SECTIONS 为准；
+  // items 以服务端保存的列表为准（支持删除/新增），缺省字段（tip/icon）回退到同路径默认项
   useEffect(() => {
     if (!navDomain.ready) return;
-    const raw = navDomain.snapshot?.config?.sections;
+    const cfg = navDomain.snapshot?.config ?? {};
+    const raw = cfg.sections;
     if (Array.isArray(raw) && raw.length > 0) {
       const defaultsByKey = Object.fromEntries(SECTIONS.map((s) => [s.key, s]));
       setSections(
         (raw as unknown as Section[]).map((sec) => {
           const fallback = defaultsByKey[sec.key];
           const savedItems: NavItem[] = (sec.items ?? []) as NavItem[];
-          // 按 path 对齐：默认列表为主体，服务端同路径项覆盖可编辑字段；
-          // 服务端多出的自定义项追加到末尾（旧存档缺新项时自动补齐）
-          const items = (() => {
-            if (!fallback) return savedItems.map((item) => ({ ...item, icon: item.icon ?? "" }));
-            const byPath = new Map(savedItems.map((it) => [it.path, it]));
-            const merged = fallback.items.map((def) => {
-              const saved = byPath.get(def.path);
-              if (byPath.delete(def.path) && saved) return { ...def, ...saved, icon: saved.icon ?? def.icon };
-              return { ...def };
-            });
-            for (const extra of byPath.values()) merged.push({ ...extra, icon: extra.icon ?? "" });
-            return merged;
-          })();
+          const items = savedItems.map((it) => {
+            const def = fallback?.items.find((d) => d.path === it.path);
+            return { ...(def ?? {}), ...it, icon: it.icon ?? def?.icon ?? "" } as NavItem;
+          });
           return {
             ...(fallback ?? sec),
             ...sec,
@@ -260,6 +323,8 @@ export default function PlatformNavconfigPage() {
         }),
       );
     }
+    const savedRows = cfg.icon_rows;
+    if (Array.isArray(savedRows) && savedRows.length > 0) setIconRows(savedRows as unknown as IconRow[]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navDomain.ready]);
 
@@ -272,7 +337,7 @@ export default function PlatformNavconfigPage() {
   }, []);
 
   const saveNav = async (summary = "保存导航配置") => {
-    const ok = await navDomain.save({ sections }, summary);
+    const ok = await navDomain.save({ sections, icon_rows: iconRows }, summary);
     if (!ok && navDomain.error) showConfigToast(navDomain.error, "error");
     return ok;
   };
@@ -283,7 +348,33 @@ export default function PlatformNavconfigPage() {
     const timer = setTimeout(() => void saveNav("自动保存导航配置"), 900);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navDomain.ready, sections]);
+  }, [navDomain.ready, sections, iconRows]);
+
+  const addItem = (secKey: string) => {
+    setSections((secs) => secs.map((s) => s.key !== secKey ? s : {
+      ...s,
+      items: [...s.items, { name: "新导航项", path: "", show: true, icon: "" }],
+    }));
+  };
+
+  const removeItem = (secKey: string, index: number) => {
+    setSections((secs) => secs.map((s) => s.key !== secKey ? s : {
+      ...s,
+      items: s.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  /** 图标表格：恢复为代码内默认值（按位置+名称匹配） */
+  const restoreIconRow = (index: number) => {
+    setIconRows((rows) => rows.map((r, i) => {
+      if (i !== index) return r;
+      return ICON_ROWS.find((d) => d.position === r.position && d.name === r.name) ?? r;
+    }));
+  };
+
+  const setIconRowColor = (index: number, color: string) => {
+    setIconRows((rows) => rows.map((r, i) => (i === index ? { ...r, color } : r)));
+  };
 
   const toggleCollapse = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
@@ -377,8 +468,12 @@ export default function PlatformNavconfigPage() {
                               if (ok) showConfigToast("导航配置已保存");
                             });
                           }}
+                          onDelete={() => setPendingDelete({ secKey: sec.key, index: i })}
                         />
                       ))}
+                      <div>
+                        <button type="button" className="nv-move" onClick={() => addItem(sec.key)}>添加导航项</button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -400,29 +495,31 @@ export default function PlatformNavconfigPage() {
                   <span className="nv-th nv-th-size">最佳尺寸</span>
                   <span className="nv-th nv-th-act">操作</span>
                 </div>
-                {ICON_ROWS.map((row, i) => (
-                  <div className="nv-table-row" key={`${row.name}-${i}`}>
-                    <span className="nv-td nv-td-pos">{row.position}</span>
-                    <span className="nv-td nv-td-icon">
-                      {row.icon ? (
-                        <img className="nv-glyph-img" src={row.icon} alt={row.name} />
-                      ) : (
-                        <span className="nv-glyph-box" style={{ background: row.color }} />
-                      )}
-                    </span>
-                    <span className="nv-td nv-td-name">{row.name}</span>
-                    <span className="nv-td nv-td-size">{row.size}</span>
-                    <span className="nv-td nv-td-act">
-                      {row.colorAction && <button type="button" className="nv-link nv-link-blue">更换颜色</button>}
-                      <button type="button" className="nv-link">恢复默认</button>
-                    </span>
-                  </div>
+                {iconRows.map((row, i) => (
+                  <IconTableRow
+                    key={`${row.position}-${row.name}`}
+                    row={row}
+                    onColor={(hex) => setIconRowColor(i, hex)}
+                    onRestore={() => restoreIconRow(i)}
+                  />
                 ))}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="删除导航项"
+        message={`确定删除导航项「${sections.find((s) => s.key === pendingDelete?.secKey)?.items[pendingDelete?.index ?? 0]?.name ?? ""}」吗？`}
+        confirmText="删除"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) removeItem(pendingDelete.secKey, pendingDelete.index);
+          setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

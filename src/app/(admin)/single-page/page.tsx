@@ -162,6 +162,27 @@ export default function SinglePagePage() {
     }
   };
 
+  const copyRow = async (item: ContentItem) => {
+    try {
+      await adminApi("admin/content/single_page", {
+        method: "POST",
+        body: {
+          title: `${item.title || "未命名"} - 副本`,
+          subtitle: item.subtitle,
+          image_url: item.image_url,
+          amount: item.amount,
+          status: item.status,
+          sort: Math.max(0, (item.sort ?? 100) - 1),
+          extra: item.extra ?? {},
+        },
+      });
+      showConfigToast("已复制", "ok");
+      void load(1, keyword);
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "复制失败", "error");
+    }
+  };
+
   const setSwitch = (id: number, key: "only_member" | "only_realname" | "only_vip" | "enabled") =>
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -266,12 +287,7 @@ export default function SinglePagePage() {
                     <td>{renderSwitch(row.status === 1, setSwitch(row.id, "enabled"))}</td>
                     <td>
                       <div className="sp-ops">
-                        <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void (async () => {
-                          try {
-                            await adminApi(`admin/content/single_page/${row.id}/copy`, { method: "POST" });
-                          } catch { /* 复制走单页 POST 完成 */ }
-                          showConfigToast("复制功能请通过添加抽屉重新创建", "ok");
-                        })(); }}>复制</a>
+                        <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); void copyRow(row); }}>复制</a>
                         <a className="finord-link" href="#" onClick={(e) => { e.preventDefault(); openEdit(row); }}>编辑</a>
                         <a className="finord-link sp-op-del" href="#" onClick={(e) => { e.preventDefault(); void remove(row.id); }}>删除</a>
                       </div>

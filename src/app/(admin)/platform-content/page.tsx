@@ -263,18 +263,6 @@ function CopyTab() {
         <div className="cc-plain">在平台公众号和红娘朋友圈推广展示</div>
       </Row>
 
-      <div className="cc-submit">
-        <button
-          type="button"
-          className="nv-ok-btn"
-          onClick={async () => {
-            const ok = await saveCopy("保存文案配置");
-            if (ok) showConfigToast("文案配置已保存");
-          }}
-        >
-          确定提交
-        </button>
-      </div>
     </div>
   );
 }
@@ -381,18 +369,6 @@ function CustomTab() {
         </div>
       </Row>
 
-      <div className="cc-submit">
-        <button
-          type="button"
-          className="nv-ok-btn"
-          onClick={async () => {
-            const ok = await saveCustom("保存自定义页面");
-            if (ok) showConfigToast("自定义页面已保存");
-          }}
-        >
-          确定提交
-        </button>
-      </div>
     </div>
   );
 }
@@ -466,7 +442,7 @@ function MemberTab() {
         </span>
         <div className="nv-notice-body">
           <div className="nv-notice-title">须知</div>
-          <div className="nv-notice-line">以下内容的设置会在您线上平台的"会员中心-状态设置"页面中生效 <button type="button" className="nv-link">页面效果</button></div>
+          <div className="nv-notice-line">以下内容的设置会在您线上平台的"会员中心-状态设置"页面中生效 <button type="button" className="nv-link" disabled title="前台会员中心状态页预览地址尚未接入后台，暂不可用" style={{ opacity: 0.45, cursor: "not-allowed" }}>页面效果</button></div>
         </div>
       </div>
 
@@ -497,18 +473,6 @@ function MemberTab() {
         ))}
       </div>
 
-      <div className="cc-submit">
-        <button
-          type="button"
-          className="nv-ok-btn"
-          onClick={async () => {
-            const ok = await saveMember("保存会员中心状态文案");
-            if (ok) showConfigToast("会员中心状态文案已保存");
-          }}
-        >
-          确定提交
-        </button>
-      </div>
     </div>
   );
 }

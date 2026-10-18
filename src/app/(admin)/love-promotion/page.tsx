@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Inbox } from "lucide-react";
+import { ChevronDown, Inbox } from "lucide-react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
@@ -27,6 +27,20 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
 };
 const fmt = (value: string | null) => (value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "-");
 
+const PAY_STATUS_OPTIONS: Array<[string, string]> = [
+  ["", "全部支付状态"],
+  ["unpaid", "未支付"],
+  ["paid", "已支付"],
+  ["refunded", "已退款"],
+];
+const ORDER_STATUS_OPTIONS: Array<[string, string]> = [
+  ["", "全部订单状态"],
+  ["pending", "待处理"],
+  ["processing", "推广中"],
+  ["done", "已完成"],
+  ["cancelled", "已取消"],
+];
+
 export default function Page() {
   const [rows, setRows] = useState<PromotionOrder[]>([]);
   const [page, setPage] = useState(1);
@@ -34,22 +48,48 @@ export default function Page() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  /* 后端 GET /admin/promotion-orders 仅支持 page / page_size / pay_status / status / search 五个参数 */
+  const [payStatus, setPayStatus] = useState("");
+  const [orderStatus, setOrderStatus] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await adminEndpoints.promotionOrders({ page, page_size: pageSize });
+      const result = await adminEndpoints.promotionOrders({
+        page,
+        page_size: pageSize,
+        pay_status: payStatus || undefined,
+        status: orderStatus || undefined,
+        search: search.trim() || undefined,
+      });
       setRows(result.items);
       setTotal(result.total);
+      setSelected([]);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载失败");
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, payStatus, orderStatus, search]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const runSearch = () => {
+    setPage(1);
+    setSearch(searchInput);
+  };
+
+  const resetFilters = () => {
+    setPayStatus("");
+    setOrderStatus("");
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  };
 
   const markPaid = async (row: PromotionOrder) => {
     try {
@@ -100,10 +140,49 @@ export default function Page() {
           <h2 className="lvi-title">推广管理</h2>
         </div>
 
+        {/* 筛选：全部对应后端 promotion-orders 支持的 pay_status / status / search 参数 */}
+        <div className="lvi-filters">
+          <label className="lvi-select">
+            <select
+              value={payStatus}
+              aria-label="支付状态筛选"
+              onChange={(e) => { setPayStatus(e.target.value); setPage(1); }}
+            >
+              {PAY_STATUS_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <ChevronDown className="lvi-caret" />
+          </label>
+          <label className="lvi-select">
+            <select
+              value={orderStatus}
+              aria-label="订单状态筛选"
+              onChange={(e) => { setOrderStatus(e.target.value); setPage(1); }}
+            >
+              {ORDER_STATUS_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <ChevronDown className="lvi-caret" />
+          </label>
+          <input
+            type="text"
+            className="lvi-search-input"
+            placeholder="订单号 / 昵称 / 套餐名"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
+          />
+          <button type="button" className="lvi-btn primary" onClick={runSearch}>搜索</button>
+          <button type="button" className="lvi-btn" onClick={resetFilters}>重置</button>
+        </div>
+
         {/* 表格 */}
         <div className="lvi-table-wrap">
           <table className="lvi-table lpro-table">
             <colgroup>
+              <col style={{ width: 56 }} />
               <col style={{ width: 90 }} />
               <col style={{ width: "16%" }} />
               <col style={{ width: "18%" }} />
@@ -115,6 +194,14 @@ export default function Page() {
             </colgroup>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="全选"
+                    checked={rows.length > 0 && selected.length === rows.length}
+                    onChange={() => setSelected(selected.length === rows.length ? [] : rows.map((row) => row.id))}
+                  />
+                </th>
                 <th>ID</th>
                 <th>购买时间</th>
                 <th>购买推广人</th>
@@ -128,6 +215,14 @@ export default function Page() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      aria-label={`选择推广订单 ${row.id}`}
+                      checked={selected.includes(row.id)}
+                      onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])}
+                    />
+                  </td>
                   <td>{row.id}</td>
                   <td>{fmt(row.created_at)}</td>
                   <td>{row.user_nickname || `用户${row.user_id}`}</td>
@@ -158,6 +253,12 @@ export default function Page() {
           )}
         </div>
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
+        {selected.length > 0 && (
+          <div className="lead-bulk-toolbar lpro-bulk-toolbar">
+            <span>已选择 <b>{selected.length}</b> 项</span>
+            <button type="button" onClick={() => setSelected([])}>取消选择</button>
+          </div>
+        )}
         {message && <p className="lvi-side-hint" style={{ color: "#ff4d4f" }}>{message}</p>}
       </section>
     </div>

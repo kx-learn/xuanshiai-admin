@@ -24,15 +24,39 @@ const ADD_LABEL: Record<TabKey, string> = {
   message: "添加消息回复",
 };
 
+type MatchType = "contain" | "equal";
+type ReplyType = "text" | "link";
+
 interface ReplyRow {
   id: number;
   content: string;
+  /** 关键词回复专用字段 */
+  keyword?: string;
+  match?: MatchType;
+  reply_type?: ReplyType;
 }
 
 interface ReplyState {
   mode: "all" | "random";
   items: ReplyRow[];
 }
+
+interface RuleDraft {
+  keyword: string;
+  match: MatchType;
+  reply_type: ReplyType;
+  content: string;
+}
+
+/** id 为 null 表示尚未保存的新增行 */
+interface EditingState {
+  id: number | null;
+  draft: RuleDraft;
+}
+
+const MATCH_LABEL: Record<MatchType, string> = { contain: "包含", equal: "等于" };
+const TYPE_LABEL: Record<ReplyType, string> = { text: "文字", link: "链接" };
+const STAT_UNAVAILABLE_REASON = "后端暂未提供关键词触发记录，无法统计";
 
 const DEFAULTS = {
   follow: { mode: "all", items: [] },
@@ -67,8 +91,9 @@ export default function WechatAutoreplyPage() {
   });
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState("");
+  const [matchFilter, setMatchFilter] = useState<"" | MatchType>("");
+  const [typeFilter, setTypeFilter] = useState<"" | ReplyType>("");
+  const [editing, setEditing] = useState<EditingState | null>(null);
 
   const apply = useCallback((config: Dict | null) => {
     if (!config) return;
@@ -79,7 +104,14 @@ export default function WechatAutoreplyPage() {
         mode: asStr(g.mode, "all") === "random" ? "random" : "all",
         items: items.map((r, i) => {
           const o = asObject(r as Dict);
-          return { id: Number(o.id ?? i + 1), content: asStr(o.content, "") };
+          const row: ReplyRow = {
+            id: Number(o.id ?? i + 1),
+            content: asStr(o.content, ""),
+            keyword: asStr(o.keyword, ""),
+            match: o.match === "equal" ? "equal" : "contain",
+            reply_type: o.reply_type === "link" ? "link" : "text",
+          };
+          return row;
         }),
       };
     };
@@ -89,33 +121,140 @@ export default function WechatAutoreplyPage() {
   useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
 
+  /** 提交并以服务端返回的快照刷新视图；失败时回滚到提交前的快照 */
   const persist = async (next: Record<TabKey, ReplyState>, summary: string) => {
+    const before = domain.snapshot?.config ?? null;
     setState(next);
-    await domain.save(next as unknown as Partial<Dict>, summary);
+    const ok = await domain.save(next as unknown as Partial<Dict>, summary);
+    if (!ok) apply(before);
+    return ok;
   };
 
   const current = state[activeTab];
-  const shownItems = activeTab === "keyword" && appliedKeyword
-    ? current.items.filter((r) => r.content.includes(appliedKeyword))
-    : current.items;
+  const shownItems = current.items.filter((r) => {
+    if (activeTab !== "keyword") return true;
+    if (matchFilter && (r.match ?? "contain") !== matchFilter) return false;
+    if (typeFilter && (r.reply_type ?? "text") !== typeFilter) return false;
+    if (appliedKeyword && !(r.keyword ?? "").includes(appliedKeyword)) return false;
+    return true;
+  });
 
-  const addReply = async () => {
-    const newRow: ReplyRow = { id: Date.now(), content: "请输入回复内容" };
-    await persist({ ...state, [activeTab]: { ...current, items: [...current.items, newRow] } }, `${ADD_LABEL[activeTab]}`);
+  const startAdd = () => {
+    setEditing({ id: null, draft: { keyword: "", match: "contain", reply_type: "text", content: "" } });
+  };
+
+  const startEdit = (r: ReplyRow) => {
+    setEditing({
+      id: r.id,
+      draft: {
+        keyword: r.keyword ?? "",
+        match: r.match ?? "contain",
+        reply_type: r.reply_type ?? "text",
+        content: r.content,
+      },
+    });
   };
 
   const removeReply = async (id: number) => {
     await persist({ ...state, [activeTab]: { ...current, items: current.items.filter((r) => r.id !== id) } }, "删除自动回复");
   };
 
-  const saveEdit = async (id: number) => {
-    await persist(
-      { ...state, [activeTab]: { ...current, items: current.items.map((r) => (r.id === id ? { ...r, content: draft } : r)) } },
-      "修改自动回复",
+  const saveEdit = async () => {
+    if (!editing) return;
+    const { draft } = editing;
+    const content = draft.content.trim();
+    if (activeTab === "keyword" && !draft.keyword.trim()) {
+      showConfigToast("请输入关键词", "error");
+      return;
+    }
+    if (!content) {
+      showConfigToast("请输入回复内容", "error");
+      return;
+    }
+    const row: ReplyRow = {
+      id: editing.id ?? Date.now(),
+      content,
+      ...(activeTab === "keyword" ? { keyword: draft.keyword.trim(), match: draft.match, reply_type: draft.reply_type } : {}),
+    };
+    const items = editing.id === null
+      ? [...current.items, row]
+      : current.items.map((r) => (r.id === editing.id ? row : r));
+    const unchanged = JSON.stringify(items) === JSON.stringify(current.items);
+    if (unchanged) {
+      setEditing(null);
+      showConfigToast("没有需要保存的修改");
+      return;
+    }
+    const ok = await persist(
+      { ...state, [activeTab]: { ...current, items } },
+      editing.id === null ? ADD_LABEL[activeTab] : "修改自动回复",
     );
-    setEditingId(null);
-    setDraft("");
-    showConfigToast("已保存");
+    if (ok) {
+      setEditing(null);
+      showConfigToast("已保存");
+    } else {
+      showConfigToast("保存失败，请刷新后重试", "error");
+    }
+  };
+
+  const renderEditor = () => {
+    if (!editing) return null;
+    const { draft } = editing;
+    const patchDraft = (patch: Partial<RuleDraft>) => setEditing({ ...editing, draft: { ...draft, ...patch } });
+    return (
+      <div className="ar-row">
+        <div className="ar-edit-box" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          {activeTab === "keyword" && (
+            <>
+              <input
+                className="ar-edit-input"
+                style={{ maxWidth: 200 }}
+                value={draft.keyword}
+                placeholder="关键词"
+                aria-label="关键词"
+                autoFocus
+                onChange={(e) => patchDraft({ keyword: e.target.value })}
+              />
+              <select
+                className="ar-search-select"
+                value={draft.match}
+                aria-label="匹配方式"
+                onChange={(e) => patchDraft({ match: e.target.value as MatchType })}
+              >
+                <option value="contain">包含</option>
+                <option value="equal">等于</option>
+              </select>
+              <select
+                className="ar-search-select"
+                value={draft.reply_type}
+                aria-label="回复类型"
+                onChange={(e) => patchDraft({ reply_type: e.target.value as ReplyType })}
+              >
+                <option value="text">文字</option>
+                <option value="link">链接</option>
+              </select>
+            </>
+          )}
+          <input
+            className="ar-edit-input"
+            style={{ flex: 1, minWidth: 200 }}
+            value={draft.content}
+            placeholder="回复内容"
+            aria-label="回复内容"
+            autoFocus={activeTab !== "keyword"}
+            onChange={(e) => patchDraft({ content: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void saveEdit();
+              if (e.key === "Escape") setEditing(null);
+            }}
+          />
+          <div className="ar-edit-actions">
+            <button type="button" className="ar-edit-save" onClick={() => void saveEdit()}>保存</button>
+            <button type="button" className="ar-edit-cancel" onClick={() => setEditing(null)}>取消</button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -161,15 +300,21 @@ export default function WechatAutoreplyPage() {
         {/* 添加按钮 */}
         {activeTab === "keyword" ? (
           <div className="ar-add-row">
-            <button type="button" className="ar-add-btn" onClick={addReply}>
+            <button type="button" className="ar-add-btn" onClick={startAdd}>
               <span className="ar-add-plus">+</span> {ADD_LABEL.keyword}
             </button>
-            <button type="button" className="ar-add-btn ar-add-stat" onClick={() => showConfigToast("关键词统计功能已打开", "ok")}>
+            <button
+              type="button"
+              className="ar-add-btn ar-add-stat"
+              disabled
+              title={STAT_UNAVAILABLE_REASON}
+              style={{ opacity: 0.5, cursor: "not-allowed" }}
+            >
               <span className="ar-add-bolt">⚡</span> 触发关键词统计
             </button>
           </div>
         ) : (
-          <button type="button" className="ar-add-btn ar-add-wide" onClick={addReply}>
+          <button type="button" className="ar-add-btn ar-add-wide" onClick={startAdd}>
             <span className="ar-add-plus">+</span> {ADD_LABEL[activeTab]}
           </button>
         )}
@@ -181,11 +326,23 @@ export default function WechatAutoreplyPage() {
             <div className="ar-card-tools">
               {activeTab === "keyword" ? (
                 <div className="ar-search">
-                  <select className="ar-search-select" defaultValue="contain" aria-label="匹配方式">
+                  <select
+                    className="ar-search-select"
+                    value={matchFilter}
+                    onChange={(e) => setMatchFilter(e.target.value as "" | MatchType)}
+                    aria-label="匹配方式"
+                  >
+                    <option value="">全部匹配</option>
                     <option value="contain">包含</option>
                     <option value="equal">等于</option>
                   </select>
-                  <select className="ar-search-select" defaultValue="text" aria-label="回复类型">
+                  <select
+                    className="ar-search-select"
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value as "" | ReplyType)}
+                    aria-label="回复类型"
+                  >
+                    <option value="">全部类型</option>
                     <option value="text">文字</option>
                     <option value="link">链接</option>
                   </select>
@@ -208,39 +365,32 @@ export default function WechatAutoreplyPage() {
           </div>
 
           <div className="ar-card-body">
-            {shownItems.length === 0 ? (
+            {editing && editing.id === null && renderEditor()}
+            {shownItems.length === 0 && !(editing && editing.id === null) ? (
               <div className="ar-empty">暂无回复内容</div>
             ) : (
-              shownItems.map((r) => (
-                <div key={r.id} className="ar-row">
-                  {editingId === r.id ? (
-                    <div className="ar-edit-box">
-                      <input
-                        className="ar-edit-input"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") saveEdit(r.id);
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                      />
-                      <div className="ar-edit-actions">
-                        <button type="button" className="ar-edit-save" onClick={() => saveEdit(r.id)}>保存</button>
-                        <button type="button" className="ar-edit-cancel" onClick={() => { setEditingId(null); setDraft(""); }}>取消</button>
-                      </div>
+              shownItems.map((r) =>
+                editing && editing.id === r.id ? (
+                  <div key={r.id}>{renderEditor()}</div>
+                ) : (
+                  <div key={r.id} className="ar-row">
+                    <span className="ar-row-content">
+                      {activeTab === "keyword" && (
+                        <>
+                          <span>{r.keyword || "-"}</span>
+                          <span>{`（${MATCH_LABEL[r.match ?? "contain"]} / ${TYPE_LABEL[r.reply_type ?? "text"]}）`}</span>
+                          <span> ：</span>
+                        </>
+                      )}
+                      {r.content}
+                    </span>
+                    <div className="ar-row-actions">
+                      <button type="button" className="ar-icon-btn" title="编辑" onClick={() => startEdit(r)}>✎</button>
+                      <button type="button" className="ar-icon-btn ar-icon-del" title="删除" onClick={() => removeReply(r.id)}>🗑</button>
                     </div>
-                  ) : (
-                    <>
-                      <span className="ar-row-content">{r.content}</span>
-                      <div className="ar-row-actions">
-                        <button type="button" className="ar-icon-btn" title="编辑" onClick={() => { setEditingId(r.id); setDraft(r.content); }}>✎</button>
-                        <button type="button" className="ar-icon-btn ar-icon-del" title="删除" onClick={() => removeReply(r.id)}>🗑</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
+                  </div>
+                ),
+              )
             )}
           </div>
         </div>

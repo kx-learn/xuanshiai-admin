@@ -132,7 +132,11 @@ function FilterRow({
         {showType && (
           <label className="uath-select">
             <span className="uath-select-prefix">认证类型</span>
-            <select value={typeValue ?? ""} onChange={(e) => onTypeChange?.(e.target.value)}>
+            <select
+              value={typeValue ?? ""}
+              onChange={(e) => onTypeChange?.(e.target.value)}
+              title={(typeOptions ?? []).length === 0 ? "暂无认证类型：请先点击「管理认证类型」创建后再筛选" : undefined}
+            >
               <option value="">不限</option>
               {(typeOptions ?? []).map((o) => (
                 <option key={o.id} value={String(o.id)}>
@@ -190,6 +194,10 @@ export default function LoveUserAuthPage() {
   const [rnRows, setRnRows] = useState<RealnameReviewItem[]>([]);
   const [rnLoading, setRnLoading] = useState(false);
   const [cmRows, setCmRows] = useState<CommitmentReviewItem[]>([]);
+  // 承诺书选「未通过」必须填写原因（后端 422 校验），用页内弹窗收集，不用 window.prompt
+  const [rejectTarget, setRejectTarget] = useState<{ id: number; nickname: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectSaving, setRejectSaving] = useState(false);
   const [cmLoading, setCmLoading] = useState(false);
   const [mrStats, setMrStats] = useState<MarriageStats | null>(null);
   const [mrRows, setMrRows] = useState<MarriageReviewItem[]>([]);
@@ -416,13 +424,37 @@ export default function LoveUserAuthPage() {
   // ─── 审核 / 删除 ───────────────────────────────────────────
   const onCommitResult = async (row: CommitmentReviewItem, value: string) => {
     if (value === "pending") return; // 审核不支持置为待审
-    const status = value === "pass" ? 1 : 2;
+    if (value === "fail") {
+      setRejectReason("");
+      setRejectTarget({ id: row.id, nickname: row.nickname ?? "" });
+      return;
+    }
     try {
-      await adminEndpoints.memberAuthReview("commitment", row.id, { status });
+      await adminEndpoints.memberAuthReview("commitment", row.id, { status: 1 });
       showConfigToast("已更新", "ok");
       await loadCommitment();
     } catch (e) {
       showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    }
+  };
+
+  const submitReject = async () => {
+    if (!rejectTarget) return;
+    const remark = rejectReason.trim();
+    if (!remark) {
+      showConfigToast("请填写未通过原因", "error");
+      return;
+    }
+    setRejectSaving(true);
+    try {
+      await adminEndpoints.memberAuthReview("commitment", rejectTarget.id, { status: 2, remark });
+      showConfigToast("已更新", "ok");
+      setRejectTarget(null);
+      await loadCommitment();
+    } catch (e) {
+      showConfigToast(e instanceof Error ? e.message : "保存失败", "error");
+    } finally {
+      setRejectSaving(false);
     }
   };
 
@@ -1632,6 +1664,34 @@ export default function LoveUserAuthPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {rejectTarget && (
+        <>
+          <div className="tlc-mask" onClick={() => !rejectSaving && setRejectTarget(null)} />
+          <div className="tlc-panel" style={{ width: 460 }}>
+            <div className="tlc-panel-head">
+              <span className="tlc-panel-title">承诺书审核未通过</span>
+              <button type="button" className="tlc-x" onClick={() => setRejectTarget(null)} aria-label="关闭" disabled={rejectSaving}>×</button>
+            </div>
+            <div className="tlc-panel-body">
+              <p>会员：{rejectTarget.nickname}</p>
+              <textarea
+                className="finord-textarea"
+                placeholder="请填写未通过原因（会员可见）"
+                value={rejectReason}
+                maxLength={500}
+                onChange={(e) => setRejectReason(e.target.value)}
+              />
+            </div>
+            <div className="tlc-panel-footer">
+              <button type="button" className="finord-btn" onClick={() => setRejectTarget(null)} disabled={rejectSaving}>取消</button>
+              <button type="button" className="finord-btn finord-btn-primary" onClick={() => void submitReject()} disabled={rejectSaving}>
+                {rejectSaving ? "提交中…" : "确定"}
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {profile && (

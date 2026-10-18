@@ -34,8 +34,31 @@ export default function LovePartnerListPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<PartnerStaffItem | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
+  // 批量关闭只作用于「正常」状态的行；已关闭的行本身没有删除动作
+  const selectedActiveRows = rows.filter((r) => selected.includes(r.id) && r.status === 1);
+
+  const bulkClose = async () => {
+    setBulkRunning(true);
+    let done = 0;
+    const failed: string[] = [];
+    for (const row of selectedActiveRows) {
+      try {
+        await adminEndpoints.deletePartner(row.team_id);
+        done += 1;
+      } catch (error) {
+        failed.push(`${row.account || row.id}：${error instanceof Error ? error.message : "关闭失败"}`);
+      }
+    }
+    setBulkRunning(false);
+    setBulkConfirmOpen(false);
+    showConfigToast(failed.length ? `已关闭 ${done} 个，失败 ${failed.length} 个` : `已关闭 ${done} 个合伙人`, failed.length ? "error" : "ok");
+    if (failed.length) setMessage(failed.join("；"));
+    await load();
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,7 +109,7 @@ export default function LovePartnerListPage() {
         </div>
       </div>
 
-      <div className="finord-card lpl-card">
+      <div className="finord-card lpl-card au-card">
         <div className="lpl-head">
           <h2 className="lpl-title">合伙人管理</h2>
           <button className="finord-btn finord-btn-primary lpl-add-btn" onClick={() => { setEditing(null); setAddOpen(true); }}>＋ 添加合伙人</button>
@@ -134,13 +157,15 @@ export default function LovePartnerListPage() {
                   </td>
                   <td>
                     <div className="lpl-ops">
-                      <a
-                        className="finord-link"
-                        role="button"
-                        onClick={() => setMessage("合伙人中心为客户端功能，后台暂未提供免登入口")}
+                      {/* 后端只有合伙人本人 JWT 的客户端接口（/matchmaker/partner-center），后台无免登签发接口，故标记禁用 */}
+                      <span
+                        className="finord-link text-[#bfbfbf]"
+                        style={{ cursor: "not-allowed" }}
+                        aria-disabled="true"
+                        title="合伙人中心为客户端功能，后台暂无免登入口，已禁用"
                       >
                         合伙人中心
-                      </a>
+                      </span>
                       <a className="finord-link" role="button" onClick={() => { setEditing(p); setAddOpen(true); }}>编辑</a>
                       {p.status === 1 ? (
                         <a className="finord-link lpl-op-del" role="button" onClick={() => void removeRow(p)}>删除</a>
@@ -163,9 +188,34 @@ export default function LovePartnerListPage() {
           </table>
         </div>
 
+        {selected.length > 0 && (
+          <div className="lead-bulk-toolbar">
+            <span>已选择 <b>{selected.length}</b> 项</span>
+            <button type="button" disabled={selectedActiveRows.length === 0 || bulkRunning} onClick={() => setBulkConfirmOpen(true)}>批量关闭</button>
+            <button type="button" onClick={() => setSelected([])}>取消选择</button>
+          </div>
+        )}
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         {message && <p style={{ color: "#faad14", marginTop: 12 }}>{message}</p>}
       </div>
+
+      {bulkConfirmOpen && (
+        <>
+          <div className="tlc-mask" onClick={() => !bulkRunning && setBulkConfirmOpen(false)} />
+          <div role="dialog" aria-modal="true" aria-label="批量关闭合伙人" style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 1300, width: 420, background: "#fff", borderRadius: 8, padding: "20px 22px" }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#25272d", marginBottom: 12 }}>批量关闭合伙人</div>
+            <p style={{ fontSize: 13, color: "#545a69", lineHeight: 1.7, margin: 0 }}>
+              确认关闭已选的 {selectedActiveRows.length} 个正常状态合伙人？团队成员将被移出，合伙人角色将被撤销，关闭后无法在列表中恢复。
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+              <button type="button" className="finord-btn lpl-cancel" disabled={bulkRunning} onClick={() => setBulkConfirmOpen(false)}>取消</button>
+              <button type="button" className="finord-btn finord-btn-primary" disabled={bulkRunning || selectedActiveRows.length === 0} onClick={() => void bulkClose()}>
+                {bulkRunning ? "关闭中…" : "确定关闭"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {addOpen && (
         <AddPartnerDrawer

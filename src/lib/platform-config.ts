@@ -66,6 +66,18 @@ export function pickAndUploadImage(
     .catch((error) => onError?.(error instanceof Error ? error.message : "图片上传失败"));
 }
 
+/** 上传公众号安全验证文件（.txt/.html/.htm，≤1MB）到 /admin/common/upload-file */
+export async function uploadAdminVerifyFile(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const result = await adminApi<{ url: string; content_type?: string; size?: number }>(
+    "admin/common/upload-file",
+    { method: "POST", body: form },
+  );
+  if (!result?.url) throw new Error("上传失败：未返回文件地址");
+  return resolveMediaUrl(result.url) ?? result.url;
+}
+
 /* ------------------------------------------------------------------ */
 /* 深合并：defaults < server < patch                                   */
 /* ------------------------------------------------------------------ */

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import AdminPagination from "@/components/AdminPagination";
 import { adminApi } from "@/lib/admin-api";
-import { showConfigToast } from "@/lib/platform-config";
+import { showConfigToast, useConfigDomain } from "@/lib/platform-config";
 import { XIANGQIN_STATUS, XIANGQIN_STATUS_VALUE } from "@/lib/filter-options";
 
 const breadcrumb = [
@@ -29,7 +29,9 @@ type FormContent = {
 
 type FormPage = { items: FormContent[]; total: number; page: number; page_size: number };
 
-const FIELD_ROWS = [
+type FieldRow = { name: string; builtIn: boolean; required: boolean; guide: string; type: string };
+
+const FIELD_ROWS: FieldRow[] = [
   { name: "称呼", builtIn: true, required: true, guide: "称呼", type: "单行填写文本" },
   { name: "头像", builtIn: true, required: false, guide: "头像", type: "单行填写文本" },
   { name: "职业", builtIn: true, required: true, guide: "请选择", type: "下拉单项选择" },
@@ -45,6 +47,22 @@ const FIELD_ROWS = [
   { name: "籍贯", builtIn: true, required: true, guide: "请选择", type: "单行填写文本" },
   { name: "手机", builtIn: true, required: true, guide: "手机", type: "单行填写文本" },
 ];
+
+const FIELD_TYPES = ["单行填写文本", "单行数字填写", "下拉单项选择", "多行填写文本"];
+
+/** 字段定义存放在已存在的 configs/tools_customer_leads 域的 free_form_* 键里 */
+type FieldOverride = { guide?: string; type?: string; required?: boolean };
+
+const CONFIG_NAMESPACE = "tools_customer_leads";
+
+const CONFIG_DEFAULTS: Record<string, unknown> = { free_form_fields: [], free_form_overrides: {} };
+
+const EMPTY_FIELD: FieldRow = { name: "", builtIn: false, required: false, guide: "", type: "单行填写文本" };
+
+function csvCell(value: string) {
+  const text = /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  return text;
+}
 
 export default function FreeFormPage() {
   const [rows, setRows] = useState<FormContent[]>([]);
@@ -105,7 +123,45 @@ export default function FreeFormPage() {
     }
   };
 
+  /** 用当前列表数据导出 CSV（带 BOM，Excel 可直接打开） */
+  const exportCsv = () => {
+    if (rows.length === 0) {
+      showConfigToast("当前没有可导出的数据", "error");
+      return;
+    }
+    const header = ["ID", "称呼", "性别", "手机号", "更多信息", "落地页", "提交时间"];
+    const lines = rows.map((r) => {
+      const extra = r.extra ?? {};
+      const genderText = typeof extra.gender === "string"
+        ? (extra.gender === "male" ? "男" : extra.gender === "female" ? "女" : extra.gender)
+        : "-";
+      return [
+        String(r.id),
+        typeof extra.name === "string" ? extra.name : r.title,
+        genderText,
+        typeof extra.phone === "string" ? extra.phone : "-",
+        typeof extra.more === "string" ? extra.more : "-",
+        typeof extra.landing_title === "string" ? extra.landing_title : (r.subtitle ?? "-"),
+        (r.created_at ?? "-").replace("T", " ").slice(0, 19),
+      ].map((cell) => csvCell(String(cell)));
+    });
+    const csv = `﻿${[header.map(csvCell).join(","), ...lines.map((line) => line.join(","))].join("\r\n")}`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `自由表单-${stamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showConfigToast(`已导出 ${rows.length} 条记录`, "ok");
+  };
+
   const allSelected = rows.length > 0 && selected.length === rows.length;
+
+  const fieldRows = useMemo(() => FIELD_ROWS, []);
 
   return (
     <div>
@@ -125,7 +181,7 @@ export default function FreeFormPage() {
         <div className="ff-head">
           <div className="ff-title">自由表单</div>
           <div className="ff-actions">
-            <button className="finord-btn finord-btn-primary" onClick={() => showConfigToast("请配置 xlsx 导出", "ok")}>⬆ 导出EXCEL</button>
+            <button className="finord-btn finord-btn-primary" onClick={exportCsv}>⬆ 导出EXCEL</button>
             <button className="finord-btn finord-btn-primary" onClick={() => setFieldOpen(true)}>▦ 字段管理</button>
           </div>
         </div>
@@ -232,12 +288,93 @@ export default function FreeFormPage() {
         <AdminPagination page={pageIdx} pageSize={20} total={total} onPageChange={(next) => void load(next)} />
       </div>
 
-      {fieldOpen && <FieldManagerDrawer onClose={() => setFieldOpen(false)} />}
+      {fieldOpen && <FieldManagerDrawer fieldRows={fieldRows} onClose={() => setFieldOpen(false)} />}
     </div>
   );
 }
 
-function FieldManagerDrawer({ onClose }: { onClose: () => void }) {
+function FieldManagerDrawer({ fieldRows, onClose }: { fieldRows: FieldRow[]; onClose: () => void }) {
+  const { snapshot, save, ready } = useConfigDomain<Record<string, unknown>>(CONFIG_NAMESPACE, CONFIG_DEFAULTS);
+  const [customFields, setCustomFields] = useState<FieldRow[]>([]);
+  const [overrides, setOverrides] = useState<Record<string, FieldOverride>>({});
+  const [draft, setDraft] = useState<FieldRow & { original: string | null }>({ ...EMPTY_FIELD, original: null });
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const cfg = snapshot.config;
+    setCustomFields(Array.isArray(cfg.free_form_fields) ? (cfg.free_form_fields as FieldRow[]) : []);
+    const rawOverrides = cfg.free_form_overrides;
+    setOverrides(rawOverrides && typeof rawOverrides === "object" && !Array.isArray(rawOverrides)
+      ? (rawOverrides as Record<string, FieldOverride>)
+      : {});
+  }, [snapshot]);
+
+  const rows: FieldRow[] = [
+    ...fieldRows.map((row) => ({ ...row, ...(overrides[row.name] ?? {}) })),
+    ...customFields,
+  ];
+
+  const persist = async (nextCustom: FieldRow[], nextOverrides: Record<string, FieldOverride>, summary: string) => {
+    setSaving(true);
+    const ok = await save({ free_form_fields: nextCustom, free_form_overrides: nextOverrides }, summary);
+    setSaving(false);
+    if (!ok) showConfigToast("字段配置无变化", "error");
+    return ok;
+  };
+
+  const openNew = () => {
+    setDraft({ ...EMPTY_FIELD, original: null });
+    setEditOpen(true);
+  };
+
+  const openEdit = (row: FieldRow) => {
+    setDraft({ ...row, original: row.name });
+    setEditOpen(true);
+  };
+
+  const submitField = async () => {
+    const name = draft.name.trim();
+    const guide = draft.guide.trim();
+    if (!name) {
+      showConfigToast("请输入字段名称", "error");
+      return;
+    }
+    if (!guide) {
+      showConfigToast("请输入引导文案", "error");
+      return;
+    }
+    const isBuiltIn = draft.original !== null && fieldRows.some((row) => row.name === draft.original);
+    if (isBuiltIn) {
+      const nextOverrides = { ...overrides, [draft.original as string]: { guide, type: draft.type, required: draft.required } };
+      setOverrides(nextOverrides);
+      await persist(customFields, nextOverrides, `编辑内置字段 ${draft.original}`);
+    } else if (draft.original !== null) {
+      const nextFields = customFields.map((row) => row.name === draft.original
+        ? { ...row, name, guide, type: draft.type, required: draft.required }
+        : row);
+      setCustomFields(nextFields);
+      await persist(nextFields, overrides, `编辑自定义字段 ${name}`);
+    } else {
+      if (rows.some((row) => row.name === name)) {
+        showConfigToast("字段名称已存在", "error");
+        return;
+      }
+      const nextFields = [...customFields, { name, builtIn: false, guide, type: draft.type, required: draft.required }];
+      setCustomFields(nextFields);
+      await persist(nextFields, overrides, `新建字段 ${name}`);
+    }
+    setEditOpen(false);
+  };
+
+  const removeCustom = async (name: string) => {
+    if (!window.confirm(`确定删除字段「${name}」？`)) return;
+    const nextFields = customFields.filter((row) => row.name !== name);
+    setCustomFields(nextFields);
+    await persist(nextFields, overrides, `删除字段 ${name}`);
+  };
+
   return (
     <>
       <div className="tlc-mask" onClick={onClose} />
@@ -248,7 +385,7 @@ function FieldManagerDrawer({ onClose }: { onClose: () => void }) {
             <span className="tlc-panel-title">字段管理</span>
           </div>
           <div className="ffm-head-actions">
-            <button className="finord-btn finord-btn-primary" onClick={() => showConfigToast("当前后端未提供新建字段接口", "error")}>＋ 新建字段</button>
+            <button className="finord-btn finord-btn-primary" onClick={openNew} disabled={!ready || saving}>＋ 新建字段</button>
           </div>
         </div>
         <div className="tlc-panel-body ffm-body">
@@ -265,16 +402,24 @@ function FieldManagerDrawer({ onClose }: { onClose: () => void }) {
                 </tr>
               </thead>
               <tbody>
-                {FIELD_ROWS.map((r) => (
+                {rows.map((r) => (
                   <tr key={r.name}>
                     <td className="ffm-name">
-                      {r.name} <span className="ffm-builtin">（内置）</span>
+                      {r.name} {r.builtIn ? <span className="ffm-builtin">（内置）</span> : <span className="ffm-builtin">（自定义）</span>}
                       {r.required && <span className="ffm-req"> (必填)</span>}
                     </td>
                     <td>{r.guide}</td>
                     <td>{r.type}</td>
                     <td className={r.required ? "ffm-yes" : "ffm-no"}>{r.required ? "是" : "否"}</td>
-                    <td><button className="finord-link" type="button" onClick={() => showConfigToast("当前后端未提供字段编辑接口", "error")}>编辑</button></td>
+                    <td>
+                      <button className="finord-link" type="button" onClick={() => openEdit(r)}>编辑</button>
+                      {!r.builtIn && (
+                        <>
+                          <span className="cs-op-sep">|</span>
+                          <button className="finord-link" type="button" onClick={() => void removeCustom(r.name)}>删除</button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -282,6 +427,79 @@ function FieldManagerDrawer({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
+
+      {editOpen && (
+        <>
+          <div className="tlc-mask" style={{ zIndex: 1300 }} onClick={() => setEditOpen(false)} />
+          <div
+            role="dialog"
+            aria-label={draft.original === null ? "新建字段" : "编辑字段"}
+            style={{
+              position: "fixed", top: "18%", left: "50%", transform: "translateX(-50%)", zIndex: 1301,
+              width: 460, maxWidth: "92vw", background: "#fff", borderRadius: 8,
+              boxShadow: "0 10px 34px rgba(0,0,0,.18)", padding: "20px 22px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <span style={{ fontSize: 16, fontWeight: 600, color: "#333" }}>{draft.original === null ? "新建字段" : "编辑字段"}</span>
+              <button type="button" className="tlc-x" onClick={() => setEditOpen(false)} aria-label="关闭"><X size={16} /></button>
+            </div>
+            <div className="gp-row">
+              <div className="gp-row-top"><span className="gp-label">＊字段名称</span></div>
+              <div className="gp-content">
+                <input
+                  className="gp-input"
+                  autoFocus
+                  value={draft.name}
+                  disabled={draft.original !== null}
+                  onChange={(e) => setDraft((cur) => ({ ...cur, name: e.target.value }))}
+                  placeholder="例如：兴趣爱好"
+                />
+              </div>
+            </div>
+            <div className="gp-row">
+              <div className="gp-row-top"><span className="gp-label">＊引导文案</span></div>
+              <div className="gp-content">
+                <input
+                  className="gp-input"
+                  value={draft.guide}
+                  onChange={(e) => setDraft((cur) => ({ ...cur, guide: e.target.value }))}
+                  placeholder="例如：请填写"
+                />
+              </div>
+            </div>
+            <div className="gp-row">
+              <div className="gp-row-top"><span className="gp-label">字段类型</span></div>
+              <div className="gp-content">
+                <select
+                  className="gp-select gp-select-wide"
+                  value={draft.type}
+                  onChange={(e) => setDraft((cur) => ({ ...cur, type: e.target.value }))}
+                >
+                  {FIELD_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="gp-row">
+              <div className="gp-row-top"><span className="gp-label">必填</span></div>
+              <div className="gp-content">
+                <label className="sm-radio">
+                  <input
+                    type="checkbox"
+                    checked={draft.required}
+                    onChange={(e) => setDraft((cur) => ({ ...cur, required: e.target.checked }))}
+                  />
+                  <span>必填项</span>
+                </label>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+              <button type="button" className="finord-btn finord-btn-outline" onClick={() => setEditOpen(false)}>取消</button>
+              <button type="button" className="finord-btn finord-btn-primary" onClick={() => void submitField()} disabled={saving}>确定</button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -572,6 +572,69 @@ export default function Page() {
     }
   };
 
+  /**
+   * 批量栏的统一执行器：串行处理选中线索，统计成败后一次性刷新列表。
+   * 后端没有批量接口，逐条调用单条接口；单条失败不影响其余线索。
+   */
+  const runBulk = async (
+    label: string,
+    action: (lead: Lead) => Promise<unknown>,
+    confirmText?: string,
+  ) => {
+    const targets = visibleLeads.filter((lead) => selectedLeadIds.includes(lead.id));
+    if (targets.length === 0) {
+      setMessage("请先选择要处理的线索");
+      return;
+    }
+    if (confirmText && !window.confirm(confirmText.replace("{n}", String(targets.length)))) return;
+    setSaving(true);
+    setMessage("");
+    let ok = 0;
+    const failures: string[] = [];
+    for (const lead of targets) {
+      try {
+        await action(lead);
+        ok += 1;
+      } catch (err) {
+        failures.push(`${lead.name}：${err instanceof Error ? err.message : "失败"}`);
+      }
+    }
+    setSaving(false);
+    setSelectedLeadIds([]);
+    await load(data.page);
+    setMessage(
+      failures.length === 0
+        ? `已${label} ${ok} 条`
+        : `${label}成功 ${ok} 条，失败 ${failures.length} 条（${failures.slice(0, 3).join("；")}）`,
+    );
+  };
+
+  const bulkAssign = async (field: "replace_assign" | "replace_promoter", raw: string) => {
+    if (!raw) return;
+    const id = Number(raw);
+    if (!Number.isFinite(id) || id <= 0) {
+      setMessage("请选择有效的红娘");
+      return;
+    }
+    await runBulk(field === "replace_assign" ? "更换分派" : "更换推广红娘", (lead) =>
+      field === "replace_assign"
+        ? adminEndpoints.assignCustomerLead(lead.id, { matchmaker_id: id })
+        : adminEndpoints.updateCustomerLead(lead.id, { promoter_id: id }),
+    );
+  };
+
+  /** 批量打标签：弹窗输入（逗号分隔），追加到选中线索，不清空原有标签。 */
+  const bulkAssignTags = async () => {
+    const raw = window.prompt("输入要追加的标签，多个用英文逗号分隔", "");
+    if (raw === null) return;
+    const tags = raw.split(",").map((t) => t.trim()).filter(Boolean);
+    if (tags.length === 0) {
+      setMessage("请输入至少一个标签");
+      return;
+    }
+    await runBulk("打标签", (lead) => adminEndpoints.updateCustomerLead(lead.id, { tags }));
+  };
+
   const exportCsv = () => {
     /* 导出当前可见行：弃海 Tab 导出的是弃海线索（含已应用的筛选），而非线索管理列表 */
     const csv = [
@@ -875,7 +938,38 @@ export default function Page() {
           </tbody>
         </table>
       </div>
-      {leadTab === "list" && selectedLeadIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedLeadIds.length}</b> 项</span><select><option>更换分派跟进</option></select><select><option>更换推广红娘</option></select><button>有效</button><button>待核</button><button>无效</button><button>打标签</button><button>批量删除</button><button>批量弃海</button><button>批量入库</button></div>}
+      {leadTab === "list" && selectedLeadIds.length > 0 && (
+        <div className="lead-bulk-toolbar">
+          <span>已选择 <b>{selectedLeadIds.length}</b> 项</span>
+          <select
+            value=""
+            disabled={saving}
+            onChange={(e) => { const v = e.target.value; e.target.value = ""; void bulkAssign("replace_assign", v); }}
+            aria-label="批量更换分派跟进"
+          >
+            <option value="">更换分派跟进</option>
+            {leadOptions?.matchmakers.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+          <select
+            value=""
+            disabled={saving}
+            onChange={(e) => { const v = e.target.value; e.target.value = ""; void bulkAssign("replace_promoter", v); }}
+            aria-label="批量更换推广红娘"
+          >
+            <option value="">更换推广红娘</option>
+            {leadOptions?.promoters.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          <button type="button" disabled={saving} onClick={() => void runBulk("设为有效", (lead) => adminEndpoints.updateCustomerLead(lead.id, { audit_status: "active" }))}>有效</button>
+          <button type="button" disabled={saving} onClick={() => void runBulk("设为待核", (lead) => adminEndpoints.updateCustomerLead(lead.id, { audit_status: "pending" }))}>待核</button>
+          {/* 后端审核状态只有 active/pending；「无效」对应线索状态 CLOSED */}
+          <button type="button" disabled={saving} onClick={() => void runBulk("设为无效", (lead) => adminEndpoints.updateCustomerLead(lead.id, { audit_status: "active", status: "CLOSED" }), "确定将选中的 {n} 条线索设为无效（关闭）吗？")}>无效</button>
+          <button type="button" disabled={saving} onClick={() => void bulkAssignTags()}>打标签</button>
+          <button type="button" disabled title="后端没有删除客源线索的接口，只能弃海">批量删除</button>
+          <button type="button" disabled={saving} onClick={() => void runBulk("放入弃海", (lead) => adminEndpoints.abandonCustomerLead(lead.id, "后台批量放入弃海"), "确定将选中的 {n} 条线索放入弃海吗？")}>批量弃海</button>
+          <button type="button" disabled={saving} onClick={() => void runBulk("入库", (lead) => adminEndpoints.convertCustomerLead(lead.id, { remark: lead.remark || undefined }), "确定将选中的 {n} 条线索入库到会员CRM吗？")}>批量入库</button>
+          <button type="button" disabled={saving} onClick={() => setSelectedLeadIds([])}>取消选择</button>
+        </div>
+      )}
       {leadTab === "list" && message && <p className="mt-3 text-sm text-red-600">{message}</p>}
       {leadTab === "list" && (
         <AdminPagination

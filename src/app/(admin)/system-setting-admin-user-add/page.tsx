@@ -31,23 +31,26 @@ export default function Page() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!groupsDomain.ready) groupsDomain.reload();
-  }, [groupsDomain]);
+    void groupsDomain.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const groups = Array.isArray(groupsDomain.snapshot?.config.groups) ? groupsDomain.snapshot!.config.groups : [];
-    if (groups.length > 0) {
-      setGroupOptions(groups.map((g) => ({ label: String(asObject(g as Dict).name ?? "") })));
-    }
+    setGroupOptions(groups.map((g) => ({ label: String(asObject(g as Dict).name ?? "") })).filter((g) => g.label));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupsDomain.snapshot]);
 
   const submit = async () => {
-    if (!group || !username.trim() || !password || !displayName.trim()) {
-      showConfigToast("请填写分组、账号、密码与姓名", "error");
+    if ((groupOptions.length > 0 && !group) || !username.trim() || !password || !displayName.trim()) {
+      showConfigToast("请填写账号、密码与姓名（有分组时需选择分组）", "error");
       return;
     }
     if (password.length < 8) {
       showConfigToast("密码至少 8 位", "error");
+      return;
+    }
+    if (!/^[A-Za-z0-9_.-]{3,64}$/.test(username.trim())) {
+      showConfigToast("账号需为 3-64 位字母/数字/._-", "error");
       return;
     }
     setBusy(true);
@@ -87,14 +90,14 @@ export default function Page() {
         <div className="addacct-title">添加账号</div>
 
         <div className="addacct-form">
-          <Field label="分组" required>
+          <Field label="分组" required={groupOptions.length > 0}>
             <select
               className="addacct-select"
               value={group}
               onChange={(e) => setGroup(e.target.value)}
             >
               <option value="" disabled>
-                请选择分组
+                {groupOptions.length > 0 ? "请选择分组" : "暂无用户组（可在「权限分组」中添加）"}
               </option>
               {groupOptions.map((opt) => (
                 <option key={opt.label} value={opt.label}>
@@ -126,7 +129,8 @@ export default function Page() {
 
           <Field label="定时锁定">
             <div className="addacct-switch-row">
-              <label className="mp-switch" aria-disabled="true">
+              <label className="mp-switch" aria-disabled="true" title="后端账号接口暂不支持定时锁定">
+                <input type="checkbox" disabled checked={false} readOnly aria-label="定时锁定（暂不可用）" />
                 <span className="mp-switch-knob"></span>
               </label>
               <span className="addacct-switch-text">后端接口暂不支持定时锁定</span>

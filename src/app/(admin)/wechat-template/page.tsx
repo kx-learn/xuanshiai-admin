@@ -53,9 +53,22 @@ const SEED_ROWS: Omit<TemplateRow, "id">[] = [
   },
 ];
 
-function TplModal({ tplList, onAddNew, onClose, onPick, onClear, hasCurrent }: {
+/** 从模板字段与链接中提取其自身使用的 {{变量}} 名（去重，保持出现顺序） */
+function extractTemplateVars(texts: string[]): string[] {
+  const found: string[] = [];
+  for (const text of texts) {
+    for (const m of text.matchAll(/\{\{([^{}]+)\}\}/g)) {
+      const name = m[1].trim();
+      if (name && !found.includes(name)) found.push(name);
+    }
+  }
+  return found;
+}
+
+function TplModal({ tplList, onAddNew, onDelete, onClose, onPick, onClear, hasCurrent }: {
   tplList: TplItem[];
   onAddNew: (no: string) => void;
+  onDelete: (no: string) => void;
   onClose: () => void;
   onPick: (no: string) => void;
   onClear: () => void;
@@ -93,7 +106,7 @@ function TplModal({ tplList, onAddNew, onClose, onPick, onClear, hasCurrent }: {
           <div className="tm-tpl-box">
             <div className="tm-tpl-row tm-tpl-head">
               <div className="tm-tpl-no">模板</div>
-              <div className="tm-tpl-act">选择</div>
+              <div className="tm-tpl-act">操作</div>
             </div>
             {tplList.length === 0 ? (
               <div className="tm-tpl-empty">暂无模板</div>
@@ -101,9 +114,12 @@ function TplModal({ tplList, onAddNew, onClose, onPick, onClear, hasCurrent }: {
               tplList.map((tpl) => (
                 <div key={tpl.no} className="tm-tpl-row">
                   <div className="tm-tpl-no">{tpl.no}</div>
-                  <div className="tm-tpl-act">
+                  <div className="tm-tpl-act" style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button type="button" className="tm-pick-btn" onClick={() => onPick(tpl.no)}>
                       选择
+                    </button>
+                    <button type="button" className="tm-link" onClick={() => onDelete(tpl.no)}>
+                      删除
                     </button>
                   </div>
                 </div>
@@ -133,8 +149,11 @@ function EditConfigModal({ row, onClose, onSave }: { row: TemplateRow; onClose: 
     setFields((cur) => cur.map((f, i) => (i === index ? { ...f, ...patch } : f)));
   };
 
-  const insertVar = (index: number) => {
-    setFields((cur) => cur.map((f, i) => (i === index ? { ...f, content: `${f.content}{{变量}}` } : f)));
+  /** 本模板自身已使用的变量名（来自字段内容与链接地址） */
+  const templateVars = extractTemplateVars([...fields.map((f) => f.content), linkUrl]);
+
+  const insertVar = (index: number, varName: string) => {
+    setFields((cur) => cur.map((f, i) => (i === index ? { ...f, content: `${f.content}{{${varName}}}` } : f)));
   };
 
   const addRow = () => {
@@ -185,9 +204,19 @@ function EditConfigModal({ row, onClose, onSave }: { row: TemplateRow; onClose: 
                       onChange={(e) => updateField(idx, { color: e.target.value })}
                     />
                   </label>
-                  <button type="button" className="ec-btn" onClick={() => insertVar(idx)}>
-                    插入可用变量
-                  </button>
+                  <select
+                    className="ec-btn"
+                    value=""
+                    disabled={templateVars.length === 0}
+                    title={templateVars.length === 0 ? "该模板暂无可用变量" : "插入可用变量"}
+                    aria-label="插入可用变量"
+                    onChange={(e) => { if (e.target.value) insertVar(idx, e.target.value); }}
+                  >
+                    <option value="">插入可用变量</option>
+                    {templateVars.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
                   <button type="button" className="ec-btn" onClick={addRow}>
                     增加一行
                   </button>
@@ -258,6 +287,8 @@ export default function WechatTemplatePage() {
   const [activeRowId, setActiveRowId] = useState<number | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [configRowId, setConfigRowId] = useState<number | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const apply = useCallback((config: Dict | null) => {
     const list = Array.isArray(config?.items) ? config!.items : [];
@@ -325,9 +356,58 @@ export default function WechatTemplatePage() {
   };
 
   const addPlatformTpl = async (no: string) => {
+    if (platformTpls.some((t) => t.no === no)) {
+      showConfigToast("该模板编号已在平台清单中", "error");
+      return;
+    }
     const next = [...platformTpls, { no }];
     setPlatformTpls(next);
-    await mpDomain.save({ platform_templates: next } as Partial<Dict>, `添加平台模板 ${no}`);
+    const ok = await mpDomain.save({ platform_templates: next } as Partial<Dict>, `添加平台模板 ${no}`);
+    if (ok) showConfigToast("已添加模板");
+    else {
+      setPlatformTpls(platformTpls);
+      showConfigToast("添加失败，请稍后重试", "error");
+    }
+  };
+
+  /** 从平台清单删除；使用该编号的消息模板同时清空对应关联，避免残留失效编号 */
+  const removePlatformTpl = async (no: string) => {
+    const nextList = platformTpls.filter((t) => t.no !== no);
+    setPlatformTpls(nextList);
+    const ok = await mpDomain.save({ platform_templates: nextList } as Partial<Dict>, `删除平台模板 ${no}`);
+    if (!ok) {
+      setPlatformTpls(platformTpls);
+      showConfigToast("删除失败，请稍后重试", "error");
+      return;
+    }
+    if (data.some((r) => r.platformTpl === no)) {
+      await persist(data.map((r) => (r.platformTpl === no ? { ...r, platformTpl: "" } : r)), `清除已删除的平台模板 ${no} 关联`);
+    }
+    showConfigToast("已从平台清单删除");
+  };
+
+  const visibleData = data.filter((r) => {
+    const kw = keyword.trim();
+    if (!kw) return true;
+    return [r.title, r.member, r.recNo, r.event, r.receiver, r.platformTpl].some((v) => v.includes(kw));
+  });
+
+  const allChecked = visibleData.length > 0 && visibleData.every((r) => selectedIds.includes(r.id));
+
+  /** 导出当前列表为 CSV（本地生成，不依赖接口） */
+  const exportCsv = () => {
+    const header = ["序号", "模板标题", "关联会员", "推荐使用模板编号", "推送事件", "消息接收人", "对应公众号平台模板", "开关"];
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = visibleData.map((r) => [
+      String(r.id), r.title, r.member, r.recNo, r.event, r.receiver, r.platformTpl, r.enabled ? "开" : "关",
+    ].map(esc).join(","));
+    const csv = "﻿" + [header.map(esc).join(","), ...lines].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "模板消息.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const toggle = (id: number) => {
@@ -366,9 +446,37 @@ export default function WechatTemplatePage() {
       <div className="admin-card">
         <div className="admin-card-header">模板消息</div>
         <div className="admin-card-body px-6 pb-6">
+          <div className="flex flex-wrap items-center justify-end gap-3 pb-3">
+            <input
+              className="h-8 w-[220px] rounded border border-[#d9d9d9] px-2 text-sm outline-none focus:border-[#3658f7]"
+              placeholder="搜索模板标题/编号/事件"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              aria-label="搜索模板"
+            />
+            <button
+              type="button"
+              disabled
+              title="真实发送测试模板消息需接入公众号平台，暂不可用"
+              className="h-8 cursor-not-allowed rounded border border-[#d9d9d9] px-3 text-sm text-[#999] opacity-60"
+            >
+              发送测试
+            </button>
+            <button type="button" className="h-8 rounded bg-[#3658f7] px-3 text-sm text-white" onClick={exportCsv}>
+              导出
+            </button>
+          </div>
           <table className="tm-table">
             <thead>
               <tr className="bg-[#fafafa]">
+                <th className="tm-th" style={{ width: 40 }}>
+                  <input
+                    type="checkbox"
+                    aria-label="全选"
+                    checked={allChecked}
+                    onChange={(e) => setSelectedIds(e.target.checked ? visibleData.map((r) => r.id) : [])}
+                  />
+                </th>
                 <th className="tm-th tm-th-seq">序号</th>
                 <th className="tm-th tm-th-v">模板标题</th>
                 <th className="tm-th tm-th-v">关联会员</th>
@@ -381,17 +489,24 @@ export default function WechatTemplatePage() {
               </tr>
             </thead>
             <tbody>
-              {data.length === 0 ? (
+              {visibleData.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-0">
+                  <td colSpan={10} className="py-0">
                     <div className="flex flex-col items-center justify-center py-16 text-sm text-[#999]">
                       {domain.loading ? "加载中…" : "暂无数据"}
                     </div>
                   </td>
                 </tr>
               ) : (
-                data.map((r) => (
+                visibleData.map((r) => (
                   <tr key={r.id} className="border-b border-[#f0f0f0] transition-colors hover:bg-[#fafafa]">
+                    <td className="tm-td" style={{ width: 40 }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(r.id)}
+                        onChange={(e) => setSelectedIds((cur) => (e.target.checked ? [...cur, r.id] : cur.filter((id) => id !== r.id)))}
+                      />
+                    </td>
                     <td className="tm-td tm-td-seq">{r.id}</td>
                     <td className="tm-td tm-td-v">{r.title}</td>
                     <td className="tm-td tm-td-v">{r.member}</td>
@@ -429,6 +544,12 @@ export default function WechatTemplatePage() {
               )}
             </tbody>
           </table>
+          {selectedIds.length > 0 && (
+            <div className="lead-bulk-toolbar">
+              <span>已选择 <b>{selectedIds.length}</b> 项</span>
+              <button type="button" onClick={() => setSelectedIds([])}>取消选择</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -436,6 +557,7 @@ export default function WechatTemplatePage() {
         <TplModal
           tplList={platformTpls}
           onAddNew={addPlatformTpl}
+          onDelete={removePlatformTpl}
           onClose={() => setModalOpen(false)}
           onPick={pickTpl}
           onClear={clearTpl}

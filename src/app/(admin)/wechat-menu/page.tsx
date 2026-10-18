@@ -31,14 +31,14 @@ const TYPE_OPTIONS: { value: MenuType; label: string }[] = [
 
 /** 须知文本（红色片段用【】标记） */
 const NOTICE_LINES: { text: string; red: string[] }[] = [
-  { text: "微信菜单，一级菜单{0}，每个二级菜单数目{1}", red: ["不超过3个", "不超过5个"] },
-  { text: "菜单标题长度{0}", red: ["不超过5个汉字(16个字节)"] },
-  { text: "发送消息回复规则长度{0}", red: ["不超过 128字节"] },
-  { text: "打开链接长度{0}", red: ["不超过 256字节"] },
-  { text: "菜单文字1个字母与数字为1字节，1个汉字为{0}", red: ["3字节"] },
+  { text: "微信菜单，一级菜单不超过3个，每个二级菜单数目不超过5个", red: ["不超过3个", "不超过5个"] },
+  { text: "菜单标题长度不超过5个汉字(16个字节)", red: ["不超过5个汉字(16个字节)"] },
+  { text: "发送消息回复规则长度不超过 128字节", red: ["不超过 128字节"] },
+  { text: "打开链接长度不超过 256字节", red: ["不超过 256字节"] },
+  { text: "菜单文字1个字母与数字为1字节，1个汉字为3字节", red: ["3字节"] },
   { text: "菜单设置成功后，手机端可能有缓存，取消重新关注公众号可马上看到最新的自定义菜单效果。", red: [] },
   { text: "在编辑菜单后，需要点击「同步菜单」，公众号里才会生效。", red: [] },
-  { text: "公众号{0}。", red: ["已认证"] },
+  { text: "公众号已认证。", red: ["已认证"] },
 ];
 
 /** 手机顶部人形图标 */
@@ -123,6 +123,16 @@ export default function WechatMenuPage() {
     setTopMenus((prev) => [...prev, next]);
     setActiveTopId(id);
     setActiveSubId(-1);
+  };
+
+  /** 删除一级菜单（二级菜单为同级扁平列表，不随一级菜单级联删除） */
+  const removeTop = (id: number) => {
+    const next = topMenus.filter((m) => m.id !== id);
+    setTopMenus(next);
+    if (activeTopId === id) {
+      setActiveTopId(next[0]?.id ?? 0);
+      setActiveSubId(-1);
+    }
   };
 
   /** 删除二级菜单 */
@@ -322,6 +332,20 @@ export default function WechatMenuPage() {
                   placeholder="请输入跳转地址"
                 />
               </div>
+
+              {activeSubId === -1 && activeTop && (
+                <div className="menu-field">
+                  <span className="menu-label" />
+                  <button
+                    type="button"
+                    className="menu-act-btn menu-act-del"
+                    style={{ width: "auto", padding: "0 10px", height: 28, fontSize: 13 }}
+                    onClick={() => removeTop(activeTop.id)}
+                  >
+                    删除一级菜单
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -86,7 +86,7 @@ export default function GroupMenuPage() {
       hot_regions: cur.hot_regions.filter((r) => r.region !== region),
     }));
 
-  const renderToolbar = (target: keyof GroupMenuConfig) => (
+  const renderEditorHint = () => (
     <div className="gm-toolbar">
       <span className="gm-tool-hint">支持纯文本编辑</span>
     </div>
@@ -248,7 +248,7 @@ export default function GroupMenuPage() {
           <span className="xm-label">推广介绍</span>
           <div className="xm-content">
             <div className="gm-editor">
-              {renderToolbar("promotion_intro_html")}
+              {renderEditorHint()}
               <div
                 className="gm-body"
                 contentEditable
@@ -264,7 +264,7 @@ export default function GroupMenuPage() {
           <span className="xm-label">入群须知</span>
           <div className="xm-content">
             <div className="gm-editor">
-              {renderToolbar("notice_html")}
+              {renderEditorHint()}
               <div
                 className="gm-body gm-body-text"
                 contentEditable
@@ -280,7 +280,7 @@ export default function GroupMenuPage() {
           <span className="xm-label">入群协议</span>
           <div className="xm-content">
             <div className="gm-editor">
-              {renderToolbar("agreement_html")}
+              {renderEditorHint()}
               <div
                 className="gm-body gm-body-text"
                 contentEditable

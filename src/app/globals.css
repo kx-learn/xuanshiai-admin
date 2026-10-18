@@ -1997,6 +1997,8 @@
 .adcfg-table thead th { height: 56px; text-align: left; font-size: 14px; font-weight: 500; color: rgba(0,0,0,0.85); white-space: nowrap; }
 .adcfg-table tbody tr { height: 58px; border-top: 1px solid #f0f0f0; }
 .adcfg-table tbody td { font-size: 14px; color: rgba(0,0,0,0.65); white-space: nowrap; }
+.adcfg-col-check { width: 40px; }
+.adcfg-td-check { width: 40px; }
 .adcfg-col-code { width: 22%; }
 .adcfg-col-title { width: 34%; }
 .adcfg-col-type { width: 14%; }

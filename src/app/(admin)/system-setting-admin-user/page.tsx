@@ -4,8 +4,48 @@ import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { ChevronDown, X } from "lucide-react";
 import { adminApi } from "@/lib/admin-api";
-import { showConfigToast } from "@/lib/platform-config";
+import { asObject, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 import AdminPagination from "@/components/AdminPagination";
+
+const GROUPS_DEFAULTS = { groups: [] as unknown[] } as const;
+
+interface GroupOption {
+  id: string;
+  name: string;
+  users: string[];
+}
+
+/** 自定义下拉（CSS 绘制箭头，选项列表点击后收起） */
+function FilterSelect({ value, options, onChange, ariaLabel, prefix }: { value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; ariaLabel: string; prefix?: string }) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((option) => option.value === value)?.label ?? options[0]?.label ?? "";
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" className="au-fd" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <span className="au-fd-label">{prefix ? `${prefix}${current}` : current}</span>
+        <ChevronDown className="au-fd-chevron" />
+      </button>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 20 }} onClick={() => setOpen(false)} />
+          <ul role="listbox" style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, minWidth: "100%", zIndex: 21, background: "#fff", border: "1px solid #d9dde8", borderRadius: 4, padding: 4, margin: 0, listStyle: "none", boxShadow: "0 4px 12px rgba(0,0,0,.08)" }}>
+            {options.map((option) => (
+              <li key={option.value} role="option" aria-selected={option.value === value}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(option.value); setOpen(false); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "4px 10px", fontSize: 13, whiteSpace: "nowrap", border: 0, borderRadius: 3, background: option.value === value ? "#eef2ff" : "transparent", color: option.value === value ? "#3658f7" : "#333", cursor: "pointer" }}
+                >
+                  {option.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface AccountRow {
   id: number;
@@ -105,6 +145,15 @@ export default function Page() {
   const [rows, setRows] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<AccountRow | null>(null);
+  const [groupFilter, setGroupFilter] = useState("");
+  const groupsDomain = useConfigDomain<Dict>("admin_groups", GROUPS_DEFAULTS as Dict);
+  const groupOptions = useMemo<GroupOption[]>(() => {
+    const list = Array.isArray(groupsDomain.snapshot?.config.groups) ? groupsDomain.snapshot!.config.groups : [];
+    return list.map((g, i) => {
+      const o = asObject(g as Dict);
+      return { id: String(o.id ?? i + 1), name: String(o.name ?? ""), users: String(o.users ?? "").split(/[,，\s]+/).filter(Boolean) };
+    });
+  }, [groupsDomain.snapshot]);
 
   const load = useCallback(async (nextPage = page, nextPageSize = pageSize) => {
     setLoading(true);
@@ -141,7 +190,13 @@ export default function Page() {
     }
   };
 
-  const shown = useMemo(() => rows, [rows]);
+  // 分组筛选：分组页「当前用户」列记录的账号名/姓名与本页账号匹配（后端账号接口无分组字段）
+  const shown = useMemo(() => {
+    if (!groupFilter) return rows;
+    const hit = groupOptions.find((g) => g.id === groupFilter);
+    if (!hit) return rows;
+    return rows.filter((row) => hit.users.includes(row.username) || hit.users.includes(row.display_name));
+  }, [rows, groupFilter, groupOptions]);
   const allSelected = shown.length > 0 && shown.every((row) => selectedIds.includes(row.id));
 
   return (
@@ -167,14 +222,21 @@ export default function Page() {
             ))}
           </div>
 
-          <div className="au-fd"><span className="au-fd-label">全部</span><ChevronDown className="au-fd-chevron" /></div>
+          <FilterSelect
+            ariaLabel="账号状态筛选"
+            value={status}
+            options={statusTabs.map((tab) => ({ value: tab, label: tab }))}
+            onChange={(next) => { setStatus(next); setPage(1); }}
+          />
 
           <div className="au-group">
             <span className="au-group-label">分组：</span>
-            <div className="au-fd">
-              <span className="au-fd-label">不分</span>
-              <ChevronDown className="au-fd-chevron" />
-            </div>
+            <FilterSelect
+              ariaLabel="分组筛选"
+              value={groupFilter}
+              options={[{ value: "", label: "不分" }, ...groupOptions.map((g) => ({ value: g.id, label: g.name || "未命名分组" }))]}
+              onChange={setGroupFilter}
+            />
           </div>
 
           <input className="au-phone" placeholder="账号/姓名关键词" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { setPage(1); void load(1, pageSize); } }} />

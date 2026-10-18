@@ -244,6 +244,12 @@ export default function PlatformPayconfigPage() {
     setTopPackages((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: v } : p)));
   const updatePartner = (i: number, v: string) =>
     setPartnerFees((prev) => prev.map((p, idx) => (idx === i ? v : p)));
+  // 增删套餐：至少保留一行，空数组会在下次回填时退回默认值
+  const addPackage = () =>
+    setPackages((prev) => [...prev, { name: `牵线套餐${prev.length + 1}`, count: "1", fee: "0", on: false }]);
+  const removePackage = (i: number) => setPackages((prev) => prev.filter((_, idx) => idx !== i));
+  const addTop = () => setTopPackages((prev) => [...prev, { days: "30", fee: "0" }]);
+  const removeTop = (i: number) => setTopPackages((prev) => prev.filter((_, idx) => idx !== i));
 
   const Radio = ({
     checked,
@@ -376,8 +382,12 @@ export default function PlatformPayconfigPage() {
                   {p.on ? <span className="mp-switch-label">开</span> : null}
                   <span className="mp-switch-knob"></span>
                 </button>
+                <button type="button" className="pay-link" disabled={packages.length <= 1} onClick={() => removePackage(i)}>删除</button>
               </div>
             ))}
+          </div>
+          <div className="pay-row">
+            <button type="button" className="pay-link" onClick={addPackage}>＋ 添加套餐</button>
           </div>
         </Board>
 
@@ -427,8 +437,12 @@ export default function PlatformPayconfigPage() {
                 <span className="pay-td">收费</span>
                 <input className="pay-inline" style={{ width: 96 }} value={p.fee} onChange={(e) => updateTop(i, "fee", e.target.value)} />
                 <span className="pay-td">元</span>
+                <button type="button" className="pay-link" disabled={topPackages.length <= 1} onClick={() => removeTop(i)}>删除</button>
               </div>
             ))}
+          </div>
+          <div className="pay-row">
+            <button type="button" className="pay-link" onClick={addTop}>＋ 添加套餐</button>
           </div>
         </Board>
 
@@ -465,18 +479,6 @@ export default function PlatformPayconfigPage() {
           <Row label="资料推广展示收费" unit="元/次" num value={showFee} onChange={setShowFee} labelWidth={150} inputWidth={96} />
         </Board>
 
-        <div className="pay-submit">
-          <button
-            type="button"
-            className="pay-submit-btn"
-            onClick={async () => {
-              const ok = await savePay("保存收费配置");
-              if (ok) showConfigToast("收费配置已保存");
-            }}
-          >
-            确定提交
-          </button>
-        </div>
       </div>
       {explain && (
         <div className="ec-modal-mask" onClick={() => setExplain(null)}>

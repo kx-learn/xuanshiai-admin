@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
+import AdminPagination from "@/components/AdminPagination";
 
 /* ------------------------------------------------------------------ */
 /* 数据定义                                                            */
@@ -185,41 +186,43 @@ function Banner() {
 }
 
 function Cover({ course }: { course: Course }) {
+  /* 卡片为纯展示：后端 /admin/academy/categories 只返回栏目树，没有课程条目/播放地址/文件地址，
+     因此封面用中性样式，不保留「▶播放 / 下载 / 链接」这类可点的入口外观。 */
   if (course.type === "video") {
     return (
-      <div className="wc-cover wc-cover-video">
-        <span className="wc-play">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-        </span>
+      <div className="wc-cover wc-cover-video" title="课程内容由婚创学苑平台提供，后台暂无播放地址">
+        <span className="rounded bg-white/20 px-2 py-1 text-[11px] text-white">视频课程</span>
         {course.duration && <span className="wc-duration">{course.duration}</span>}
       </div>
     );
   }
-  const meta: Record<Exclude<ContentType, "video">, { cls: string; label: string }> = {
-    pdf: { cls: "wc-filetag pdf", label: "P" },
-    ppt: { cls: "wc-filetag ppt", label: "P" },
-    word: { cls: "wc-filetag word", label: "W" },
-    download: { cls: "wc-action download", label: "下载" },
-    link: { cls: "wc-action link", label: "链接" },
-  };
-  const m = meta[course.type as Exclude<ContentType, "video">];
+  /* 资料下载 / 用好系统的「下载」「链接」标签：后端没有文件地址/跳转地址，按禁用态展示并说明原因 */
   if (course.type === "download" || course.type === "link") {
+    const label = course.type === "download" ? "下载" : "链接";
+    const reason = course.type === "download"
+      ? "课程内容由婚创学苑平台提供，后台暂无下载地址"
+      : "课程内容由婚创学苑平台提供，后台暂无跳转地址";
     return (
       <div className="wc-cover">
-        <div className={m.cls}>
-          {course.type === "download" ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" /></svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7" /></svg>
-          )}
-          <span className="wc-action-label">{m.label}</span>
-        </div>
+        <button
+          type="button"
+          disabled
+          title={reason}
+          className="flex h-[58px] w-[64px] cursor-not-allowed flex-col items-center justify-center gap-1 rounded-lg bg-[#e4e7ee] text-[12px] text-[#9ca5b4]"
+        >
+          {label}
+        </button>
       </div>
     );
   }
+  const meta: Record<Exclude<ContentType, "video" | "download" | "link">, string> = {
+    pdf: "PDF",
+    ppt: "PPT",
+    word: "Word",
+  };
   return (
-    <div className="wc-cover">
-      <div className={m.cls}>{m.label}</div>
+    <div className="wc-cover" title="课程内容由婚创学苑平台提供">
+      <span className="rounded bg-white/70 px-2 py-1 text-[12px] font-medium text-[#55607a]">{meta[course.type as Exclude<ContentType, "video" | "download" | "link">]}</span>
     </div>
   );
 }
@@ -231,7 +234,7 @@ function AccessTag({ access }: { access: Course["access"] }) {
 function CourseCard({ course }: { course: Course }) {
   const teacher = teachers.find((t) => t.name === course.teacher);
   return (
-    <div className="wc-course">
+    <div className="wc-course" title="课程内容由婚创学苑平台提供，后台暂无播放地址">
       <div className="wc-course-head">
         <AccessTag access={course.access} />
         <span className="wc-course-date">发布：{course.date}</span>
@@ -246,10 +249,7 @@ function CourseCard({ course }: { course: Course }) {
           <div className="wc-course-meta">
             {teacher && <Avatar name={teacher.name} hue={teacher.hue} size={18} />}
             <span className="wc-teacher">{course.teacher}</span>
-            <span className="wc-like">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12M15 5.9L14 10h5.2a2 2 0 011.9 2.6l-1.8 6A2 2 0 0117.4 22H7m0-12H4a2 2 0 00-2 2v8a2 2 0 002 2h3m0-12V5a2 2 0 012-2h1a2 2 0 012 2v3" /></svg>
-              {course.likes}
-            </span>
+            <span className="ml-auto text-[#9ca5b4]">点赞 {course.likes}</span>
           </div>
         </div>
       </div>
@@ -270,7 +270,7 @@ function TeacherCard({ teacher }: { teacher: Teacher }) {
         <div className="wc-teacher-card-name">{teacher.name}</div>
         <div className="wc-teacher-card-intro">{teacher.intro}</div>
         <div className="wc-teacher-card-foot">
-          <span className="wc-share">分享({teacher.count})</span>
+          <span className="text-[12px] text-[#8b95a6]">分享 {teacher.count}</span>
         </div>
       </div>
     </div>
@@ -297,6 +297,8 @@ export default function OperateCenterPage() {
   const [keyword, setKeyword] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
   const toggleTeacher = (id: string) =>
     setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -310,6 +312,26 @@ export default function OperateCenterPage() {
 
   const isShare = activeTab === "分享老师";
   const isEmptyCourse = !isShare && visibleCourses.length === 0;
+
+  /* 分页：分享老师列表与课程列表都在本页内分页，切换 Tab / 筛选时回到第 1 页 */
+  const pagedTeachers = useMemo(
+    () => teachers.slice((page - 1) * pageSize, page * pageSize),
+    [page, pageSize],
+  );
+  const pagedCourses = useMemo(
+    () => visibleCourses.slice((page - 1) * pageSize, page * pageSize),
+    [visibleCourses, page, pageSize],
+  );
+  const totalCount = isShare ? teachers.length : visibleCourses.length;
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, selected, searchInput]);
+
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   return (
     <div className="wc-page">
@@ -330,6 +352,7 @@ export default function OperateCenterPage() {
                 setKeyword("");
                 setSearchInput("");
                 setSelected([]);
+                setPage(1);
               }}
             >
               {t}
@@ -365,7 +388,7 @@ export default function OperateCenterPage() {
         <div className="wc-content">
           {isShare ? (
             <div className="wc-card-grid">
-              {teachers.map((t) => <TeacherCard key={t.id} teacher={t} />)}
+              {pagedTeachers.map((t) => <TeacherCard key={t.id} teacher={t} />)}
             </div>
           ) : isEmptyCourse ? (
             <>
@@ -374,8 +397,17 @@ export default function OperateCenterPage() {
             </>
           ) : (
             <div className="wc-card-grid">
-              {visibleCourses.map((c) => <CourseCard key={c.id} course={c} />)}
+              {pagedCourses.map((c) => <CourseCard key={c.id} course={c} />)}
             </div>
+          )}
+          {totalCount > pageSize && (
+            <AdminPagination
+              page={page}
+              pageSize={pageSize}
+              total={totalCount}
+              onPageChange={setPage}
+              onPageSizeChange={changePageSize}
+            />
           )}
         </div>
       </div>

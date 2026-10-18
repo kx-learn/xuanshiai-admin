@@ -15,6 +15,7 @@ interface FanRow {
 }
 
 const DEFAULTS = { items: [] as unknown[] } as const;
+const WECHAT_UNAVAILABLE_REASON = "后端尚未接入公众号平台粉丝同步与分组接口，暂不可用";
 
 export default function WechatFansPage() {
   const domain = useConfigDomain<Dict>("wechat_mp_fans", DEFAULTS as Dict);
@@ -42,6 +43,11 @@ export default function WechatFansPage() {
 
   useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+
+  const groupOptions = useMemo(
+    () => Array.from(new Set(fans.map((f) => f.group).filter(Boolean))).sort(),
+    [fans],
+  );
 
   const shown = useMemo(() => fans.filter((f) => {
     if (group && f.group !== group) return false;
@@ -83,9 +89,10 @@ export default function WechatFansPage() {
                 onChange={(e) => setGroup(e.target.value)}
                 className="h-10 w-[150px] rounded border border-[#d9d9d9] bg-white px-3 text-sm text-[#6b7688] outline-none"
               >
-                <option value="">请选择分组</option>
-                <option value="1">分组A</option>
-                <option value="2">分组B</option>
+                <option value="">全部分组</option>
+                {groupOptions.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
               </select>
 
               <select
@@ -99,9 +106,11 @@ export default function WechatFansPage() {
               </select>
 
               <input
+                type={searchType === "follow" ? "date" : "text"}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                placeholder="请输入"
+                onKeyDown={(e) => { if (e.key === "Enter") setAppliedKeyword(keyword.trim()); }}
+                placeholder={searchType === "follow" ? "选择关注日期" : searchType === "openid" ? "请输入openId" : "请输入昵称"}
                 className="h-10 w-[240px] rounded border border-[#d9d9d9] px-3 text-sm outline-none placeholder:text-[#b4bac5] focus:border-[#3658f7]"
               />
 
@@ -113,11 +122,21 @@ export default function WechatFansPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white" onClick={() => showConfigToast("粉丝分组需接入公众号平台后可用", "error")}>
+              <button
+                type="button"
+                disabled
+                title={WECHAT_UNAVAILABLE_REASON}
+                className="flex h-10 cursor-not-allowed items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white opacity-50"
+              >
                 <Users size={15} />
                 管理粉丝分组
               </button>
-              <button type="button" className="flex h-10 items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white" onClick={() => showConfigToast("同步粉丝需接入公众号平台后可用", "error")}>
+              <button
+                type="button"
+                disabled
+                title={WECHAT_UNAVAILABLE_REASON}
+                className="flex h-10 cursor-not-allowed items-center gap-1.5 rounded bg-[#3658f7] px-4 text-sm text-white opacity-50"
+              >
                 <RefreshCw size={15} />
                 同步公众号粉丝
               </button>

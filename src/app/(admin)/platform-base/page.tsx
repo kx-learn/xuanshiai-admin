@@ -2,13 +2,15 @@
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { useEffect, useRef, useState } from "react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   useConfigDomain,
+  pickAndUploadImage,
   showConfigToast,
   type Dict,
 } from "@/lib/platform-config";
 
-type Tag = { id: number; label: string; emoji?: string };
+type Tag = { id: number; label: string; emoji?: string; icon?: string };
 
 type Section = {
   key: string;
@@ -321,6 +323,10 @@ export default function PlatformBasePage() {
   });
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
+  const [iconUrl, setIconUrl] = useState<string | null>(null);
+  const [iconUploading, setIconUploading] = useState(false);
+  const iconFileRef = useRef<HTMLInputElement | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ sectionKey: string; tag: Tag } | null>(null);
 
   // 初次加载：服务端字典回填
   useEffect(() => {
@@ -358,12 +364,30 @@ export default function PlatformBasePage() {
     setDrawer({ open: true, sectionKey: key, editing: null });
     setName("");
     setContent("");
+    setIconUrl(null);
   };
 
   const openEdit = (key: string, tag: Tag) => {
     setDrawer({ open: true, sectionKey: key, editing: tag });
     setName(tag.label);
     setContent("");
+    setIconUrl(tag.icon ?? null);
+  };
+
+  const handleIconFile = (file?: File | null) => {
+    if (!file) return;
+    setIconUploading(true);
+    pickAndUploadImage(
+      file,
+      (url) => {
+        setIconUploading(false);
+        setIconUrl(url);
+      },
+      (message) => {
+        setIconUploading(false);
+        showConfigToast(message, "error");
+      },
+    );
   };
 
   const closeDrawer = () => setDrawer((d) => ({ ...d, open: false }));
@@ -380,13 +404,20 @@ export default function PlatformBasePage() {
     if (drawer.editing) {
       next = data.map((s) =>
         s.key === drawer.sectionKey
-          ? { ...s, tags: s.tags.map((x) => (x.id === drawer.editing!.id ? { ...x, label: name.trim() } : x)) }
+          ? {
+              ...s,
+              tags: s.tags.map((x) =>
+                x.id === drawer.editing!.id ? { ...x, label: name.trim(), icon: iconUrl ?? undefined } : x,
+              ),
+            }
           : s,
       );
     } else {
       const maxId = data.reduce((m, s) => Math.max(m, ...s.tags.map((x) => x.id)), 0);
       next = data.map((s) =>
-        s.key === drawer.sectionKey ? { ...s, tags: [...s.tags, { id: maxId + 1, label: name.trim() }] } : s,
+        s.key === drawer.sectionKey
+          ? { ...s, tags: [...s.tags, { id: maxId + 1, label: name.trim(), icon: iconUrl ?? undefined }] }
+          : s,
       );
     }
     setData(next);
@@ -427,6 +458,7 @@ export default function PlatformBasePage() {
                       <span className="bd-pill-arrow">&lt;</span>
                       <span className="bd-pill-name">
                         {tag.emoji ? <span className="bd-pill-emoji">{tag.emoji}</span> : null}
+                        {tag.icon ? <img className="bd-pill-emoji" src={tag.icon} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} /> : null}
                         {tag.label}
                       </span>
                       <button
@@ -443,7 +475,7 @@ export default function PlatformBasePage() {
                         type="button"
                         className="bd-pill-del"
                         title="删除"
-                        onClick={() => removeTag(s.key, tag.id)}
+                        onClick={() => setPendingDelete({ sectionKey: s.key, tag })}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M18 6 6 18M6 6l12 12" />
@@ -474,7 +506,7 @@ export default function PlatformBasePage() {
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
               </button>
-              <span className="app-modal-title">添加分类</span>
+              <span className="app-modal-title">{drawer.editing ? "编辑分类" : "添加分类"}</span>
               <div className="bd-modal-actions">
                 <button type="button" className="bd-modal-cancel" onClick={closeDrawer}>取消</button>
                 <button type="button" className="bd-modal-ok" onClick={submit}>确定提交</button>
@@ -505,13 +537,33 @@ export default function PlatformBasePage() {
                 <div className="bd-form-row bd-form-icon-row">
                   <label className="bd-form-label">分类图标</label>
                   <div className="bd-icon-group">
-                    <div className="bd-icon-upload">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      +40*40
-                    </div>
-                    <button type="button" className="bd-icon-cloud">
+                    <input
+                      ref={iconFileRef}
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) => {
+                        handleIconFile(e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="bd-icon-upload"
+                      disabled={iconUploading}
+                      onClick={() => iconFileRef.current?.click()}
+                      style={iconUrl ? { backgroundImage: `url("${iconUrl}")`, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center" } : undefined}
+                    >
+                      {iconUrl ? null : (
+                        <>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                          {iconUploading ? "上传中" : "+40*40"}
+                        </>
+                      )}
+                    </button>
+                    <button type="button" className="bd-icon-cloud" disabled={iconUploading} onClick={() => iconFileRef.current?.click()}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M6 16V8a3 3 0 0 1 3-3h1l2-3h4l2 3h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" />
                       </svg>
@@ -524,6 +576,18 @@ export default function PlatformBasePage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="删除分类"
+        message={`确定删除分类「${pendingDelete?.tag.label ?? ""}」吗？删除后会影响已有数据。`}
+        confirmText="删除"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) removeTag(pendingDelete.sectionKey, pendingDelete.tag.id);
+          setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

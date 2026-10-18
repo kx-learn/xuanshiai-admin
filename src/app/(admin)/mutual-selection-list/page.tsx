@@ -335,7 +335,7 @@ function CreateMutualDrawer({ form, set, saving, submit, onClose }: {
                 ) : (<><Plus size={18} /><span>上传图片</span></>)}
                 <input type="file" accept="image/*" hidden onChange={(e) => pickAndUploadImage(e.target.files?.[0], (url) => set("cover", url), (m) => showConfigToast(m, "error"))} />
               </label>
-              <button type="button" className="ms-cloud-btn">📷 从云端素材</button>
+              
               <div className="ms-info">① 最佳尺寸：900×383（与公众号首图一致）</div>
             </div>
           </div>
@@ -480,7 +480,7 @@ function CreateMutualDrawer({ form, set, saving, submit, onClose }: {
                   ) : (<><Plus size={18} /><span>上传图标</span></>)}
                   <input type="file" accept="image/*" hidden onChange={(e) => pickAndUploadImage(e.target.files?.[0], (url) => set("shareIcon", url), (m) => showConfigToast(m, "error"))} />
                 </label>
-                <button type="button" className="ms-cloud-btn">📷 从云端素材</button>
+                
               </div>
             </div>
           </div>

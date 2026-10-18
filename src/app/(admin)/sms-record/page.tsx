@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Inbox } from "lucide-react";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
-import { asNumber, asObject, asStr, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
+import { asNumber, asObject, asStr, useConfigDomain, type Dict } from "@/lib/platform-config";
 
 const DEFAULTS = { items: [] as unknown[], balance: 0, provider: "腾讯云专线" } as const;
 
@@ -43,8 +43,18 @@ export default function Page() {
   useEffect(() => { domain.reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
 
+  const [showErrors, setShowErrors] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
   const okCount = rows.filter((r) => r.status === "成功").length;
   const failCount = rows.length - okCount;
+  const failureReasons = Object.entries(
+    rows.filter((r) => r.status !== "成功").reduce<Record<string, number>>((acc, r) => {
+      const key = r.reason || r.status || "未知原因";
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([reason, count]) => ({ reason, count }));
 
   return (
     <div className="rec-page">
@@ -91,7 +101,7 @@ export default function Page() {
         </div>
         <div className="srec-stat">
           <span className="srec-stat-label">短信余量：<span className="srec-num srec-num-blue">{balance}条</span></span>
-          <button type="button" className="srec-recharge" onClick={() => showConfigToast("在线充值需接入短信服务商后可用", "error")}>在线充值</button>
+          <button type="button" className="srec-recharge" disabled title="后端暂无短信充值接口，接入短信服务商充值能力后开放">在线充值</button>
         </div>
         <div className="srec-stat">
           <span className="srec-stat-label">发送成功：<span className="srec-num srec-num-green">{okCount}条</span></span>
@@ -104,8 +114,31 @@ export default function Page() {
       <div className="admin-card srec-card">
         <div className="srec-head">
           <h2 className="srec-title">发送记录</h2>
-          <button type="button" className="srec-query" onClick={() => showConfigToast("错误码表可参考腾讯云短信文档", "error")}>错误码查询</button>
+          <button type="button" className="srec-query" aria-expanded={showErrors} onClick={() => setShowErrors((v) => !v)}>错误码查询</button>
         </div>
+
+        {showErrors && (
+          <div className="syslog-table-wrap">
+            <table className="syslog-table">
+              <thead>
+                <tr><th>失败原因</th><th style={{ width: 90 }}>次数</th></tr>
+              </thead>
+              <tbody>
+                {failureReasons.length === 0 ? (
+                  <tr><td colSpan={2} style={{ textAlign: "center", color: "#999" }}>暂无失败记录</td></tr>
+                ) : failureReasons.map((item) => (
+                  <tr key={item.reason}>
+                    <td>{item.reason}</td>
+                    <td>{item.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ padding: "8px 0", fontSize: 12, color: "#666" }}>
+              完整错误码说明请参考 <a href="https://cloud.tencent.com/document/product/382" target="_blank" rel="noreferrer" style={{ color: "#3658f7" }}>腾讯云短信文档</a>
+            </div>
+          </div>
+        )}
 
         {rows.length === 0 ? (
           <div className="srec-empty">
@@ -117,12 +150,14 @@ export default function Page() {
             <table className="syslog-table">
               <thead>
                 <tr>
+                  <th><input type="checkbox" aria-label="全选发送记录" checked={rows.length > 0 && selectedIds.length === rows.length} onChange={(event) => setSelectedIds(event.target.checked ? rows.map((r) => r.id) : [])} /></th>
                   {columns.map((c) => <th key={c}>{c}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
+                    <td><input type="checkbox" aria-label={`选择发送记录 ${r.phone}`} checked={selectedIds.includes(r.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, r.id] : current.filter((id) => id !== r.id))} /></td>
                     <td>{r.phone}</td>
                     <td>{r.scene || "-"}</td>
                     <td>
@@ -138,6 +173,7 @@ export default function Page() {
             </table>
           </div>
         )}
+        {selectedIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedIds.length}</b> 项</span><button type="button" onClick={() => setSelectedIds([])}>取消选择</button></div>}
       </div>
     </div>
   );

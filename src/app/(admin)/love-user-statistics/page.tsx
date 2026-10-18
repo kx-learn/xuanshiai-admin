@@ -174,12 +174,15 @@ export default function LoveUserStatisticsPage() {
   const [report, setReport] = useState<MemberStatisticsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 报表时间范围：后端 from/to 必填口径（缺省为最近 15 天），浏览统计页的日期选择器驱动它
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (from: string, to: string) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminEndpoints.memberStatistics({});
+      const data = await adminEndpoints.memberStatistics({ from: from || undefined, to: to || undefined });
       setReport(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : "数据报表加载失败";
@@ -191,8 +194,8 @@ export default function LoveUserStatisticsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(rangeFrom, rangeTo);
+  }, [load, rangeFrom, rangeTo]);
 
   const groups = report?.groups;
   const metrics = report?.metrics;
@@ -448,7 +451,12 @@ export default function LoveUserStatisticsPage() {
     if (tab === "browse") {
       return (
         <div>
-          <DateRangePicker startValue={report.from_date} endValue={report.to_date} onStartChange={() => {}} onEndChange={() => {}} />
+          <DateRangePicker
+            startValue={rangeFrom || report.from_date}
+            endValue={rangeTo || report.to_date}
+            onStartChange={setRangeFrom}
+            onEndChange={setRangeTo}
+          />
           <div className="ustat-table-wrap">
             <table className="ustat-table">
               <thead>
@@ -469,9 +477,7 @@ export default function LoveUserStatisticsPage() {
                     <td>{row.profile_views}</td>
                     <td>
                       {row.popular_member && row.popular_member !== "-" ? (
-                        <span className="ustat-browse-top">
-                          <button type="button" className="ustat-link">{row.popular_member}</button>
-                        </span>
+                        <span className="ustat-browse-top" title="后端仅返回昵称，无会员 ID，无法打开资料">{row.popular_member}</span>
                       ) : (
                         "-"
                       )}

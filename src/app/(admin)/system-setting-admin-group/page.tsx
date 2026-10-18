@@ -1,12 +1,13 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import AdminBreadcrumb from "@/components/AdminBreadcrumb";
 import { Plus, X } from "lucide-react";
-import { asObject, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
+import { asObject, readPlatformConfig, savePlatformConfig, showConfigToast, useConfigDomain, type Dict } from "@/lib/platform-config";
 import AdminPagination from "@/components/AdminPagination";
 
 const GROUPS_DEFAULTS = { groups: [] as unknown[] } as const;
+const PAGE_SIZE = 20;
 
 interface Group {
   id: number;
@@ -15,55 +16,80 @@ interface Group {
   permissions: string[];
 }
 
+function toGroups(config: Dict | null | undefined): Group[] {
+  const list = Array.isArray(config?.groups) ? config!.groups : [];
+  return list.map((g, i) => {
+    const o = asObject(g as Dict);
+    return { id: Number(o.id ?? i + 1), name: String(o.name ?? ""), users: String(o.users ?? ""), permissions: Array.isArray(o.permissions) ? (o.permissions as unknown[]).map(String) : [] };
+  });
+}
+
 export default function Page() {
   const domain = useConfigDomain<Dict>("admin_groups", GROUPS_DEFAULTS as Dict);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [editing, setEditing] = useState<Group | null>(null);
   const [permEditing, setPermEditing] = useState<Group | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  const apply = useCallback((config: Dict | null) => {
-    const list = Array.isArray(config?.groups) ? config!.groups : [];
-    setGroups(list.map((g, i) => {
-      const o = asObject(g as Dict);
-      return { id: Number(o.id ?? i + 1), name: String(o.name ?? ""), users: String(o.users ?? ""), permissions: Array.isArray(o.permissions) ? (o.permissions as unknown[]).map(String) : [] };
-    }));
-  }, []);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     domain.reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { apply(domain.snapshot?.config ?? null); }, [domain.snapshot, apply]);
+  useEffect(() => { setGroups(toGroups(domain.snapshot?.config)); }, [domain.snapshot]);
 
-  const persist = async (next: Group[]) => {
-    const ok = await domain.save({ groups: next.map((g) => ({ id: g.id, name: g.name, users: g.users, permissions: g.permissions })) } as Partial<Dict>, "权限分组更新");
-    if (ok) setGroups(next);
-    else showConfigToast(domain.error ?? "保存失败，未修改本地数据", "error");
+  // 每次写入前重新读取最新版本再提交（避免用过期 version 提交而 409），
+  // 冲突时基于最新数据重放一次修改；失败则给出真实错误提示，本地数据保持不变。
+  const persist = async (mutate: (list: Group[]) => Group[], summary: string, successMessage = "已保存"): Promise<boolean> => {
+    let lastError = "保存失败，未修改本地数据";
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const fresh = await readPlatformConfig<Dict>("admin_groups");
+        const next = mutate(toGroups(fresh.config));
+        const data = await savePlatformConfig<Dict>("admin_groups", fresh.version, {
+          ...fresh.config,
+          groups: next.map((g) => ({ id: g.id, name: g.name, users: g.users, permissions: g.permissions })),
+        }, summary);
+        setGroups(toGroups(data.config));
+        showConfigToast(successMessage);
+        return true;
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : lastError;
+      }
+    }
+    showConfigToast(lastError, "error");
+    return false;
   };
 
   const addGroup = async () => {
     const name = window.prompt("请输入用户组名称");
     if (!name || !name.trim()) return;
-    await persist([...groups, { id: Date.now(), name: name.trim(), users: "", permissions: [] }]);
+    const trimmed = name.trim();
+    await persist((list) => [...list, { id: Date.now(), name: trimmed, users: "", permissions: [] }], "权限分组新增", "用户组已添加");
   };
 
   const renameGroup = async (g: Group) => {
     const name = window.prompt("修改用户组名称", g.name);
     if (!name || !name.trim()) return;
-    await persist(groups.map((x) => (x.id === g.id ? { ...x, name: name.trim() } : x)));
+    const trimmed = name.trim();
+    await persist((list) => list.map((x) => (x.id === g.id ? { ...x, name: trimmed } : x)), "权限分组重命名", "用户组已重命名");
   };
 
   const removeGroup = async (g: Group) => {
     if (!window.confirm(`确认删除用户组「${g.name}」？`)) return;
-    await persist(groups.filter((x) => x.id !== g.id));
+    const ok = await persist((list) => list.filter((x) => x.id !== g.id), "权限分组删除", "用户组已删除");
+    if (ok) setSelectedIds((current) => current.filter((id) => id !== g.id));
   };
 
   const savePerms = async (g: Group, perms: string[]) => {
-    await persist(groups.map((x) => (x.id === g.id ? { ...x, permissions: perms } : x)));
-    setPermEditing(null);
+    const ok = await persist((list) => list.map((x) => (x.id === g.id ? { ...x, permissions: perms } : x)), "权限分组权限更新", "权限已保存");
+    if (ok) setPermEditing(null);
   };
+
+  const pageCount = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pageRows = groups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageAllSelected = pageRows.length > 0 && pageRows.every((g) => selectedIds.includes(g.id));
 
   const base = getBreadcrumb("系统管理", "权限分组");
   const breadcrumb = [
@@ -90,7 +116,7 @@ export default function Page() {
           <table className="au-table au-group-table">
             <thead>
               <tr>
-                <th><input type="checkbox" aria-label="全选用户组" checked={groups.length > 0 && selectedIds.length === groups.length} onChange={(event) => setSelectedIds(event.target.checked ? groups.map((group) => group.id) : [])} /></th>
+                <th><input type="checkbox" aria-label="全选用户组" checked={pageAllSelected} onChange={(event) => setSelectedIds(event.target.checked ? [...new Set([...selectedIds, ...pageRows.map((group) => group.id)])] : selectedIds.filter((id) => !pageRows.some((group) => group.id === id)))} /></th>
                 <th>用户组名</th>
                 <th>当前用户</th>
                 <th>操作</th>
@@ -99,7 +125,7 @@ export default function Page() {
             <tbody>
               {groups.length === 0 ? (
                 <tr><td colSpan={4} style={{ textAlign: "center", padding: "32px 0", color: "#999" }}>{domain.loading ? "加载中…" : "暂无数据"}</td></tr>
-              ) : groups.map((r) => (
+              ) : pageRows.map((r) => (
                 <tr key={r.id}>
                   <td><input type="checkbox" aria-label={`选择用户组 ${r.name}`} checked={selectedIds.includes(r.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, r.id] : current.filter((id) => id !== r.id))} /></td>
                   <td className="au-group-name">{r.name}</td>
@@ -118,11 +144,10 @@ export default function Page() {
         </div>
 
         {selectedIds.length > 0 && <div className="lead-bulk-toolbar"><span>已选择 <b>{selectedIds.length}</b> 项</span><button type="button" onClick={() => setSelectedIds([])}>取消选择</button></div>}
-        <AdminPagination page={1} pageSize={20} total={groups.length} onPageChange={() => undefined} />
+        <AdminPagination page={safePage} pageSize={PAGE_SIZE} total={groups.length} onPageChange={(next) => { setPage(next); setSelectedIds([]); }} />
       </div>
 
       {permEditing && <PermModal group={permEditing} onClose={() => setPermEditing(null)} onSave={(perms) => savePerms(permEditing, perms)} />}
-      {editing && null}
     </div>
   );
 }

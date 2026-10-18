@@ -10,7 +10,7 @@ import MemberQuickProfileDrawer from "@/components/MemberQuickProfileDrawer";
 import { getBreadcrumb } from "@/lib/breadcrumb-config";
 import { adminEndpoints } from "@/lib/admin-endpoints";
 import type { MemberFollowUpRow, MemberFollowUpSummary } from "@/lib/admin-endpoints";
-import { resolveMediaUrl } from "@/lib/admin-api";
+import { adminApi, resolveMediaUrl } from "@/lib/admin-api";
 import { showConfigToast } from "@/lib/platform-config";
 
 type Range = "all" | "today" | "yesterday" | "threeDays" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth";
@@ -92,6 +92,8 @@ export default function LoveUserFollowUpPage() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<MemberFollowUpRow | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [bulkIntention, setBulkIntention] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   const dateRange = useMemo(() => rangeToDates(range), [range]);
   const effectiveStart = from || dateRange.start;
@@ -110,6 +112,9 @@ export default function LoveUserFollowUpPage() {
       });
       setRows(result.items ?? []);
       setTotal(result.total ?? 0);
+      // 换页/筛选后，跨页残留的勾选无法再操作，收敛到当前页的可见行
+      const visible = new Set((result.items ?? []).map((item) => item.id));
+      setSelected((current) => current.filter((id) => visible.has(id)));
     } catch (error) {
       showConfigToast(error instanceof Error ? error.message : "跟进记录加载失败", "error");
       setRows([]);
@@ -129,6 +134,42 @@ export default function LoveUserFollowUpPage() {
 
   useEffect(() => { void loadRows(); }, [loadRows]);
   useEffect(() => { void loadSummary(); }, [loadSummary]);
+
+  /**
+   * 批量标记选中会员的客户意向。
+   * 后端没有跟进记录级的批量接口，改走会员维度的单条更新
+   * `PATCH /admin/matchmaker/members/{id}`（intention_level 1低 2中 3高，空=清除），
+   * 同一会员的多条跟进只更新一次。
+   */
+  const bulkMarkIntention = async () => {
+    if (!selected.length) return;
+    // "0" 是页面上的「清除意向」选项，映射为 null（后端 intention_level 只接受 1/2/3 或 null）
+    const level = bulkIntention === "" || bulkIntention === "0" ? null : Number(bulkIntention);
+    const userIds = Array.from(new Set(rows.filter((row) => selected.includes(row.id)).map((row) => row.user_id)));
+    if (!userIds.length) return;
+    const label = level === null ? "清除客户意向" : (level === 1 ? "低意向" : level === 2 ? "中意向" : "高意向");
+    if (!window.confirm(`确定将选中的 ${userIds.length} 位会员的客户意向标记为「${label}」吗？`)) return;
+    setBulkSaving(true);
+    let done = 0;
+    let failed = 0;
+    for (const userId of userIds) {
+      try {
+        await adminApi(`admin/matchmaker/members/${userId}`, { method: "PATCH", body: { intention_level: level } });
+        done += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setBulkSaving(false);
+    if (failed === 0) {
+      showConfigToast(`已更新 ${done} 位会员`, "ok");
+      setSelected([]);
+      setBulkIntention("");
+    } else {
+      showConfigToast(`${done} 位已更新，${failed} 位失败`, "error");
+    }
+    await loadRows();
+  };
 
   const allSelected = rows.length > 0 && selected.length === rows.length;
   const exportRows = () => {
@@ -280,6 +321,41 @@ export default function LoveUserFollowUpPage() {
         </div>
 
         <AdminPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
+
+        {selected.length > 0 && (
+          <div className="lead-bulk-toolbar fixed bottom-0 right-0 left-56 z-[45] flex min-h-[54px] flex-wrap items-center gap-2.5 border-t border-[#e3e7ef] bg-white px-[18px] py-2 text-[13px] text-[#46516b] shadow-[0_-2px_10px_rgba(24,40,80,.12)]">
+            <span>已选择 <b>{selected.length}</b> 项</span>
+            <select
+              aria-label="批量标记客户意向"
+              className="h-9 rounded border border-[#dfe3ea] bg-white px-4 text-[13px] text-[#667085] disabled:opacity-50"
+              value={bulkIntention}
+              disabled={bulkSaving}
+              onChange={(event) => setBulkIntention(event.target.value)}
+            >
+              <option value="">标记客户意向</option>
+              <option value="3">高意向</option>
+              <option value="2">中意向</option>
+              <option value="1">低意向</option>
+              <option value="0">清除意向</option>
+            </select>
+            <button
+              type="button"
+              className="h-9 whitespace-nowrap rounded border border-[#3658f7] bg-[#3658f7] px-4 text-[13px] text-white disabled:opacity-50"
+              disabled={bulkSaving || bulkIntention === ""}
+              onClick={() => void bulkMarkIntention()}
+            >
+              {bulkSaving ? "提交中…" : "应用"}
+            </button>
+            <button
+              type="button"
+              className="h-9 whitespace-nowrap rounded border border-[#3658f7] bg-[#3658f7] px-4 text-[13px] text-white disabled:opacity-50"
+              disabled={bulkSaving}
+              onClick={() => { setSelected([]); setBulkIntention(""); }}
+            >
+              取消选择
+            </button>
+          </div>
+        )}
       </section>
 
       {profile && (
